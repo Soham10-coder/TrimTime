@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Messages - LegalConnect</title>
+  <link rel="stylesheet" href="cmessage.css"/>
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+</head>
+<body>
+  <div class="sidebar">
+    <h2 style="text-align: center;">LegalConnect</h2>
+    <a href="cdash.html">Home</a>
+    <a href="clawyers.html">Lawyer</a>
+    <a href="cappointments.html">Appointments</a>
+    <a href="cmessage.html">Messages</a>
+    <a href="cbill.html">Billing & Payments</a>
+    <a href="profile.html">Profile</a>
+  </div>
+
+  <div class="container">
+    <h2>Messages</h2>
+    <div class="chat-container">
+      <div class="chat-header">
+        <h3>Chat with <span id="lawyerName">Lawyer</span></h3>
+      </div>
+      <div class="chat-box" id="chatBox"></div>
+      <div class="chat-input">
+        <input type="text" id="messageInput" placeholder="Type your message..." />
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const lawyer = urlParams.get('lawyer'); // e.g. "sohambagade1001@gmail.com"
+    document.getElementById('lawyerName').textContent = lawyer || 'Unknown';
+
+    // Client email — dynamically set if you have session or auth system
+    const client = "client@example.com"; // Replace with dynamic email
+
+    // Generate shared room name
+    const room = [client, lawyer].sort().join("_");
+
+    // Join same room as lawyer
+    socket.emit("join_room", room);
+
+    const chatBox = document.getElementById("chatBox");
+    const messageInput = document.getElementById("messageInput");
+
+    function sendMessage() {
+      const message = messageInput.value.trim();
+      if (message === '') return;
+
+      const data = {
+        room: room,
+        message: message,
+        sender: 'client'
+      };
+
+      socket.emit("client_message", data);
+      appendMessage("You", message, "client-message");
+
+      messageInput.value = '';
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function appendMessage(sender, message, className) {
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add(className);
+      msgDiv.innerHTML = `<strong>${sender}:</strong> ${message}`;
+      chatBox.appendChild(msgDiv);
+    }
+
+    // Receive lawyer's message
+    socket.on("lawyer_message", (data) => {
+      appendMessage(lawyer, data.message, "lawyer-message");
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Client Management</title>
+  <link rel="stylesheet" href="6.clinentmg.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Client Management</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Client Name</th>
+          <th>Email</th>
+          <th>Case Type</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="clientTable">
+        <!-- Client requests will be populated here -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // Sample Data (You can replace this with data from backend)
+    const clientRequests = [
+      { name: 'John Doe', email: 'john.doe@example.com', caseType: 'Family Law' },
+      { name: 'Jane Smith', email: 'jane.smith@example.com', caseType: 'Criminal Law' }
+    ];
+
+    const clientTable = document.getElementById('clientTable');
+
+    clientRequests.forEach(client => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${client.name}</td>
+        <td>${client.email}</td>
+        <td>${client.caseType}</td>
+        <td>
+          <button class="accept">Accept</button>
+          <button class="reject">Reject</button>
+          <button class="view">View Details</button>
+        </td>
+      `;
+      clientTable.appendChild(row);
+    });
+
+    // Add event listeners for buttons
+    document.querySelectorAll('.accept').forEach(button => button.addEventListener('click', () => alert('Client Accepted!')));
+    document.querySelectorAll('.reject').forEach(button => button.addEventListener('click', () => alert('Client Rejected!')));
+    document.querySelectorAll('.view').forEach(button => button.addEventListener('click', () => alert('Viewing Client Details!')));
+  </script>
+</body>
+</html>

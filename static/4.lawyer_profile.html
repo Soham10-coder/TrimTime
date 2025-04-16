@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile Management</title>
+    <link rel="stylesheet" href="4.lawer_profile.css" />
+</head>
+<body>
+    <div class="container">
+        <h2>Profile Management</h2>
+        <form id="profileForm" enctype="multipart/form-data">
+            <input type="hidden" id="name" name="name" />
+            <input type="hidden" id="email" name="email" />
+
+            <label for="achievements">Achievements:</label>
+            <textarea id="achievements" name="achievements" placeholder="List your achievements" rows="4"></textarea>
+
+            <label for="experience">Years of Experience:</label>
+            <input type="number" id="experience" name="experience" placeholder="Years of Experience" min="0" required />
+
+            <label for="specialization">Area of Specialization:</label>
+            <input type="text" id="specialization" name="specialization" placeholder="e.g. Criminal Law, Corporate Law" required />
+
+            <label for="certifications">Certifications (PDF or Image):</label>
+            <input type="file" id="certifications" name="certifications" accept=".pdf, image/*" multiple onchange="previewFiles('certifications', 'certificationPreview')" />
+            <div id="certificationPreview"></div>
+
+            <label for="graduationCertificates">Graduation Certificates (PDF or Image):</label>
+            <input type="file" id="graduationCertificates" name="graduationCertificates" accept=".pdf, image/*" multiple onchange="previewFiles('graduationCertificates', 'graduationPreview')" />
+            <div id="graduationPreview"></div>
+
+            <label for="profilePic">Profile Picture:</label>
+            <input type="file" id="profilePic" name="profilePic" accept="image/*" onchange="previewFiles('profilePic', 'profilePicPreview')" />
+            <div id="profilePicPreview"></div>
+
+            <input type="submit" value="Update Profile" />
+        </form>
+    </div>
+
+    <script>
+        window.onload = function () {
+            const userName = localStorage.getItem('userName');
+            const userEmail = localStorage.getItem('userEmail');
+
+            if (userName && userEmail) {
+                document.getElementById('name').value = userName;
+                document.getElementById('email').value = userEmail;
+            } else {
+                alert("User information not found. Please log in again.");
+            }
+        };
+
+        function previewFiles(inputId, previewId) {
+            const input = document.getElementById(inputId);
+            const preview = document.getElementById(previewId);
+            preview.innerHTML = "";
+
+            Array.from(input.files).forEach(file => {
+                const fileReader = new FileReader();
+                fileReader.onload = function (e) {
+                    if (file.type.startsWith('image/')) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.style.width = '100px';
+                        img.style.marginRight = '10px';
+                        preview.appendChild(img);
+                    } else {
+                        const link = document.createElement('a');
+                        link.href = e.target.result;
+                        link.textContent = file.name;
+                        link.target = '_blank';
+                        preview.appendChild(link);
+                        preview.appendChild(document.createElement('br'));
+                    }
+                };
+                fileReader.readAsDataURL(file);
+            });
+        }
+
+        document.getElementById('profileForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const form = document.getElementById('profileForm');
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/updateProfile', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('Profile updated successfully!');
+                    const role = localStorage.getItem('role');
+                    if (role === 'lawyer') {
+                        window.location.href = '3.lawyer_dashboard.html';
+                    } else {
+                        window.location.href = 'cdash.html';
+                    }
+                } else {
+                    alert(result.message || 'Failed to update profile.');
+                }
+            } catch (error) {
+                console.error('Profile update error:', error);
+                alert('Something went wrong. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Messages - LegalConnect</title>
+  <link rel="stylesheet" href="7.1.lawyer_message.css" />
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h2>Messages</h2>
+    <div class="chat-container">
+      <div class="chat-header">
+        <h3>Chat with <span id="clientName">Client</span></h3>
+      </div>
+      <div class="chat-box" id="chatBox">
+        <!-- Messages will be dynamically loaded here -->
+      </div>
+      <div class="chat-input">
+        <input type="text" id="messageInput" placeholder="Type your message..." />
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+
+    // Get client name/email from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const client = urlParams.get('client');
+    document.getElementById('clientName').textContent = client || 'Unknown';
+
+    // Lawyer email — should match the backend or session
+    const lawyer = "sohambagade1001@gmail.com"; // Update dynamically if needed
+
+    // Generate consistent room ID using sorted emails
+    const room = [lawyer, client].sort().join("_");
+
+    // Join the chat room
+    socket.emit("join_room", room);
+
+    const chatBox = document.getElementById("chatBox");
+    const messageInput = document.getElementById("messageInput");
+
+    function sendMessage() {
+      const message = messageInput.value.trim();
+      if (message === '') return;
+
+      const data = {
+        room: room,
+        message: message,
+        sender: 'lawyer'
+      };
+
+      socket.emit("lawyer_message", data);
+      appendMessage("You", message, "lawyer-message");
+
+      messageInput.value = '';
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function appendMessage(sender, message, className) {
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add(className);
+      msgDiv.innerHTML = `<strong>${sender}:</strong> ${message}`;
+      chatBox.appendChild(msgDiv);
+    }
+
+    // Receive message from client
+    socket.on("client_message", (data) => {
+      appendMessage(client, data.message, "client-message");
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+  </script>
+</body>
+</html>

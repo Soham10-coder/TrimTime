@@ -1,0 +1,60 @@
+/* General Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  
+  body {
+    background-color: #f0f4f8;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  
+  .container {
+    background-color: #fff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+  }
+  
+  h2 {
+    font-size: 28px;
+    color: #333;
+    margin-bottom: 20px;
+  }
+  
+  .client-list {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .client-list li {
+    margin-bottom: 15px;
+  }
+  
+  .client-list a {
+    text-decoration: none;
+    display: block;
+    padding: 15px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 8px;
+    font-size: 18px;
+    transition: background-color 0.3s ease;
+  }
+  
+  .client-list a:hover {
+    background-color: #0056b3;
+  }
+  
+  .client-list a:active {
+    background-color: #004080;
+  }
+  

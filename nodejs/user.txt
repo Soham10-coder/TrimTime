@@ -1,0 +1,13 @@
+{
+  "_id": {
+    "$oid": "67e1611997dad8706bdc9ae4"
+  },
+  "firstName": "Swayam",
+  "middleName": "Sangram",
+  "lastName": "Dakare",
+  "email": "swayamdakare1@gmail.com",
+  "phone": "09307794669",
+  "password": "Swayam01",
+  "barCouncilNumber": "1635",
+  "legalPractitioner": true
+}

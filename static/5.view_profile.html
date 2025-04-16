@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>View Profile</title>
+  <link rel="stylesheet" href="4.lawer_profile.css" />
+</head>
+<body>
+  <div class="container">
+    <h2>Your Profile</h2>
+
+    <div class="profile-details">
+      <p><strong>Achievements:</strong> <span id="achievements">Loading...</span></p>
+      <p><strong>Years of Experience:</strong> <span id="experience">Loading...</span></p>
+      <p><strong>Specialization:</strong> <span id="specialization">Loading...</span></p>
+      <p><strong>Certifications:</strong><br><div id="certifications">Loading...</div></p>
+      <p><strong>Graduation Certificates:</strong><br><div id="graduationCertificates">Loading...</div></p>
+      <p><strong>Profile Picture:</strong><br>
+        <img id="profilePic" src="" alt="Profile Picture" style="width:100px;height:100px;" />
+      </p>
+    </div>
+
+    <a href="4.lawyer_profile.html" class="edit-profile-btn">Edit Profile</a>
+  </div>
+
+  <script>
+    async function loadProfile() {
+      const email = localStorage.getItem('userEmail');
+      if (!email) {
+        alert("User email not found. Please log in again.");
+        window.location.href = "1.user_login.html";
+        return;
+      }
+
+      try {
+        const res = await fetch(`http://localhost:5000/getProfile/${email}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.message || "Failed to fetch profile.");
+          return;
+        }
+
+        // Basic Info
+        document.getElementById('achievements').textContent = data.achievements || 'N/A';
+        document.getElementById('experience').textContent = data.experience || 'N/A';
+        document.getElementById('specialization').textContent = data.specialization || 'N/A';
+
+        // Certifications
+        const certsContainer = document.getElementById('certifications');
+        certsContainer.innerHTML = '';
+        (data.certifications || []).forEach(path => {
+          const fileName = path.split('/').pop();
+          const link = document.createElement('a');
+          link.href = `http://localhost:5000/${fileName}`;
+          link.textContent = fileName;
+          link.target = '_blank';
+          certsContainer.appendChild(link);
+          certsContainer.appendChild(document.createElement('br'));
+        });
+
+        // Graduation Certificates
+        const gradsContainer = document.getElementById('graduationCertificates');
+        gradsContainer.innerHTML = '';
+        (data.graduationCertificates || []).forEach(path => {
+          const fileName = path.split('/').pop();
+          const link = document.createElement('a');
+          link.href = `http://localhost:5000/${fileName}`;
+          link.textContent = fileName;
+          link.target = '_blank';
+          gradsContainer.appendChild(link);
+          gradsContainer.appendChild(document.createElement('br'));
+        });
+
+        // Profile Picture
+        const profilePic = document.getElementById('profilePic');
+        if (data.profilePic) {
+          profilePic.src = `http://localhost:5000/uploads/${data.profilePic.split('/').pop()}`;
+        } else {
+          profilePic.alt = "No profile picture uploaded.";
+        }
+
+      } catch (error) {
+        console.error("Error loading profile:", error);
+        alert("Server error while loading profile.");
+      }
+    }
+
+    loadProfile();
+  </script>
+</body>
+</html>

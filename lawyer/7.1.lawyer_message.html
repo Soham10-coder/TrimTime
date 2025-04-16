@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Messages - LegalConnect</title>
+  <link rel="stylesheet" href="7.1.lawyer_message.css" />
+</head>
+<body>
+  <div class="container">
+    <h2>Messages</h2>
+    <div class="chat-container">
+      <div class="chat-header">
+        <h3>Chat with Clients</h3>
+      </div>
+      <div class="chat-box" id="chatBox">
+        <!-- Messages will be dynamically loaded here -->
+      </div>
+      <div class="chat-input">
+        <input type="text" id="messageInput" placeholder="Type your message..." />
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function sendMessage() {
+      const messageInput = document.getElementById('messageInput');
+      const chatBox = document.getElementById('chatBox');
+
+      if (messageInput.value.trim() === '') return;
+
+      const messageDiv = document.createElement('div');
+      messageDiv.classList.add('lawyer-message');
+      messageDiv.textContent = messageInput.value;
+      chatBox.appendChild(messageDiv);
+
+      messageInput.value = '';
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+  </script>
+</body>
+</html>
