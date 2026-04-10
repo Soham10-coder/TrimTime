@@ -1,57 +1,181 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Client Management</title>
-  <link rel="stylesheet" href="6.clinentmg.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Management - LegalConnect</title>
+  <link rel="stylesheet" href="global.css">
+  <style>
+    .appointments-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      margin-top: 1rem;
+    }
+    .appointments-table th, .appointments-table td {
+      padding: 1.2rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .appointments-table th {
+      background: var(--primary);
+      color: white;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+    .appointments-table tr:hover { background: var(--bg-light); }
+    
+    .action-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .action-group button {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.85rem;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Client Management</h1>
-    <table>
-      <thead>
-        <tr>
-          <th>Client Name</th>
-          <th>Email</th>
-          <th>Case Type</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="clientTable">
-        <!-- Client requests will be populated here -->
-      </tbody>
-    </table>
+  <div class="dashboard-layout">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">⚖️ LegalConnect</div>
+      <nav class="sidebar-nav">
+        <a href="3.lawyer_dashboard.html">Dashboard</a>
+        <a href="9.manage_cases.html">Manage Cases</a>
+        <a href="8.lawyer_appointment.html">Appointments Record</a>
+        <a href="6.lawyer_clientmg.html" class="active">Clients Requests</a>
+        <a href="4.lawyer_profile.html">Edit Profile</a>
+        <a href="5.view_profile.html">View Profile</a>
+        <a href="1.user_login.html" onclick="logout()" style="margin-top: 2rem; color: #fca5a5;">Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="top-bar">
+        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+        <h1>Pending Client Inquiries</h1>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="appointments-table">
+          <thead>
+            <tr>
+              <th>Client Name</th>
+              <th>Contact Email</th>
+              <th>Legal Issue / Topic</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="clientTable">
+            <tr><td colspan="4" style="text-align:center; color: var(--text-muted);">Scanning for new requests...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      
+    </main>
   </div>
 
+  <div id="toast-container" class="toast-container"></div>
+
   <script>
-    // Sample Data (You can replace this with data from backend)
-    const clientRequests = [
-      { name: 'John Doe', email: 'john.doe@example.com', caseType: 'Family Law' },
-      { name: 'Jane Smith', email: 'jane.smith@example.com', caseType: 'Criminal Law' }
-    ];
+    function toggleMenu() { document.getElementById('sidebar').classList.toggle('open'); }
+    function logout() { localStorage.clear(); }
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<span>${message}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000);
+    }
 
-    const clientTable = document.getElementById('clientTable');
+    document.addEventListener('DOMContentLoaded', function () {
+      const lawyerEmail = localStorage.getItem('userEmail');
+      if(!lawyerEmail) { showToast("Session expired.", "error"); return; }
 
-    clientRequests.forEach(client => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${client.name}</td>
-        <td>${client.email}</td>
-        <td>${client.caseType}</td>
-        <td>
-          <button class="accept">Accept</button>
-          <button class="reject">Reject</button>
-          <button class="view">View Details</button>
-        </td>
-      `;
-      clientTable.appendChild(row);
-    });
+       fetch(`http://localhost:5000/api/lawyer/appointments?lawyerEmail=${encodeURIComponent(lawyerEmail)}`)
+        .then(res => res.json())
+        .then(clientRequests => {
+          const clientTable = document.getElementById('clientTable');
+          clientTable.innerHTML = '';
 
-    // Add event listeners for buttons
-    document.querySelectorAll('.accept').forEach(button => button.addEventListener('click', () => alert('Client Accepted!')));
-    document.querySelectorAll('.reject').forEach(button => button.addEventListener('click', () => alert('Client Rejected!')));
-    document.querySelectorAll('.view').forEach(button => button.addEventListener('click', () => alert('Viewing Client Details!')));
+          const pendingRequests = clientRequests.filter(client => {
+            if (!client.status) return true;
+            return client.status.toString().trim().toLowerCase() === 'pending' || client.status.toString().trim().toLowerCase() === 'requested';
+          });
+
+          if (pendingRequests.length === 0) {
+            clientTable.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No pending legal requests.</td></tr>`;
+          } else {
+            pendingRequests.forEach(client => {
+              const clientName = client.clientName || client.client_name || 'Anonymous';
+              const clientEmail = client.clientEmail || client.client_email || 'Hidden';
+              const topic = client.topic || client.caseType || 'Consultation';
+              const id = client._id;
+
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                <td style="font-weight: 500;">${clientName}</td>
+                <td>${clientEmail}</td>
+                <td>${topic}</td>
+                <td>
+                  <div class="action-group">
+                      <button class="btn btn-secondary accept" data-id="${id}">Accept</button>
+                      <button class="btn btn-danger reject" data-id="${id}">Decline</button>
+                  </div>
+                </td>
+              `;
+              clientTable.appendChild(row);
+            });
+          }
+
+          document.querySelectorAll('.accept').forEach(button =>
+            button.addEventListener('click', function () {
+              const id = this.getAttribute('data-id');
+              const row = this.closest('tr');
+              this.textContent = '...';
+              
+              fetch('http://localhost:5000/api/lawyer/appointment/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ appointmentId: id, status: 'Accepted' })
+              })
+                .then(res => res.json())
+                .then(data => {
+                  showToast(data.message || 'Client Accepted!', 'success');
+                  row.style.opacity = '0';
+                  setTimeout(()=> row.remove(), 300);
+                }).catch(err => { showToast('Error connecting to Server', 'error'); this.textContent = 'Accept'; });
+            })
+          );
+
+          document.querySelectorAll('.reject').forEach(button =>
+            button.addEventListener('click', function () {
+              const id = this.getAttribute('data-id');
+              const row = this.closest('tr');
+              this.textContent = '...';
+              
+              fetch('http://localhost:5000/api/lawyer/appointment/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ appointmentId: id, status: 'Rejected' })
+              })
+                .then(res => res.json())
+                .then(data => {
+                  showToast(data.message || 'Client Declined!', 'error');
+                  row.style.opacity = '0';
+                  setTimeout(()=> row.remove(), 300);
+                }).catch(err => { showToast('Error connecting to Server', 'error'); this.textContent = 'Decline'; });
+            })
+          );
+        });
+    }); 
   </script>
 </body>
 </html>

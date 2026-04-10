@@ -1,53 +1,161 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Appointments - LegalConnect</title>
-    <link rel="stylesheet" href="cappointments.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Appointments - LegalConnect</title>
+  <link rel="stylesheet" href="global.css">
+  <style>
+    .appointments-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      margin-top: 1rem;
+    }
+    .appointments-table th, .appointments-table td {
+      padding: 1.2rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .appointments-table th {
+      background: var(--primary);
+      color: white;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+    .appointments-table tr:hover {
+      background: var(--bg-light);
+    }
+    .appointments-table td.status {
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+  </style>
 </head>
 <body>
-    <div class="sidebar">
-        <h2 style="text-align: center;">LegalConnect</h2>
-        <a href="cdash.html">Home</a>
-        <a href="clawyers.html">Lawyer</a>
-        <a href="cappointments.html">Appointments</a>
-        <a href="cmessage.html">Messages</a>
-        <a href="cbill.html">Billing & Payments</a>
-        <a href="cprofile.html">Profile</a>
-    </div>
+  <div class="dashboard-layout">
     
-    <div class="main-content">
-        <div class="top-bar">
-            <h2>Appointments</h2>
-        </div>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">⚖️ LegalConnect</div>
+      <nav class="sidebar-nav">
+        <a href="cdash.html">Dashboard</a>
+        <a href="clawyers.html">Find a Lawyer</a>
+        <a href="cappointments.html" class="active">My Appointments</a>
+        <a href="cprofile.html">My Profile</a>
+        <a href="1.user_login.html" onclick="localStorage.clear();" style="margin-top: 2rem; color: #fca5a5;">Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="top-bar">
+        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+        <h1>My Booked Appointments</h1>
+      </div>
+
+      <div style="overflow-x: auto;">
         <table class="appointments-table">
             <thead>
                 <tr>
-                    <th>Lawyer</th>
+                    <th>Advocate</th>
                     <th>Date</th>
                     <th>Time</th>
                     <th>Status</th>
                     <th>Action</th>
                 </tr>
             </thead>
-            <tbody>
-                <tr>
-                    <td>Soham Bagade</td>
-                    <td>April 5, 2025</td>
-                    <td>10:00 AM</td>
-                    <td>Confirmed</td>
-                    <td><button>Cancel</button></td>
-                </tr>
-                <tr>
-                    <td>Swayam Dakare</td>
-                    <td>April 8, 2025</td>
-                    <td>2:00 PM</td>
-                    <td>Pending</td>
-                    <td><button>Cancel</button></td>
-                </tr>
+            <tbody id="appointmentsTableBody">
+                <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Loading your appointments...</td></tr>
             </tbody>
-        </table>        
-    </div>
+        </table>  
+      </div>      
+    </main>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script>
+    function toggleMenu() { document.getElementById('sidebar').classList.toggle('open'); }
+
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<span>${message}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const clientEmail = localStorage.getItem('userEmail');
+        
+        if(!clientEmail) {
+            showToast("Session disconnected.", "error"); return;
+        }
+
+        fetch(`http://localhost:5000/api/client/appointments?clientEmail=${encodeURIComponent(clientEmail)}`)
+            .then(res => res.json())
+            .then(appointments => {
+                const tbody = document.getElementById('appointmentsTableBody');
+                tbody.innerHTML = '';
+                
+                if (appointments.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No appointments booked yet.</td></tr>';
+                    return;
+                }
+
+                appointments.forEach(app => {
+                    const row = document.createElement('tr');
+                    const statusText = app.status || 'Pending';
+                    const statusColor = statusText.toLowerCase() === 'accepted' ? 'var(--secondary)' : 
+                                        (statusText.toLowerCase() === 'rejected' ? 'var(--danger)' : 'var(--text-main)');
+                    
+                    row.innerHTML = `
+                        <td>${app.lawyerName || app.lawyer_name || app.lawyer_email || 'Unknown Lawyer'}</td>
+                        <td style="font-weight: 500;">${app.date || 'TBD'}</td>
+                        <td>${app.time || 'TBD'}</td>
+                        <td class="status" style="color: ${statusColor};">${statusText}</td>
+                        <td>
+                            ${statusText.toLowerCase() === 'accepted' ? `<a href="cmessage.html?lawyer_email=${encodeURIComponent(app.lawyer_email || app.lawyerEmail || '')}" class="btn btn-primary" style="padding: 0.4rem 1rem; font-size:0.8rem; text-decoration: none;">✉️ Chat</a>` : ''}
+                            ${statusText.toLowerCase() !== 'rejected' ? `<button class="btn btn-outline cancel-btn" data-id="${app._id}" style="padding: 0.4rem 1rem; font-size:0.8rem; margin-left: 0.5rem;">Cancel</button>` : 'N/A'}
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                document.querySelectorAll('.cancel-btn').forEach(button =>
+                    button.addEventListener('click', function () {
+                        if (!confirm("Are you sure you want to cancel this appointment?")) return;
+                        const id = this.getAttribute('data-id');
+                        this.textContent = "Cancelling...";
+                        
+                        fetch('http://localhost:5000/api/client/appointment/cancel', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ appointmentId: id })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            showToast(data.message || 'Appointment cancelled!', 'success');
+                            this.closest('tr').style.opacity = '0.5';
+                            this.remove(); // removes button
+                        })
+                        .catch(err => {
+                            showToast("Failed to connect to server.", "error");
+                            this.textContent = "Cancel";
+                        });
+                    })
+                );
+            })
+            .catch(err => {
+                const tbody = document.getElementById('appointmentsTableBody');
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--danger);">Network Error.</td></tr>';
+            });
+    });
+  </script>
 </body>
 </html>

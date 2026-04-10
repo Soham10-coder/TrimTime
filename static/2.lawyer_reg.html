@@ -1,94 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>User Registration</title>
-  <link rel="stylesheet" href="2.lawyer_reg.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration - LegalConnect</title>
+    <link rel="stylesheet" href="global.css">
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCS2WUIWVHRyfh52k1IkRK0EO1wjrEDsIs",
+            authDomain: "legalconnect-51743.firebaseapp.com",
+            projectId: "legalconnect-51743",
+            storageBucket: "legalconnect-51743.firebasestorage.app",
+            messagingSenderId: "873049178475",
+            appId: "1:873049178475:web:bef75d36a20086c87e0c2e",
+            measurementId: "G-YG0F8GD1M2"
+        };
+        firebase.initializeApp(firebaseConfig);
+    </script>
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--bg-light) 0%, #e2e8f0 100%);
+            padding: 2rem;
+        }
+        .reg-container {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: 2.5rem;
+            max-width: 600px;
+            width: 100%;
+        }
+        .reg-container h2 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 1.8rem;
+        }
+        .name-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        @media (min-width: 600px) {
+            .name-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+        }
+        .checkbox-container input[type="checkbox"] {
+            width: 1.2rem;
+            height: 1.2rem;
+        }
+        .auth-links {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+    </style>
 </head>
 <body>
-  <div id="registration-container">
-    <h2>User Registration</h2>
-    <form id="registrationForm">
-      <label for="userType" class="same">Registering as</label>
-      <select id="userType" name="userType" required>
-        <option value="">Select</option>
-        <option value="lawyer">Lawyer</option>
-        <option value="client">Client</option>
-      </select>
 
-      <label class="same">Name</label>
-      <div class="name_container">
-        <input type="text" id="firstName" name="firstName" placeholder="First Name" required>
-        <input type="text" id="MiddleName" name="MiddleName" placeholder="Middle Name" required>
-        <input type="text" id="LastName" name="LastName" placeholder="Last Name" required>
-      </div>
+    <div class="reg-container">
+        <h2>Create an Account</h2>
+        <form id="registrationForm">
+            
+            <div class="form-group">
+                <label for="userType">Registering as</label>
+                <select id="userType" name="userType" required>
+                    <option value="">Select Role...</option>
+                    <option value="lawyer">Advocate / Lawyer</option>
+                    <option value="client">Client</option>
+                </select>
+            </div>
 
-      <label for="email" class="same">Email Address</label>
-      <input type="email" id="email" name="email" required>
+            <div class="form-group">
+                <label>Full Name</label>
+                <div class="name-grid">
+                    <input type="text" id="firstName" name="firstName" placeholder="First Name" required>
+                    <input type="text" id="MiddleName" name="MiddleName" placeholder="Middle Name">
+                    <input type="text" id="LastName" name="LastName" placeholder="Last Name" required>
+                </div>
+            </div>
 
-      <label for="phone" class="same">Phone Number</label>
-      <input type="tel" id="phone" name="phone" required>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" placeholder="name@example.com" required>
+            </div>
 
-      <label for="password" class="same">Password</label>
-      <input type="password" id="password" name="password" required>
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" name="phone" placeholder="10-digit number" required pattern="\d{10}" title="Must be exactly 10 digits">
+            </div>
 
-      <label for="confirmPassword" class="same">Confirm Password</label>
-      <input type="password" id="confirmPassword" name="confirmPassword" required>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Min 8 chars, 1 uppercase, 1 symbol" required>
+            </div>
 
-      <!-- Lawyer-specific fields -->
-      <div id="lawyerFields" style="display: none;">
-        <label for="barCouncilNumber" class="same">Bar Council Number</label>
-        <input type="text" id="barCouncilNumber" name="barCouncilNumber">
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required>
+            </div>
 
-        <div class="checkbox-container">
-          <input type="checkbox" id="legalPractitioner" name="legalPractitioner">
-          <label for="legalPractitioner">I am a licensed legal practitioner</label>
-        </div>
-      </div>
+            <!-- Lawyer Specific -->
+            <div id="lawyerFields" style="display: none; background: #f8fafc; padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+                <h4 style="margin-bottom: 1rem; color: var(--primary);">Lawyer Verification</h4>
+                <div class="form-group">
+                    <label for="barCouncilNumber">Bar Council Number</label>
+                    <input type="text" id="barCouncilNumber" name="barCouncilNumber" placeholder="e.g. MAH/123/2010">
+                </div>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="legalPractitioner" name="legalPractitioner">
+                    <label for="legalPractitioner" style="margin-bottom:0;">I am a licensed legal practitioner</label>
+                </div>
+            </div>
 
-      <input type="submit" value="Register">
-    </form>
-  </div>
+            <input type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.1rem; padding: 1rem;" value="Create Account">
+            
+            <div class="auth-links">
+                <p>Already have an account? <a href="1.user_login.html">Log In</a></p>
+            </div>
+        </form>
+    </div>
 
-  <script>
-    const userTypeSelect = document.getElementById("userType");
-    const lawyerFields = document.getElementById("lawyerFields");
+    <div id="toast-container" class="toast-container"></div>
 
-    userTypeSelect.addEventListener("change", function () {
-      if (this.value === "lawyer") {
-        lawyerFields.style.display = "block";
-      } else {
-        lawyerFields.style.display = "none";
-      }
-    });
+    <script>
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.3s forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
 
-    document.getElementById("registrationForm").addEventListener("submit", async function (event) {
-      event.preventDefault();
+        const userTypeSelect = document.getElementById("userType");
+        const lawyerFields = document.getElementById("lawyerFields");
 
-      const formData = new FormData(this);
-      const password = formData.get('password');
-      const confirmPassword = formData.get('confirmPassword');
+        userTypeSelect.addEventListener("change", function () {
+            if (this.value === "lawyer") {
+                lawyerFields.style.display = "block";
+                document.getElementById('barCouncilNumber').required = true;
+            } else {
+                lawyerFields.style.display = "none";
+                document.getElementById('barCouncilNumber').required = false;
+            }
+        });
 
-      if (password !== confirmPassword) {
-        alert("Passwords do not match!");
-        return;
-      }
+        document.getElementById("registrationForm").addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const submitBtn = document.querySelector('input[type="submit"]');
+            
+            const formData = new FormData(this);
+            const password = formData.get('password');
+            const confirmPassword = formData.get('confirmPassword');
+            const phone = formData.get('phone');
+            const email = formData.get('email');
+            const userType = formData.get('userType');
 
-      const response = await fetch('http://localhost:5000/register', {
-        method: 'POST',
-        body: formData
-      });
+            const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+            if (!passwordPattern.test(password)) {
+                showToast("Password must include uppercase, lowercase, number, and symbol.", "error");
+                return;
+            }
 
-      const result = await response.json();
+            if (password !== confirmPassword) {
+                showToast("Passwords do not match!", "error");
+                return;
+            }
 
-      if (response.status === 201) {
-        alert("Registration successful! Redirecting to login...");
-        window.location.href = "1.user_login.html";
-      } else {
-        alert(result.message || "Registration failed. Try again.");
-      }
-    });
-  </script>
+            submitBtn.value = "Registering...";
+            submitBtn.disabled = true;
+
+            try {
+                try {
+                    await firebase.auth().createUserWithEmailAndPassword(email, password);
+                } catch(err) {
+                    console.warn("Firebase warning: " + err.message);
+                }
+
+                formData.append('userType', userType);
+                const response = await fetch('http://localhost:5000/register', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.status === 201) {
+                    showToast("Registration successful! Redirecting to login...", "success");
+                    setTimeout(() => window.location.href = "1.user_login.html", 2000);
+                } else {
+                    showToast(result.message || "Registration failed.", "error");
+                    submitBtn.value = "Create Account";
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                showToast("Server connection failed.", "error");
+                submitBtn.value = "Create Account";
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
 </body>
 </html>

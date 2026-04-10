@@ -1,29 +1,158 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Appointments - LegalConnect</title>
-  <link rel="stylesheet" href="8.lawyer_appoinyment.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Appointments Audit - LegalConnect</title>
+  <link rel="stylesheet" href="global.css">
+  <style>
+    .appointment-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+    .app-card {
+      background: var(--bg-surface);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: 1.5rem;
+      border-left: 5px solid var(--border-color);
+      transition: var(--transition);
+    }
+    .app-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .app-card.accepted { border-left-color: var(--secondary); }
+    .app-card.rejected { border-left-color: var(--danger); }
+    
+    .app-card h4 { margin-bottom: 0.2rem; color: var(--primary); font-size: 1.1rem; }
+    .app-card p { font-size: 0.95rem; color: var(--text-muted); margin-bottom: 0.2rem; }
+    .app-card .status { 
+        display: inline-block; 
+        margin-top: 1rem; 
+        padding: 0.2rem 0.5rem; 
+        border-radius: var(--radius-sm); 
+        font-size: 0.8rem; 
+        font-weight: 600; 
+        text-transform: uppercase;
+    }
+    .app-card.accepted .status { background: #d1fae5; color: var(--secondary-hover); }
+    .app-card.rejected .status { background: #fee2e2; color: var(--danger-hover); }
+
+    .section-title {
+        margin-top: 3rem;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid var(--border-color);
+        padding-bottom: 0.5rem;
+        color: var(--text-main);
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Your Appointments</h2>
-    <div class="appointments-section">
-      <h3>Accepted Cases</h3>
-      <ul id="accepted-cases">
-        <li>Sidddhesh Patil - Case: Property Dispute - Date: 25th March</li>
-        <li>Omkar Deshpande - Case: Divorce Settlement - Date: 27th March</li>
-      </ul>
-    </div>
+  <div class="dashboard-layout">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">⚖️ LegalConnect</div>
+      <nav class="sidebar-nav">
+        <a href="3.lawyer_dashboard.html">Dashboard</a>
+        <a href="9.manage_cases.html">Manage Cases</a>
+        <a href="8.lawyer_appointment.html" class="active">Appointments Record</a>
+        <a href="6.lawyer_clientmg.html">Clients</a>
+        <a href="4.lawyer_profile.html">Edit Profile</a>
+        <a href="5.view_profile.html">View Profile</a>
+        <a href="1.user_login.html" onclick="logout()" style="margin-top: 2rem; color: #fca5a5;">Logout</a>
+      </nav>
+    </aside>
 
-    <div class="appointments-section">
-      <h3>Rejected Cases</h3>
-      <ul id="rejected-cases">
-        <li>Mandar Kumbhar - Case: Fraud Allegations - Rejected on: 20th March</li>
-        <li>Eshwari Patil  - Case: Contract Dispute - Rejected on: 18th March</li>
-      </ul>
-    </div>
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="top-bar">
+        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+        <h1>Appointment History</h1>
+      </div>
+
+      <h3 class="section-title">Accepted Consultations</h3>
+      <div class="appointment-grid" id="accepted-cases">
+        <div style="color: var(--text-muted);">Loading...</div>
+      </div>
+
+      <h3 class="section-title">Declined Consultations</h3>
+      <div class="appointment-grid" id="rejected-cases">
+        <div style="color: var(--text-muted);">Loading...</div>
+      </div>
+
+    </main>
   </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script>
+    function toggleMenu() { document.getElementById('sidebar').classList.toggle('open'); }
+    function logout() { localStorage.clear(); }
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<span>${message}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000);
+    }
+    
+    document.addEventListener('DOMContentLoaded', function () {
+      const lawyerEmail = localStorage.getItem('userEmail');
+      
+      if(!lawyerEmail) {
+          showToast("Session disconnected. Please login.", "error"); return;
+      }
+
+      fetch(`http://localhost:5000/api/lawyer/appointments?lawyerEmail=${encodeURIComponent(lawyerEmail)}`)
+        .then(res => res.json())
+        .then(appointments => {
+          const acceptedList = document.getElementById('accepted-cases');
+          const rejectedList = document.getElementById('rejected-cases');
+          acceptedList.innerHTML = '';
+          rejectedList.innerHTML = '';
+
+          let acceptedCount = 0;
+          let rejectedCount = 0;
+
+          appointments.forEach(app => {
+            const clientName = app.clientName || app.client_email || 'Unknown Client';
+            const topic = app.topic || app.caseType || 'General Consultation';
+            const date = app.date || 'TBD';
+            const status = (app.status || '').toLowerCase();
+
+            if (status === 'accepted' || status === 'rejected') {
+                const card = document.createElement('div');
+                card.className = `app-card ${status}`;
+                card.innerHTML = `
+                    <h4>${clientName}</h4>
+                    <p><strong>Topic:</strong> ${topic}</p>
+                    <p><strong>Date:</strong> ${date} ${app.time ? 'at ' + app.time : ''}</p>
+                    <span class="status">${status}</span>
+                `;
+                
+                if(status === 'accepted') {
+                    const msgBtnContent = `<a href="7.lawyer_message.html?client_email=${encodeURIComponent(app.clientEmail || app.client_email)}" class="btn btn-primary" style="margin-top: 1rem; padding: 0.4rem 1rem; font-size: 0.85rem; display: inline-block;">✉️ Message</a>`;
+                    card.innerHTML += msgBtnContent;
+                    acceptedList.appendChild(card);
+                    acceptedCount++;
+                } else {
+                    rejectedList.appendChild(card);
+                    rejectedCount++;
+                }
+            }
+          });
+
+          if(acceptedCount === 0) acceptedList.innerHTML = '<div style="color: var(--text-muted);">No accepted consultations.</div>';
+          if(rejectedCount === 0) rejectedList.innerHTML = '<div style="color: var(--text-muted);">No declined consultations.</div>';
+        })
+        .catch(err => {
+            showToast("Server connection failed.", "error");
+            document.getElementById('accepted-cases').innerHTML = '';
+            document.getElementById('rejected-cases').innerHTML = '';
+        });
+    });
+  </script>
 </body>
 </html>

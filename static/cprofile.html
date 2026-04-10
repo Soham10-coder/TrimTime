@@ -1,38 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile - LegalConnect</title>
-    <link rel="stylesheet" href="cprofile.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile - LegalConnect</title>
+  <link rel="stylesheet" href="global.css">
+  <style>
+    .profile-card {
+      background: var(--bg-surface);
+      padding: 2.5rem;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      max-width: 600px;
+      margin-top: 1rem;
+      border: 1px solid var(--border-color);
+    }
+    .profile-card h3 {
+      font-size: 1.8rem;
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--bg-light);
+      padding-bottom: 0.5rem;
+    }
+    .info-row {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 1.2rem;
+    }
+    .info-row strong {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 0.2rem;
+    }
+    .info-row p {
+      font-size: 1.1rem;
+      color: var(--text-main);
+      font-weight: 500;
+      background: var(--bg-light);
+      padding: 0.8rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+    }
+  </style>
 </head>
 <body>
-    <div class="sidebar">
-        <h2 style="text-align: center;">LegalConnect</h2>
-        <a href="cdash.html">Home</a>
-        <a href="clawyers.html">Lawyer</a>
-        <a href="cappointments.html">Appointments</a>
-        <a href="cmessage.html">Messages</a>
-        <a href="cbill.html">Billing & Payments</a>
-        <a href="cprofile.html">Profile</a>
-    </div>
+  <div class="dashboard-layout">
     
-    <div class="main-content">
-        <div class="top-bar">
-            <h2>Profile</h2>
-        </div>
-        <div class="profile-container">
-            <div class="profile-header">
-                <img src="images (1).jpeg" alt="Profile Picture">
-                <div class="profile-details">
-                    <h3>Shridhar Badger</h3>
-                    <p><strong>Email:</strong> dypgroup@example.com</p>
-                    <p><strong>Phone:</strong> +91143449235</p>
-                    <p><strong>Role:</strong> Client</p>
-                    <button class="edit-btn">Edit Profile</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">⚖️ LegalConnect</div>
+      <nav class="sidebar-nav">
+        <a href="cdash.html">Dashboard</a>
+        <a href="clawyers.html">Find a Lawyer</a>
+        <a href="cappointments.html">My Appointments</a>
+        <a href="cprofile.html" class="active">My Profile</a>
+        <a href="1.user_login.html" onclick="localStorage.clear();" style="margin-top: 2rem; color: #fca5a5;">Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="top-bar">
+        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+        <h1>Account Details</h1>
+      </div>
+
+      <div class="profile-card" id="profileDetails">
+          <div style="text-align:center; color:var(--text-muted);">Loading profile securely...</div>
+      </div>
+
+    </main>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script>
+    function toggleMenu() { document.getElementById('sidebar').classList.toggle('open'); }
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<span>${message}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const clientEmail = localStorage.getItem('userEmail');
+
+        if(!clientEmail) { showToast("Session expired", "error"); return; }
+
+        fetch(`http://localhost:5000/api/client/details?clientEmail=${encodeURIComponent(clientEmail)}`)
+            .then(res => res.json())
+            .then(client => {
+                const container = document.getElementById('profileDetails');
+                if (client.message) {
+                    container.innerHTML = `<p style="color:var(--danger)">${client.message}</p>`;
+                    return;
+                }
+                const nameStr = client.firstName ? (client.firstName + ' ' + (client.lastName || '')) : (client.name || 'Client');
+                container.innerHTML = `
+                    <h3>${nameStr}</h3>
+                    <div class="info-row">
+                        <strong>Email Address</strong>
+                        <p>${client.email}</p>
+                    </div>
+                    <div class="info-row">
+                        <strong>Phone Number</strong>
+                        <p>${client.phone || 'N/A'}</p>
+                    </div>
+                    <div class="info-row">
+                        <strong>Account Role</strong>
+                        <p style="text-transform: capitalize;">${client.role || 'Client'}</p>
+                    </div>
+                `;
+            }).catch(err => {
+                showToast("Server connection error.", "error");
+            });
+    });
+  </script>
 </body>
 </html>

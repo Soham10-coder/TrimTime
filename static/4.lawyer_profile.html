@@ -1,113 +1,190 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Profile Management</title>
-    <link rel="stylesheet" href="4.lawer_profile.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Profile - LegalConnect</title>
+  <link rel="stylesheet" href="global.css">
+  <style>
+    .form-section {
+        background: var(--bg-surface);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 2rem;
+    }
+    .file-preview {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    .file-preview img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: var(--radius-sm);
+        border: 2px solid var(--border-color);
+    }
+    .file-preview a {
+        background: var(--bg-light);
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.85rem;
+        border: 1px solid var(--border-color);
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Profile Management</h2>
+  <div class="dashboard-layout">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">⚖️ LegalConnect</div>
+      <nav class="sidebar-nav">
+        <a href="3.lawyer_dashboard.html">Dashboard</a>
+        <a href="9.manage_cases.html">Manage Cases</a>
+        <a href="8.lawyer_appointment.html">Appointments</a>
+        <a href="6.lawyer_clientmg.html">Clients</a>
+        <a href="4.lawyer_profile.html" class="active">Edit Profile</a>
+        <a href="5.view_profile.html">View Profile</a>
+        <a href="1.user_login.html" onclick="logout()" style="margin-top: 2rem; color: #fca5a5;">Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="top-bar">
+        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+        <h1>Edit Your Professional Profile</h1>
+      </div>
+
+      <div class="form-section">
         <form id="profileForm" enctype="multipart/form-data">
             <input type="hidden" id="name" name="name" />
             <input type="hidden" id="email" name="email" />
 
-            <label for="achievements">Achievements:</label>
-            <textarea id="achievements" name="achievements" placeholder="List your achievements" rows="4"></textarea>
+            <div class="form-group">
+                <label for="specialization">Area of Specialization <span>*</span></label>
+                <input type="text" id="specialization" name="specialization" placeholder="e.g. Criminal Law, Corporate Law" required />
+            </div>
 
-            <label for="experience">Years of Experience:</label>
-            <input type="number" id="experience" name="experience" placeholder="Years of Experience" min="0" required />
+            <div class="form-group">
+                <label for="experience">Years of Experience <span>*</span></label>
+                <input type="number" id="experience" name="experience" placeholder="e.g. 10" min="0" required />
+            </div>
 
-            <label for="specialization">Area of Specialization:</label>
-            <input type="text" id="specialization" name="specialization" placeholder="e.g. Criminal Law, Corporate Law" required />
+            <div class="form-group">
+                <label for="achievements">Professional Achievements & Bio</label>
+                <textarea id="achievements" name="achievements" placeholder="Tell clients about your notable cases and background" rows="5"></textarea>
+            </div>
 
-            <label for="certifications">Certifications (PDF or Image):</label>
-            <input type="file" id="certifications" name="certifications" accept=".pdf, image/*" multiple onchange="previewFiles('certifications', 'certificationPreview')" />
-            <div id="certificationPreview"></div>
+            <hr style="margin: 2rem 0; border: 1px solid var(--border-color);">
 
-            <label for="graduationCertificates">Graduation Certificates (PDF or Image):</label>
-            <input type="file" id="graduationCertificates" name="graduationCertificates" accept=".pdf, image/*" multiple onchange="previewFiles('graduationCertificates', 'graduationPreview')" />
-            <div id="graduationPreview"></div>
+            <div class="form-group">
+                <label for="profilePic">Profile Picture</label>
+                <input type="file" id="profilePic" name="profilePic" accept="image/*" onchange="previewFiles('profilePic', 'profilePicPreview')" />
+                <div id="profilePicPreview" class="file-preview"></div>
+            </div>
 
-            <label for="profilePic">Profile Picture:</label>
-            <input type="file" id="profilePic" name="profilePic" accept="image/*" onchange="previewFiles('profilePic', 'profilePicPreview')" />
-            <div id="profilePicPreview"></div>
+            <div class="form-group">
+                <label for="certifications">Bar Council & Extra Certifications (PDF/Images)</label>
+                <input type="file" id="certifications" name="certifications" accept=".pdf, image/*" multiple onchange="previewFiles('certifications', 'certificationPreview')" />
+                <div id="certificationPreview" class="file-preview"></div>
+            </div>
 
-            <input type="submit" value="Update Profile" />
+            <div class="form-group">
+                <label for="graduationCertificates">Graduation / Degree Certificates (PDF/Images)</label>
+                <input type="file" id="graduationCertificates" name="graduationCertificates" accept=".pdf, image/*" multiple onchange="previewFiles('graduationCertificates', 'graduationPreview')" />
+                <div id="graduationPreview" class="file-preview"></div>
+            </div>
+
+            <input type="submit" class="btn btn-primary" style="margin-top: 1rem; width: 200px;" value="Save Profile" />
         </form>
-    </div>
+      </div>
+    </main>
+  </div>
 
-    <script>
-        window.onload = function () {
-            const userName = localStorage.getItem('userName');
-            const userEmail = localStorage.getItem('userEmail');
+  <div id="toast-container" class="toast-container"></div>
 
-            if (userName && userEmail) {
-                document.getElementById('name').value = userName;
-                document.getElementById('email').value = userEmail;
-            } else {
-                alert("User information not found. Please log in again.");
-            }
-        };
+  <script>
+    function toggleMenu() { document.getElementById('sidebar').classList.toggle('open'); }
+    function logout() { localStorage.clear(); }
 
-        function previewFiles(inputId, previewId) {
-            const input = document.getElementById(inputId);
-            const preview = document.getElementById(previewId);
-            preview.innerHTML = "";
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<span>${message}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000);
+    }
 
-            Array.from(input.files).forEach(file => {
-                const fileReader = new FileReader();
-                fileReader.onload = function (e) {
-                    if (file.type.startsWith('image/')) {
-                        const img = document.createElement('img');
-                        img.src = e.target.result;
-                        img.style.width = '100px';
-                        img.style.marginRight = '10px';
-                        preview.appendChild(img);
-                    } else {
-                        const link = document.createElement('a');
-                        link.href = e.target.result;
-                        link.textContent = file.name;
-                        link.target = '_blank';
-                        preview.appendChild(link);
-                        preview.appendChild(document.createElement('br'));
-                    }
-                };
-                fileReader.readAsDataURL(file);
-            });
+    window.onload = function () {
+        const userName = localStorage.getItem('userName');
+        const userEmail = localStorage.getItem('userEmail');
+
+        if (userName && userEmail) {
+            document.getElementById('name').value = userName;
+            document.getElementById('email').value = userEmail;
+        } else {
+            showToast("User information missing. Please log in.", "error");
         }
+    };
 
-        document.getElementById('profileForm').addEventListener('submit', async function (event) {
-            event.preventDefault();
+    function previewFiles(inputId, previewId) {
+        const input = document.getElementById(inputId);
+        const preview = document.getElementById(previewId);
+        preview.innerHTML = "";
 
-            const form = document.getElementById('profileForm');
-            const formData = new FormData(form);
-
-            try {
-                const response = await fetch('http://127.0.0.1:5000/updateProfile', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    alert('Profile updated successfully!');
-                    const role = localStorage.getItem('role');
-                    if (role === 'lawyer') {
-                        window.location.href = '3.lawyer_dashboard.html';
-                    } else {
-                        window.location.href = 'cdash.html';
-                    }
+        Array.from(input.files).forEach(file => {
+            const fileReader = new FileReader();
+            fileReader.onload = function (e) {
+                if (file.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    preview.appendChild(img);
                 } else {
-                    alert(result.message || 'Failed to update profile.');
+                    const link = document.createElement('a');
+                    link.href = '#'; // e.target.result (causes huge data URL bug on click so we just show name)
+                    link.textContent = file.name;
+                    preview.appendChild(link);
                 }
-            } catch (error) {
-                console.error('Profile update error:', error);
-                alert('Something went wrong. Please try again.');
-            }
+            };
+            fileReader.readAsDataURL(file);
         });
-    </script>
+    }
+
+    document.getElementById('profileForm').addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const submitBtn = document.querySelector('input[type="submit"]');
+        submitBtn.value = "Saving...";
+        submitBtn.disabled = true;
+
+        const formData = new FormData(this);
+
+        try {
+            const response = await fetch('http://127.0.0.1:5000/updateProfile', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                showToast('Profile updated successfully!', 'success');
+                setTimeout(() => window.location.href = '5.view_profile.html', 1500);
+            } else {
+                showToast(result.message || 'Failed to update profile.', 'error');
+                submitBtn.value = "Save Profile";
+                submitBtn.disabled = false;
+            }
+        } catch (error) {
+            showToast('Server connection failed.', 'error');
+            submitBtn.value = "Save Profile";
+            submitBtn.disabled = false;
+        }
+    });
+  </script>
 </body>
 </html>

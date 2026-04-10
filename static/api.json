@@ -1,0 +1,14 @@
+{
+  "totalCases": 10,
+  "activeCases": 5,
+  "pendingAppointments": 3,
+  "newMessages": 2,
+  "upcomingAppointments": [
+    { "date": "2025-05-16", "client": "John Doe", "reason": "Contract Review" },
+    { "date": "2025-05-17", "client": "Jane Smith", "reason": "Property Dispute" }
+  ],
+  "recentMessages": [
+    { "sender": "Client A", "content": "Need advice on a case." },
+    { "sender": "Client B", "content": "Follow-up on the last meeting." }
+  ]
+}

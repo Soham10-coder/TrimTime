@@ -3,44 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Select a Lawyer - LegalConnect</title>
-    <link rel="stylesheet" href="clawyers.css">
+    <title>Find a Lawyer - LegalConnect</title>
+    <link rel="stylesheet" href="global.css">
+    <style>
+        .lawyer-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+        .lawyer-card {
+            background: var(--bg-surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            padding: 2rem 1.5rem;
+            text-align: center;
+            transition: var(--transition);
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--text-main);
+        }
+        .lawyer-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-5px);
+            border-color: rgba(30, 58, 138, 0.2);
+            filter: none;
+        }
+        .lawyer-card img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 1rem;
+            border: 3px solid var(--bg-light);
+            box-shadow: var(--shadow-sm);
+            background-color: var(--border-color);
+        }
+        .lawyer-card h3 {
+            margin-bottom: 0.3rem;
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+        .lawyer-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+        .lawyer-card .btn {
+            width: 100%;
+            margin-top: auto;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+    </style>
 </head>
 <body>
-    <div class="sidebar">
-        <h2 style="text-align: center;">LegalConnect</h2>
-        <a href="cdash.html">Home</a>
-        <a href="clawyers.html">Lawyer</a>
-        <a href="cappointments.html">Appointments</a>
-        <a href="cmessage.html">Messages</a>
-        <a href="cbill.html">Billing & Payments</a>
-        <a href="profile.html">Profile</a>
-    </div>
+  <div class="dashboard-layout">
     
-    <div class="main-content">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">⚖️ LegalConnect</div>
+      <nav class="sidebar-nav">
+        <a href="cdash.html">Dashboard</a>
+        <a href="clawyers.html" class="active">Find a Lawyer</a>
+        <a href="cappointments.html">My Appointments</a>
+        <a href="cprofile.html">My Profile</a>
+        <a href="1.user_login.html" onclick="localStorage.clear();" style="margin-top: 2rem; color: #fca5a5;">Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
         <div class="top-bar">
-            <h2>Select a Lawyer</h2>
+            <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+            <h1>Advocate Directory</h1>
         </div>
-        <div class="lawyer-list">
-            <div class="lawyer-card">
-                <img src="hq720.jpg" alt="Lawyer 1">
-                <h3>Rajesh Mishra</h3>
-                <p>Specialty: Corporate Lawyer</p>
-                <button class="select-btn">Select</button>
-            </div>
-            <div class="lawyer-card">
-                <img src="images (1).jpeg" alt="Lawyer 2">
-                <h3>Salim Ansari</h3>
-                <p>Specialty: Family Lawyer</p>
-                <button class="select-btn">Select</button>
-            </div>
-            <div class="lawyer-card">
-                <img src="qroDRufM.jpeg" alt="Lawyer 3">
-                <h3>Tilak Satve</h3>
-                <p>Specialty: Criminal Lawyer</p>
-                <button class="select-btn">Select</button>
-            </div>
+
+        <div class="lawyer-list" id="lawyerList">
+            <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">Finding specialized professionals...</div>
         </div>
-    </div>
+    </main>
+  </div>
+
+  <script>
+    function toggleMenu() { document.getElementById('sidebar').classList.toggle('open'); }
+
+    fetch("http://localhost:5000/getLawyers")
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById("lawyerList");
+            container.innerHTML = ''; // clear loading text
+
+            if(data.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">No advocates are currently registered.</div>';
+                return;
+            }
+
+            data.forEach(lawyer => {
+                const card = document.createElement("a");
+                card.className = "lawyer-card";
+                card.href = `clawyersprofile.html?email=${encodeURIComponent(lawyer.email)}`;
+
+                const img = document.createElement("img");
+                img.src = lawyer.profilePic === 'default.jpg' || !lawyer.profilePic 
+                    ? 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png' 
+                    : lawyer.profilePic;
+                img.alt = lawyer.firstName + " " + lawyer.lastName;
+                
+                img.onerror = function() { this.src = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'; };
+
+                const name = document.createElement("h3");
+                name.textContent = `${lawyer.firstName} ${lawyer.lastName}`;
+
+                const specialty = document.createElement("p");
+                specialty.textContent = `${lawyer.specialization || 'General Practice'} Specialist`;
+
+                const btn = document.createElement("button");
+                btn.className = "btn btn-outline";
+                btn.textContent = "View Profile";
+
+                card.appendChild(img);
+                card.appendChild(name);
+                card.appendChild(specialty);
+                card.appendChild(btn);
+                container.appendChild(card);
+            });
+        })
+        .catch(err => {
+            console.error("Failed to fetch lawyers:", err);
+            const container = document.getElementById("lawyerList");
+            container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--danger);">Failed to connect to the server.</div>';
+        });
+  </script>
 </body>
 </html>

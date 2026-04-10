@@ -1,36 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>View Profile</title>
-  <link rel="stylesheet" href="4.lawer_profile.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Profile - LegalConnect</title>
+  <link rel="stylesheet" href="global.css">
+  <style>
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      margin-bottom: 2.5rem;
+    }
+    .profile-header img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: var(--shadow-md);
+      border: 3px solid white;
+    }
+    .profile-header h2 {
+      margin-bottom: 0.2rem;
+    }
+    .profile-header p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+    .profile-section {
+      background: var(--bg-surface);
+      padding: 2rem;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 2rem;
+    }
+    .profile-section h3 {
+      font-size: 1.2rem;
+      border-bottom: 2px solid var(--bg-light);
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+      color: var(--primary);
+    }
+    .data-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    @media (min-width: 768px) {
+      .data-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .data-item strong {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 0.2rem;
+    }
+    .data-item p, .data-item div {
+      font-size: 1.05rem;
+    }
+    .doc-link {
+      display: inline-block;
+      background: var(--bg-light);
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Your Profile</h2>
+  <div class="dashboard-layout">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">⚖️ LegalConnect</div>
+      <nav class="sidebar-nav">
+        <a href="3.lawyer_dashboard.html">Dashboard</a>
+        <a href="9.manage_cases.html">Manage Cases</a>
+        <a href="8.lawyer_appointment.html">Appointments</a>
+        <a href="6.lawyer_clientmg.html">Clients</a>
+        <a href="4.lawyer_profile.html">Edit Profile</a>
+        <a href="5.view_profile.html" class="active">View Profile</a>
+        <a href="1.user_login.html" onclick="logout()" style="margin-top: 2rem; color: #fca5a5;">Logout</a>
+      </nav>
+    </aside>
 
-    <div class="profile-details">
-      <p><strong>Achievements:</strong> <span id="achievements">Loading...</span></p>
-      <p><strong>Years of Experience:</strong> <span id="experience">Loading...</span></p>
-      <p><strong>Specialization:</strong> <span id="specialization">Loading...</span></p>
-      <p><strong>Certifications:</strong><br><div id="certifications">Loading...</div></p>
-      <p><strong>Graduation Certificates:</strong><br><div id="graduationCertificates">Loading...</div></p>
-      <p><strong>Profile Picture:</strong><br>
-        <img id="profilePic" src="" alt="Profile Picture" style="width:100px;height:100px;" />
-      </p>
-    </div>
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="top-bar">
+        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+        <h1>Your Live Profile 
+            <a href="4.lawyer_profile.html" class="btn btn-outline" style="float:right; padding: 0.5rem 1rem;">Edit</a>
+        </h1>
+      </div>
 
-    <a href="4.lawyer_profile.html" class="edit-profile-btn">Edit Profile</a>
+      <div class="profile-header">
+        <img id="profilePic" src="" alt="Profile Avatar" style="display:none;" />
+        <div>
+          <h2 id="prof-name">Loading Profile...</h2>
+          <p id="prof-title">Advocate / Legal Professional</p>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <h3>Professional Overview</h3>
+        <div class="data-grid">
+          <div class="data-item">
+            <strong>Area of Specialization</strong>
+            <p id="specialization">N/A</p>
+          </div>
+          <div class="data-item">
+            <strong>Years of Experience</strong>
+            <p id="experience">N/A</p>
+          </div>
+          <div class="data-item" style="grid-column: 1 / -1;">
+            <strong>Achievements & Bio</strong>
+            <p id="achievements">N/A</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <h3>Verified Credentials</h3>
+        <div class="data-grid">
+          <div class="data-item">
+            <strong>Bar Council / Certifications</strong>
+            <div id="certifications">None uploaded.</div>
+          </div>
+          <div class="data-item">
+            <strong>Educational Degrees</strong>
+            <div id="graduationCertificates">None uploaded.</div>
+          </div>
+        </div>
+      </div>
+
+    </main>
   </div>
 
+  <div id="toast-container" class="toast-container"></div>
+
   <script>
+    function toggleMenu() { document.getElementById('sidebar').classList.toggle('open'); }
+    function logout() { localStorage.clear(); }
+    
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<span>${message}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000);
+    }
+
     async function loadProfile() {
       const email = localStorage.getItem('userEmail');
+      const name = localStorage.getItem('userName');
       if (!email) {
-        alert("User email not found. Please log in again.");
-        window.location.href = "1.user_login.html";
+        showToast("User session expired. Redirecting...", "error");
+        setTimeout(()=> window.location.href = "1.user_login.html", 1500);
         return;
+      }
+
+      if(name) {
+          document.getElementById('prof-name').textContent = "Advocate " + name;
       }
 
       try {
@@ -38,52 +174,54 @@
         const data = await res.json();
 
         if (!res.ok) {
-          alert(data.message || "Failed to fetch profile.");
+          showToast(data.message || "Please complete your profile.", "error");
           return;
         }
 
-        // Basic Info
         document.getElementById('achievements').textContent = data.achievements || 'N/A';
-        document.getElementById('experience').textContent = data.experience || 'N/A';
+        document.getElementById('experience').textContent = (data.experience || '0') + ' Years';
         document.getElementById('specialization').textContent = data.specialization || 'N/A';
 
-        // Certifications
         const certsContainer = document.getElementById('certifications');
         certsContainer.innerHTML = '';
-        (data.certifications || []).forEach(path => {
-          const fileName = path.split('/').pop();
-          const link = document.createElement('a');
-          link.href = `http://localhost:5000/${fileName}`;
-          link.textContent = fileName;
-          link.target = '_blank';
-          certsContainer.appendChild(link);
-          certsContainer.appendChild(document.createElement('br'));
-        });
+        if(data.certificationsUrls && data.certificationsUrls.length > 0) {
+            data.certificationsUrls.forEach(url => {
+            if(!url) return;
+            const link = document.createElement('a');
+            link.href = url;
+            link.className = 'doc-link';
+            link.textContent = '📄 ' + (url.split('/').pop() || 'Document');
+            link.target = '_blank';
+            certsContainer.appendChild(link);
+            });
+        } else {
+            certsContainer.textContent = 'None uploaded.';
+        }
 
-        // Graduation Certificates
         const gradsContainer = document.getElementById('graduationCertificates');
         gradsContainer.innerHTML = '';
-        (data.graduationCertificates || []).forEach(path => {
-          const fileName = path.split('/').pop();
-          const link = document.createElement('a');
-          link.href = `http://localhost:5000/${fileName}`;
-          link.textContent = fileName;
-          link.target = '_blank';
-          gradsContainer.appendChild(link);
-          gradsContainer.appendChild(document.createElement('br'));
-        });
-
-        // Profile Picture
-        const profilePic = document.getElementById('profilePic');
-        if (data.profilePic) {
-          profilePic.src = `http://localhost:5000/uploads/${data.profilePic.split('/').pop()}`;
+        if(data.graduationCertificatesUrls && data.graduationCertificatesUrls.length > 0) {
+            data.graduationCertificatesUrls.forEach(url => {
+            if(!url) return;
+            const link = document.createElement('a');
+            link.href = url;
+            link.className = 'doc-link';
+            link.textContent = '🎓 ' + (url.split('/').pop() || 'Document');
+            link.target = '_blank';
+            gradsContainer.appendChild(link);
+            });
         } else {
-          profilePic.alt = "No profile picture uploaded.";
+            gradsContainer.textContent = 'None uploaded.';
+        }
+
+        const profilePic = document.getElementById('profilePic');
+        if(data.profilePicUrl) {
+            profilePic.src = data.profilePicUrl;
+            profilePic.style.display = 'block';
         }
 
       } catch (error) {
-        console.error("Error loading profile:", error);
-        alert("Server error while loading profile.");
+        showToast("Server error while loading profile.", "error");
       }
     }
 

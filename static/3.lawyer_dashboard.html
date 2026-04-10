@@ -3,60 +3,137 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lawyer Dashboard</title>
-  <link rel="stylesheet" href="3.lawyer_dashboard.css">
+  <title>Lawyer Dashboard - LegalConnect</title>
+  <link rel="stylesheet" href="global.css">
+  <style>
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+    .appointments-card ul {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .appointments-card li {
+      background: var(--bg-light);
+      padding: 1rem;
+      border-radius: var(--radius-sm);
+      border-left: 4px solid var(--primary);
+    }
+  </style>
 </head>
 <body>
-  <div class="dashboard-container">
-    <aside class="sidebar">
-      <h2>LegalConnect</h2>
-      <ul>
-        <li><a href="9.manage_cases.html">Manage Cases</a></li>
-        <li><a href="8.lawyer_appointment.html">Appointments</a></li>
-        <li><a href="6.lawyer_clientmg.html">Clients</a></li>
-        <li><a href="7.lawyer_message.html">Messages</a></li>
-        <li><a href="4.lawyer_profile.html">Edit Profile</a></li>
-        <li><a href="5.view_profile.html">View Profile</a></li>
-        <li><a href="1.user_login.html" onclick="logout()">Logout</a></li>
-      </ul>
+  <div class="dashboard-layout">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">⚖️ LegalConnect</div>
+      <nav class="sidebar-nav">
+        <a href="3.lawyer_dashboard.html" class="active">Dashboard</a>
+        <a href="9.manage_cases.html">Manage Cases</a>
+        <a href="8.lawyer_appointment.html">Appointments</a>
+        <a href="6.lawyer_clientmg.html">Clients</a>
+        <a href="4.lawyer_profile.html">Edit Profile</a>
+        <a href="5.view_profile.html">View Profile</a>
+        <a href="1.user_login.html" onclick="logout()" style="margin-top: 2rem; color: #fca5a5;">Logout</a>
+      </nav>
     </aside>
 
+    <!-- Main Content -->
     <main class="main-content">
-      <header>
+      <div class="top-bar">
+        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
         <h1 id="welcome-text">Welcome, Advocate!</h1>
-      </header>
+      </div>
 
-      <section class="stats">
-        <div class="card">Total Cases: 3</div>
-        <div class="card">Active Cases: 1</div>
-        <div class="card">Pending Appointments: 1</div>
-        <div class="card">New Messages: 4</div>
+      <!-- Stats -->
+      <section class="stats-grid">
+        <div class="card">
+          <h3 style="color: var(--text-muted); font-size: 0.9rem;">Total Cases</h3>
+          <p style="font-size: 2rem; font-weight: 700;">3</p>
+        </div>
+        <div class="card">
+          <h3 style="color: var(--text-muted); font-size: 0.9rem;">Active Cases</h3>
+          <p style="font-size: 2rem; font-weight: 700; color: var(--secondary);">1</p>
+        </div>
+        <div class="card">
+          <h3 style="color: var(--text-muted); font-size: 0.9rem;">Pending Appointments</h3>
+          <p style="font-size: 2rem; font-weight: 700; color: var(--danger);"><span id="pending-appointments-count">0</span></p>
+        </div>
       </section>
 
-      <section class="appointments">
+      <!-- Content -->
+      <section class="card appointments-card">
         <h2>Upcoming Appointments</h2>
-        <ul>
-          <li>10th March - Avinash Amte - Contract Dispute</li>
-          <li>12th March - Sam Karan - Property Case</li>
-          <li>14th March - Kunal Bhate - Consultation</li>
+        <ul id="appointments-list">
+          <li style="border-color: #ccc;">Loading your schedule...</li>
         </ul>
       </section>
 
-      <section class="messages">
-        <h2>Recent Messages</h2>
-        <ul>
-          <li>Shreyas Potdar: Need advice on legal documentation</li>
-          <li>Swapnil Joshi: Update on case status?</li>
-        </ul>
-      </section>
     </main>
   </div>
 
   <script>
+    function toggleMenu() {
+        document.getElementById('sidebar').classList.toggle('open');
+    }
+
     const name = localStorage.getItem('userName');
     if (name) {
       document.getElementById('welcome-text').textContent = `Welcome, Advocate ${name}!`;
     }
+
+    const lawyerEmail = localStorage.getItem('userEmail');
+
+    async function loadAppointments() {
+      if (!lawyerEmail) {
+        document.getElementById('appointments-list').innerHTML = '<li style="border-color:#ef4444;">Please log in again.</li>';
+        return;
+      }
+      try {
+        const res = await fetch(`http://127.0.0.1:5000/api/lawyer/appointments?lawyerEmail=${encodeURIComponent(lawyerEmail)}`);
+        const appointments = await res.json();
+
+        const today = new Date();
+        const upcomingAppointments = appointments.filter(app => {
+          const dateObj = new Date(app.date);
+          return dateObj >= today;
+        });
+
+        const list = document.getElementById('appointments-list');
+        list.innerHTML = '';
+        if (upcomingAppointments.length === 0) {
+          list.innerHTML = '<li style="border-color:#ccc;">No upcoming appointments.</li>';
+        } else {
+          upcomingAppointments.forEach(app => {
+            const li = document.createElement('li');
+            let statusColor = app.status === 'Accepted' || app.status === 'accepted' ? 'var(--secondary)' : 
+                              (app.status === 'Rejected' || app.status === 'rejected' ? 'var(--danger)' : 'var(--primary)');
+            li.style.borderLeftColor = statusColor;
+            li.innerHTML = `<strong>${app.date} ${app.time ? 'at ' + app.time : ''}</strong><br>
+                            Client: ${app.clientName || app.clientEmail || 'N/A'}<br>
+                            Topic: ${app.topic || 'N/A'}<br>
+                            Status: <span style="color: ${statusColor}; font-weight:600;">${app.status || 'Requested'}</span>`;
+            list.appendChild(li);
+          });
+        }
+
+        const pendingCount = appointments.filter(app => {
+          const dateObj = new Date(app.date);
+          return dateObj >= today && (app.status === 'pending' || app.status === 'Requested' || !app.status);
+        }).length;
+        document.getElementById('pending-appointments-count').textContent = pendingCount;
+      } catch (err) {
+        document.getElementById('appointments-list').innerHTML = '<li style="border-color:#ef4444;">Error loading appointments.</li>';
+      }
+    }
+
+    setInterval(loadAppointments, 10000);
+    loadAppointments();
 
     function logout() {
       localStorage.clear();

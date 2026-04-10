@@ -3,82 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Login Page</title>
-    <link rel="stylesheet" href="1.user_login.css">
+    <title>Secure Login - LegalConnect</title>
+    <link rel="stylesheet" href="global.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCS2WUIWVHRyfh52k1IkRK0EO1wjrEDsIs",
+            authDomain: "legalconnect-51743.firebaseapp.com",
+            projectId: "legalconnect-51743",
+            appId: "1:873049178475:web:bef75d36a20086c87e0c2e"
+        };
+        firebase.initializeApp(firebaseConfig);
+    </script>
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--bg-light) 100%);
+            padding: 2rem;
+        }
+        .login-wrapper {
+            display: flex;
+            flex-direction: row;
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            max-width: 1000px;
+            width: 100%;
+        }
+        .login-image {
+            flex: 1;
+            background: url('law.jpg') center/cover no-repeat;
+            display: none;
+        }
+        @media (min-width: 768px) {
+            .login-image {
+                display: block;
+            }
+        }
+        .login-form-container {
+            flex: 1;
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .login-form-container h2 {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        .login-form-container p.subtitle {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+        .auth-links {
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+        .auth-links a {
+            font-weight: 600;
+        }
+        .btn-full {
+            width: 100%;
+            margin-top: 1rem;
+        }
+    </style>
 </head>
 <body>
 
-    <div id="i1">
-        <img src="law.jpg" alt="Law Image" style="width: 100%; max-height: 300px; object-fit: cover;">
+    <div class="login-wrapper">
+        <div class="login-image"></div>
+        <div class="login-form-container">
+            <h2>Welcome Back</h2>
+            <p class="subtitle">Securely login to LegalConnect</p>
+            
+            <form onsubmit="return redirectToDashboard(event)">
+                <div class="form-group">
+                    <label for="e1">Email Address</label>
+                    <input type="email" id="e1" name="email" placeholder="name@example.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="p1">Password</label>
+                    <input type="password" id="p1" name="password" placeholder="Enter Password" required>
+                </div>
+
+                <div class="form-group">
+                    <input type="submit" class="btn btn-primary btn-full" value="Log In">
+                </div>
+                
+                <div class="auth-links">
+                    <p>New to LegalConnect? <a href="2.lawyer_reg.html">Create an account</a></p>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <div id="h1">
-        <form onsubmit="return redirectToDashboard(event)">
-            <div id="a">
-                <h2>Login Form</h2>
-
-                <label for="e1">Email</label>
-                <input type="email" id="e1" name="email" placeholder="ex: abc@gmail.com" required>
-                <br><br>
-
-                <label for="p1">Password</label>
-                <input type="password" id="p1" name="password" placeholder="Enter Password" required>
-                <br><br>
-
-                <p>Haven't registered? <a href="2.lawyer_reg.html">Register here</a></p>
-                <input type="submit" id="s1" value="Login">
-            </div>
-        </form>
-    </div>
+    <!-- Toast Notification System -->
+    <div id="toast-container" class="toast-container"></div>
 
     <script>
-        async function redirectToDashboard(event) {
-            event.preventDefault();
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<span>${message}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.style.animation = 'fadeOut 0.3s forwards';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
 
-            const email = document.getElementById('e1').value.trim();
-            const password = document.getElementById('p1').value.trim();
+    async function redirectToDashboard(event) {
+        event.preventDefault();
+        const submitBtn = document.querySelector('input[type="submit"]');
+        submitBtn.value = "Logging in...";
+        submitBtn.disabled = true;
 
-            if (!email || !password) {
-                alert("Please enter both email and password.");
-                return false;
+        const email = document.getElementById('e1').value.trim();
+        const password = document.getElementById('p1').value.trim();
+
+        try {
+            try {
+                await firebase.auth().signInWithEmailAndPassword(email, password);
+            } catch (firebaseError) {
+                console.warn("Firebase login fallback:", firebaseError);
             }
 
-            try {
-                const response = await fetch('http://localhost:5000/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email, password })
-                });
+            const response = await fetch('http://localhost:5000/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
 
-                const result = await response.json();
+            const result = await response.json();
 
-                if (response.ok) {
-                    // Store in localStorage
-                    localStorage.setItem('userName', result.name);
-                    localStorage.setItem('userEmail', result.email);
-                    localStorage.setItem('role', result.role);
+            if (response.ok) {
+                localStorage.setItem('userName', result.name);
+                localStorage.setItem('userEmail', result.email);
+                localStorage.setItem('role', result.role);
+                
+                showToast("Login successful! Redirecting...", "success");
 
-                    alert("Login successful!");
-
-                    // Redirect
+                setTimeout(() => {
                     if (result.role === 'lawyer') {
                         window.location.href = '3.lawyer_dashboard.html';
                     } else if (result.role === 'client') {
                         window.location.href = 'cdash.html';
                     } else {
-                        alert('Unknown user role');
+                        showToast('Unknown user role', 'error');
+                        submitBtn.value = "Log In";
+                        submitBtn.disabled = false;
                     }
-                } else {
-                    alert(result.message || 'Login failed');
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                alert('Server error. Please try again later.');
+                }, 1000);
+            } else {
+                showToast(result.message || 'Invalid credentials', "error");
+                submitBtn.value = "Log In";
+                submitBtn.disabled = false;
             }
+        } catch (error) {
+            console.error(error);
+            showToast('Server connection failed. Is app.py running?', 'error');
+            submitBtn.value = "Log In";
+            submitBtn.disabled = false;
         }
+    }
     </script>
-
 </body>
 </html>
