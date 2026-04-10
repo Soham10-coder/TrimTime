@@ -5,6 +5,7 @@ eventlet
 pymongo
 python-dotenv
 flask-mail
-dnspythongunicorn
+dnspython
+gunicorn
 gevent
 gevent-websocket
