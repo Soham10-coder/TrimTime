@@ -23,7 +23,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 @app.route("/")
 def home():
-    return app.send_static_file("index.html")
+    return send_from_directory("static", "login.html")
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
