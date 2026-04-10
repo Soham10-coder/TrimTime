@@ -170,7 +170,7 @@
       }
 
       try {
-        const res = await fetch(`http://localhost:5000/getProfile/${email}`);
+        const res = await fetch(`/getProfile/${email}`);
         const data = await res.json();
 
         if (!res.ok) {

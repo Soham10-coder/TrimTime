@@ -99,7 +99,7 @@
       const lawyerEmail = localStorage.getItem('userEmail');
       if(!lawyerEmail) { showToast("Session expired.", "error"); return; }
 
-       fetch(`http://localhost:5000/api/lawyer/appointments?lawyerEmail=${encodeURIComponent(lawyerEmail)}`)
+       fetch(`/api/lawyer/appointments?lawyerEmail=${encodeURIComponent(lawyerEmail)}`)
         .then(res => res.json())
         .then(clientRequests => {
           const clientTable = document.getElementById('clientTable');
@@ -141,7 +141,7 @@
               const row = this.closest('tr');
               this.textContent = '...';
               
-              fetch('http://localhost:5000/api/lawyer/appointment/status', {
+              fetch('/api/lawyer/appointment/status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ appointmentId: id, status: 'Accepted' })
@@ -161,7 +161,7 @@
               const row = this.closest('tr');
               this.textContent = '...';
               
-              fetch('http://localhost:5000/api/lawyer/appointment/status', {
+              fetch('/api/lawyer/appointment/status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ appointmentId: id, status: 'Rejected' })

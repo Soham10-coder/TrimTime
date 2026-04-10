@@ -147,7 +147,7 @@
         const container = document.getElementById('caseList');
         
         try {
-            const res = await fetch(`http://localhost:5000/api/lawyer/appointments?lawyerEmail=${encodeURIComponent(lawyerEmail)}`);
+            const res = await fetch(`/api/lawyer/appointments?lawyerEmail=${encodeURIComponent(lawyerEmail)}`);
             const data = await res.json();
             
             container.innerHTML = '';

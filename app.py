@@ -25,6 +25,14 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 def home():
     return send_from_directory("static", "1.user_login.html")
 
+@app.route("/<path:filename>")
+def serve_static(filename):
+    static_path = os.path.join(app.root_path, 'static')
+    if os.path.exists(os.path.join(static_path, filename)):
+        return send_from_directory(static_path, filename)
+    else:
+        return "File not found", 404
+
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
 app.config['MAIL_USERNAME'] = os.getenv('GMAIL_USER')
@@ -42,11 +50,12 @@ profiles = db['LawyerProfiles']
 appointments_col = db['appointments']
 messages_col = db['messages']
 
-# Upload folder
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Upload folders
-UPLOAD_FOLDER = r"D:/legalconnect/uploads/profilepic"
-CASE_FILES_FOLDER = r"D:/legalconnect/uploads/case_files"
-CHAT_FILES_FOLDER = r"D:/legalconnect/uploads/chat_files"
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads', 'profilepic')
+CASE_FILES_FOLDER = os.path.join(BASE_DIR, 'uploads', 'case_files')
+CHAT_FILES_FOLDER = os.path.join(BASE_DIR, 'uploads', 'chat_files')
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(CASE_FILES_FOLDER, exist_ok=True)
@@ -178,7 +187,7 @@ def get_profile(email):
         if not path: return ""
         try:
             rel_path = os.path.relpath(path, UPLOAD_FOLDER).replace("\\", "/")
-            return f"http://localhost:5000/uploads/{rel_path}"
+            return f"{request.host_url}uploads/{rel_path}"
         except:
             return ""
 
@@ -213,7 +222,7 @@ def get_lawyers():
             profile_pic_path = profile.get('profilePic')
             if profile_pic_path:
                 relative_path = os.path.relpath(profile_pic_path, UPLOAD_FOLDER).replace("\\", "/")
-                profile_pic_url = f"http://localhost:5000/uploads/{relative_path}"
+                profile_pic_url = f"{request.host_url}uploads/{relative_path}"
             else:
                 profile_pic_url = "default.jpg"
 
@@ -252,7 +261,7 @@ def schedule_appointment():
                 path = os.path.join(user_folder, filename)
                 f.save(path)
                 rel_path = f"{secure_filename(client_email)}/{filename}"
-                file_urls.append(f"http://localhost:5000/uploads/case_files/{rel_path}")
+                file_urls.append(f"{request.host_url}uploads/case_files/{rel_path}")
 
     appointment = {
         'lawyer_email': lawyer_email,
@@ -411,7 +420,7 @@ def upload_chat_file():
     path = os.path.join(room_folder, filename)
     file.save(path)
     
-    file_url = f"http://localhost:5000/uploads/chat_files/{secure_filename(room)}/{filename}"
+    file_url = f"{request.host_url}uploads/chat_files/{secure_filename(room)}/{filename}"
     return jsonify({'url': file_url, 'filename': file.filename}), 200
 
 @app.route('/api/messages/<room>', methods=['GET'])

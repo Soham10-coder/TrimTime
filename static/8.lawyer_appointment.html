@@ -105,7 +105,7 @@
           showToast("Session disconnected. Please login.", "error"); return;
       }
 
-      fetch(`http://localhost:5000/api/lawyer/appointments?lawyerEmail=${encodeURIComponent(lawyerEmail)}`)
+      fetch(`/api/lawyer/appointments?lawyerEmail=${encodeURIComponent(lawyerEmail)}`)
         .then(res => res.json())
         .then(appointments => {
           const acceptedList = document.getElementById('accepted-cases');

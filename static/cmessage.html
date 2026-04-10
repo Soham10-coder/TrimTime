@@ -267,7 +267,7 @@
             setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000);
         }
         
-        const socket = io('http://localhost:5000');
+        const socket = io();
         const clientEmail = localStorage.getItem('userEmail');
         let currentRoom = null;
         let targetLawyerEmail = null;
@@ -275,7 +275,7 @@
         if(!clientEmail) { alert('Session Expired'); window.location.href = '1.user_login.html'; }
 
         // Fetch accepted lawyers
-        fetch(`http://localhost:5000/api/client/appointments?clientEmail=${encodeURIComponent(clientEmail)}`)
+        fetch(`/api/client/appointments?clientEmail=${encodeURIComponent(clientEmail)}`)
         .then(res => res.json())
         .then(appointments => {
             const contactList = document.getElementById('contactList');
@@ -321,7 +321,7 @@
             currentRoom = [clientEmail, targetLawyerEmail].sort().join('_');
             socket.emit('join_room', { room: currentRoom });
 
-            fetch(`http://localhost:5000/api/messages/${currentRoom}`)
+            fetch(`/api/messages/${currentRoom}`)
             .then(res => res.json())
             .then(messages => {
                 const container = document.getElementById('messagesContainer');
@@ -374,7 +374,7 @@
             formData.append('file', file);
 
             try {
-                const res = await fetch('http://localhost:5000/api/chat/upload', {
+                const res = await fetch('/api/chat/upload', {
                     method: 'POST',
                     body: formData
                 });

@@ -97,7 +97,7 @@
             showToast("Session disconnected.", "error"); return;
         }
 
-        fetch(`http://localhost:5000/api/client/appointments?clientEmail=${encodeURIComponent(clientEmail)}`)
+        fetch(`/api/client/appointments?clientEmail=${encodeURIComponent(clientEmail)}`)
             .then(res => res.json())
             .then(appointments => {
                 const tbody = document.getElementById('appointmentsTableBody');
@@ -133,7 +133,7 @@
                         const id = this.getAttribute('data-id');
                         this.textContent = "Cancelling...";
                         
-                        fetch('http://localhost:5000/api/client/appointment/cancel', {
+                        fetch('/api/client/appointment/cancel', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ appointmentId: id })

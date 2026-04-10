@@ -92,7 +92,7 @@
   <script>
     function toggleMenu() { document.getElementById('sidebar').classList.toggle('open'); }
 
-    fetch("http://localhost:5000/getLawyers")
+    fetch("/getLawyers")
         .then(res => res.json())
         .then(data => {
             const container = document.getElementById("lawyerList");

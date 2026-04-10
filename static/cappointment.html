@@ -212,7 +212,7 @@
         alert("Session Expired"); window.location.href = "1.user_login.html";
     }
 
-    fetch(`http://localhost:5000/getProfile/${lawyerEmail}`)
+    fetch(`/getProfile/${lawyerEmail}`)
     .then(res => res.json())
     .then(data => {
         if(data && !data.message) {
@@ -278,7 +278,7 @@
       formData.append('clientName', clientName);
 
       try {
-          const response = await fetch('http://localhost:5000/scheduleAppointment', {
+          const response = await fetch('/scheduleAppointment', {
               method: 'POST',
               body: formData
           });

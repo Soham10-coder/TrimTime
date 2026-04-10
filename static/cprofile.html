@@ -90,7 +90,7 @@
 
         if(!clientEmail) { showToast("Session expired", "error"); return; }
 
-        fetch(`http://localhost:5000/api/client/details?clientEmail=${encodeURIComponent(clientEmail)}`)
+        fetch(`/api/client/details?clientEmail=${encodeURIComponent(clientEmail)}`)
             .then(res => res.json())
             .then(client => {
                 const container = document.getElementById('profileDetails');
