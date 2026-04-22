@@ -5,31 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Secure Login - LegalConnect</title>
     <link rel="stylesheet" href="global.css">
-    
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCS2WUIWVHRyfh52k1IkRK0EO1wjrEDsIs",
-            authDomain: "legalconnect-51743.firebaseapp.com",
-            projectId: "legalconnect-51743",
-            appId: "1:873049178475:web:bef75d36a20086c87e0c2e"
-        };
-        firebase.initializeApp(firebaseConfig);
-    </script>
     <style>
         body {
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--bg-light) 100%);
+            background: linear-gradient(135deg, var(--bg-light) 0%, var(--border-color) 100%);
             padding: 2rem;
         }
         .login-wrapper {
             display: flex;
             flex-direction: row;
-            background: white;
+            background: var(--bg-surface);
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-lg);
             overflow: hidden;
@@ -39,7 +27,32 @@
         .login-image {
             flex: 1;
             background: url('law.jpg') center/cover no-repeat;
+            position: relative;
             display: none;
+        }
+        .login-image::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 15, 15, 0.7); /* Matte Black overlay */
+        }
+        .login-brand {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-align: center;
+            color: var(--secondary); /* Gold */
+        }
+        .login-brand h1 {
+            font-size: 2.5rem;
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+        }
+        .login-brand p {
+            color: white;
+            font-size: 1.1rem;
         }
         @media (min-width: 768px) {
             .login-image {
@@ -48,7 +61,7 @@
         }
         .login-form-container {
             flex: 1;
-            padding: 3rem;
+            padding: 4rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -60,7 +73,7 @@
         }
         .login-form-container p.subtitle {
             color: var(--text-muted);
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem;
         }
         .auth-links {
             margin-top: 1.5rem;
@@ -79,10 +92,15 @@
 <body>
 
     <div class="login-wrapper">
-        <div class="login-image"></div>
+        <div class="login-image">
+            <div class="login-brand">
+                <h1>LegalConnect</h1>
+                <p>The Premium Legal SaaS Platform</p>
+            </div>
+        </div>
         <div class="login-form-container">
             <h2>Welcome Back</h2>
-            <p class="subtitle">Securely login to LegalConnect</p>
+            <p class="subtitle">Securely login to your account</p>
             
             <form onsubmit="return redirectToDashboard(event)">
                 <div class="form-group">
@@ -132,12 +150,6 @@
         const password = document.getElementById('p1').value.trim();
 
         try {
-            try {
-                await firebase.auth().signInWithEmailAndPassword(email, password);
-            } catch (firebaseError) {
-                console.warn("Firebase login fallback:", firebaseError);
-            }
-
             const response = await fetch('/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

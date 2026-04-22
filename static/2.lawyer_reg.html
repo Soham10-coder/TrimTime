@@ -6,42 +6,36 @@
     <title>Registration - LegalConnect</title>
     <link rel="stylesheet" href="global.css">
 
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCS2WUIWVHRyfh52k1IkRK0EO1wjrEDsIs",
-            authDomain: "legalconnect-51743.firebaseapp.com",
-            projectId: "legalconnect-51743",
-            storageBucket: "legalconnect-51743.firebasestorage.app",
-            messagingSenderId: "873049178475",
-            appId: "1:873049178475:web:bef75d36a20086c87e0c2e",
-            measurementId: "G-YG0F8GD1M2"
-        };
-        firebase.initializeApp(firebaseConfig);
-    </script>
     <style>
         body {
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, var(--bg-light) 0%, #e2e8f0 100%);
+            background: linear-gradient(135deg, var(--bg-light) 0%, var(--border-color) 100%);
             padding: 2rem;
         }
         .reg-container {
-            background: white;
+            background: var(--bg-surface);
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-lg);
-            padding: 2.5rem;
-            max-width: 600px;
+            padding: 3rem;
+            max-width: 650px;
             width: 100%;
+            border: 1px solid var(--border-color);
         }
-        .reg-container h2 {
-            color: var(--primary);
+        .brand-header {
             text-align: center;
             margin-bottom: 2rem;
-            font-size: 1.8rem;
+        }
+        .brand-header h1 {
+            color: var(--secondary); /* Gold */
+            font-size: 2rem;
+            margin-bottom: 0.2rem;
+        }
+        .brand-header p {
+            color: var(--text-muted);
+            font-size: 1rem;
         }
         .name-grid {
             display: grid;
@@ -62,6 +56,7 @@
         .checkbox-container input[type="checkbox"] {
             width: 1.2rem;
             height: 1.2rem;
+            accent-color: var(--secondary);
         }
         .auth-links {
             text-align: center;
@@ -69,12 +64,23 @@
             font-size: 0.95rem;
             font-weight: 500;
         }
+        .verification-box {
+            background: var(--bg-light);
+            padding: 1.5rem;
+            border-radius: var(--radius-md);
+            border: 1px dashed var(--secondary);
+            margin-bottom: 1.5rem;
+        }
     </style>
 </head>
 <body>
 
     <div class="reg-container">
-        <h2>Create an Account</h2>
+        <div class="brand-header">
+            <h1>LegalConnect</h1>
+            <p>Create your account</p>
+        </div>
+        
         <form id="registrationForm">
             
             <div class="form-group">
@@ -112,15 +118,16 @@
 
             <div class="form-group">
                 <label for="confirmPassword">Confirm Password</label>
-                <input type="password" id="confirmPassword" name="confirmPassword" required>
+                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm Password" required>
             </div>
 
             <!-- Lawyer Specific -->
-            <div id="lawyerFields" style="display: none; background: #f8fafc; padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+            <div id="lawyerFields" style="display: none;" class="verification-box">
                 <h4 style="margin-bottom: 1rem; color: var(--primary);">Lawyer Verification</h4>
                 <div class="form-group">
                     <label for="barCouncilNumber">Bar Council Number</label>
                     <input type="text" id="barCouncilNumber" name="barCouncilNumber" placeholder="e.g. MAH/123/2010">
+                    <small style="color: var(--text-muted); display: block; margin-top: 0.3rem;">Format: STATE/NUMBER/YEAR (e.g. DEL/4567/2021)</small>
                 </div>
                 <div class="checkbox-container">
                     <input type="checkbox" id="legalPractitioner" name="legalPractitioner">
@@ -171,10 +178,10 @@
             const formData = new FormData(this);
             const password = formData.get('password');
             const confirmPassword = formData.get('confirmPassword');
-            const phone = formData.get('phone');
-            const email = formData.get('email');
             const userType = formData.get('userType');
+            const barCouncilNumber = formData.get('barCouncilNumber');
 
+            // Password Validation
             const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
             if (!passwordPattern.test(password)) {
                 showToast("Password must include uppercase, lowercase, number, and symbol.", "error");
@@ -186,17 +193,19 @@
                 return;
             }
 
+            // Client side validation for Bar Council Number if lawyer
+            if (userType === 'lawyer') {
+                const barRegex = /^[A-Z]{2,4}\/\d{1,6}\/\d{4}$/;
+                if (!barRegex.test(barCouncilNumber)) {
+                    showToast("Invalid Bar Council Number format. Use STATE/NUMBER/YEAR.", "error");
+                    return;
+                }
+            }
+
             submitBtn.value = "Registering...";
             submitBtn.disabled = true;
 
             try {
-                try {
-                    await firebase.auth().createUserWithEmailAndPassword(email, password);
-                } catch(err) {
-                    console.warn("Firebase warning: " + err.message);
-                }
-
-                formData.append('userType', userType);
                 const response = await fetch('/register', {
                     method: 'POST',
                     body: formData

@@ -106,23 +106,12 @@
 </head>
 <body>
   <div class="dashboard-layout">
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-      <div class="brand">⚖️ LegalConnect</div>
-      <nav class="sidebar-nav">
-        <a href="cdash.html">Dashboard</a>
-        <a href="clawyers.html" class="active">Find a Lawyer</a>
-        <a href="cappointments.html">My Appointments</a>
-        <a href="cmessage.html">Secure Chat</a>
-        <a href="cprofile.html">My Profile</a>
-        <a href="1.user_login.html" onclick="localStorage.clear();" style="margin-top: 2rem; color: #fca5a5;">Logout</a>
-      </nav>
-    </aside>
+    <!-- Sidebar injected via sidebar.js -->
 
     <!-- Main Content -->
     <main class="main-content">
       <div class="top-bar">
-        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+        <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
         <h1>Schedule a Consultation</h1>
       </div>
 
@@ -299,5 +288,6 @@
       }
     });
   </script>
+  <script src="sidebar.js"></script>
 </body>
 </html>

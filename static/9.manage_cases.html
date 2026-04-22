@@ -85,25 +85,12 @@
 </head>
 <body>
   <div class="dashboard-layout">
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-      <div class="brand">⚖️ LegalConnect</div>
-      <nav class="sidebar-nav">
-        <a href="3.lawyer_dashboard.html">Dashboard</a>
-        <a href="9.manage_cases.html" class="active">Manage Cases</a>
-        <a href="8.lawyer_appointment.html">Appointments Record</a>
-        <a href="6.lawyer_clientmg.html">Clients Requests</a>
-        <a href="7.lawyer_message.html">Messages</a>
-        <a href="4.lawyer_profile.html">Edit Profile</a>
-        <a href="5.view_profile.html">View Profile</a>
-        <a href="1.user_login.html" onclick="logout()" style="margin-top: 2rem; color: #fca5a5;">Logout</a>
-      </nav>
-    </aside>
-
-    <!-- Main Content -->
+    <!-- Sidebar injected via sidebar.js -->    <!-- Main Content -->
     <main class="main-content">
       <div class="top-bar">
-        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+        <button class="menu-toggle" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
         <h1>Case Details & Files</h1>
       </div>
 
@@ -128,8 +115,8 @@
 
   <div id="toast-container" class="toast-container"></div>
 
-  <script>
-    function toggleMenu() { document.getElementById('sidebar').classList.toggle('open'); }
+    <script src="sidebar.js"></script>
+    <script>
     function logout() { localStorage.clear(); }
     function showToast(message, type = 'success') {
         const container = document.getElementById('toast-container');

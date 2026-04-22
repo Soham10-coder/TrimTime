@@ -12,6 +12,40 @@
       gap: 1.5rem;
       margin-bottom: 2.5rem;
     }
+    .stats-card {
+        background: var(--bg-surface);
+        padding: 1.5rem;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        transition: var(--transition);
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--secondary);
+    }
+    .stats-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--bg-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--secondary); /* Gold */
+    }
+    .appointments-card {
+        background: var(--bg-surface);
+        padding: 2rem;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-color);
+    }
     .appointments-card ul {
       margin-top: 1.5rem;
       display: flex;
@@ -20,55 +54,57 @@
     }
     .appointments-card li {
       background: var(--bg-light);
-      padding: 1rem;
-      border-radius: var(--radius-sm);
+      padding: 1.5rem;
+      border-radius: var(--radius-md);
       border-left: 4px solid var(--primary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
   </style>
 </head>
 <body>
   <div class="dashboard-layout">
-    
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-      <div class="brand">⚖️ LegalConnect</div>
-      <nav class="sidebar-nav">
-        <a href="3.lawyer_dashboard.html" class="active">Dashboard</a>
-        <a href="9.manage_cases.html">Manage Cases</a>
-        <a href="8.lawyer_appointment.html">Appointments</a>
-        <a href="6.lawyer_clientmg.html">Clients</a>
-        <a href="4.lawyer_profile.html">Edit Profile</a>
-        <a href="5.view_profile.html">View Profile</a>
-        <a href="1.user_login.html" onclick="logout()" style="margin-top: 2rem; color: #fca5a5;">Logout</a>
-      </nav>
-    </aside>
-
     <!-- Main Content -->
     <main class="main-content">
       <div class="top-bar">
-        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
-        <h1 id="welcome-text">Welcome, Advocate!</h1>
+        <button class="menu-toggle" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h1 id="welcome-text">Welcome, Advocate</h1>
       </div>
 
       <!-- Stats -->
       <section class="stats-grid">
-        <div class="card">
-          <h3 style="color: var(--text-muted); font-size: 0.9rem;">Total Cases</h3>
-          <p style="font-size: 2rem; font-weight: 700;">3</p>
+        <div class="stats-card">
+          <div class="stats-icon"><i class="fas fa-briefcase"></i></div>
+          <div>
+              <h3 style="color: var(--text-muted); font-size: 0.9rem; margin:0;">Total Cases</h3>
+              <p style="font-size: 2rem; font-weight: 700; color: var(--primary);">12</p>
+          </div>
         </div>
-        <div class="card">
-          <h3 style="color: var(--text-muted); font-size: 0.9rem;">Active Cases</h3>
-          <p style="font-size: 2rem; font-weight: 700; color: var(--secondary);">1</p>
+        <div class="stats-card">
+          <div class="stats-icon"><i class="fas fa-gavel"></i></div>
+          <div>
+              <h3 style="color: var(--text-muted); font-size: 0.9rem; margin:0;">Active Cases</h3>
+              <p style="font-size: 2rem; font-weight: 700; color: var(--secondary);">4</p>
+          </div>
         </div>
-        <div class="card">
-          <h3 style="color: var(--text-muted); font-size: 0.9rem;">Pending Appointments</h3>
-          <p style="font-size: 2rem; font-weight: 700; color: var(--danger);"><span id="pending-appointments-count">0</span></p>
+        <div class="stats-card">
+          <div class="stats-icon"><i class="fas fa-calendar-alt"></i></div>
+          <div>
+              <h3 style="color: var(--text-muted); font-size: 0.9rem; margin:0;">Pending Appointments</h3>
+              <p style="font-size: 2rem; font-weight: 700; color: var(--danger);"><span id="pending-appointments-count">0</span></p>
+          </div>
         </div>
       </section>
 
       <!-- Content -->
-      <section class="card appointments-card">
-        <h2>Upcoming Appointments</h2>
+      <section class="appointments-card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>Upcoming Appointments</h2>
+            <a href="8.lawyer_appointment.html" class="btn btn-outline" style="font-size: 0.85rem; padding: 0.5rem 1rem;">View All</a>
+        </div>
         <ul id="appointments-list">
           <li style="border-color: #ccc;">Loading your schedule...</li>
         </ul>
@@ -77,23 +113,20 @@
     </main>
   </div>
 
-  <script>
-    function toggleMenu() {
-        document.getElementById('sidebar').classList.toggle('open');
-    }
+  <!-- Inject unified sidebar -->
+  <script src="sidebar.js"></script>
 
+  <script>
     const name = localStorage.getItem('userName');
     if (name) {
-      document.getElementById('welcome-text').textContent = `Welcome, Advocate ${name}!`;
+      document.getElementById('welcome-text').textContent = `Welcome, Advocate ${name}`;
     }
 
     const lawyerEmail = localStorage.getItem('userEmail');
 
     async function loadAppointments() {
-      if (!lawyerEmail) {
-        document.getElementById('appointments-list').innerHTML = '<li style="border-color:#ef4444;">Please log in again.</li>';
-        return;
-      }
+      if (!lawyerEmail) return;
+      
       try {
         const res = await fetch(`/api/lawyer/appointments?lawyerEmail=${encodeURIComponent(lawyerEmail)}`);
         const appointments = await res.json();
@@ -102,22 +135,29 @@
         const upcomingAppointments = appointments.filter(app => {
           const dateObj = new Date(app.date);
           return dateObj >= today;
-        });
+        }).slice(0, 5); // Limit to next 5
 
         const list = document.getElementById('appointments-list');
         list.innerHTML = '';
         if (upcomingAppointments.length === 0) {
-          list.innerHTML = '<li style="border-color:#ccc;">No upcoming appointments.</li>';
+          list.innerHTML = '<li style="border-color:#ccc; color: var(--text-muted);">No upcoming appointments scheduled.</li>';
         } else {
           upcomingAppointments.forEach(app => {
             const li = document.createElement('li');
-            let statusColor = app.status === 'Accepted' || app.status === 'accepted' ? 'var(--secondary)' : 
-                              (app.status === 'Rejected' || app.status === 'rejected' ? 'var(--danger)' : 'var(--primary)');
+            let statusColor = app.status === 'Accepted' || app.status === 'accepted' ? 'var(--success)' : 
+                              (app.status === 'Rejected' || app.status === 'rejected' ? 'var(--danger)' : 'var(--secondary)');
             li.style.borderLeftColor = statusColor;
-            li.innerHTML = `<strong>${app.date} ${app.time ? 'at ' + app.time : ''}</strong><br>
-                            Client: ${app.clientName || app.clientEmail || 'N/A'}<br>
-                            Topic: ${app.topic || 'N/A'}<br>
-                            Status: <span style="color: ${statusColor}; font-weight:600;">${app.status || 'Requested'}</span>`;
+            
+            li.innerHTML = `
+                <div>
+                    <strong style="font-size:1.1rem;">${app.clientName || app.clientEmail || 'Client'}</strong>
+                    <div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.3rem;">${app.topic || 'General Consultation'}</div>
+                </div>
+                <div style="text-align: right;">
+                    <strong style="color: var(--primary);">${app.date} ${app.time ? 'at ' + app.time : ''}</strong>
+                    <div style="color: ${statusColor}; font-weight:600; font-size: 0.85rem; margin-top: 0.3rem;">${app.status ? app.status.toUpperCase() : 'REQUESTED'}</div>
+                </div>
+            `;
             list.appendChild(li);
           });
         }
@@ -128,16 +168,11 @@
         }).length;
         document.getElementById('pending-appointments-count').textContent = pendingCount;
       } catch (err) {
-        document.getElementById('appointments-list').innerHTML = '<li style="border-color:#ef4444;">Error loading appointments.</li>';
+        document.getElementById('appointments-list').innerHTML = '<li style="border-color:var(--danger);">Error loading appointments.</li>';
       }
     }
 
-    setInterval(loadAppointments, 10000);
     loadAppointments();
-
-    function logout() {
-      localStorage.clear();
-    }
   </script>
 </body>
 </html>

@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 from bson import ObjectId
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
@@ -8,6 +11,7 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import re
 
 from flask_mail import Mail, Message
 from flask_socketio import SocketIO, join_room, leave_room, emit
@@ -66,28 +70,45 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Register
 @app.route('/register', methods=['POST'])
 def register():
-    data = request.form
-    email = data.get('email', '').strip().lower()
-    user_type = data.get('userType', '').lower()
-    is_lawyer = user_type == 'lawyer'
-    collection = users if is_lawyer else clients
+    try:
+        data = request.form
+        email = data.get('email', '').strip().lower()
+        user_type = data.get('userType', '').lower()
+        is_lawyer = user_type == 'lawyer'
+        collection = users if is_lawyer else clients
 
-    if collection.find_one({'email': email}):
-        return jsonify({'message': 'Email already registered'}), 409
+        if collection.find_one({'email': email}):
+            return jsonify({'message': 'Email already registered'}), 409
 
-    user_data = {
-        'firstName': data.get('firstName'),
-        'middleName': data.get('MiddleName'),
-        'lastName': data.get('LastName'),
-        'email': email,
-        'phone': data.get('phone'),
-        'password': data.get('password'),
-        'role': 'lawyer' if is_lawyer else 'client',
-        'barCouncilNumber': data.get('barCouncilNumber') if is_lawyer else None
-    }
+        bar_number = data.get('barCouncilNumber')
+        verified = False
+        
+        if is_lawyer and bar_number:
+            # Simulate verification: Format must be STATE/NUMBER/YEAR (e.g., MAH/123/2020)
+            if re.match(r'^[A-Z]{2,4}\/\d{1,6}\/\d{4}$', bar_number):
+                verified = True
 
-    collection.insert_one(user_data)
-    return jsonify({'message': 'Registration successful'}), 201
+        user_data = {
+            'firstName': data.get('firstName'),
+            'middleName': data.get('MiddleName'),
+            'lastName': data.get('LastName'),
+            'email': email,
+            'phone': data.get('phone'),
+            'password': data.get('password'),
+            'role': 'lawyer' if is_lawyer else 'client',
+            'barCouncilNumber': bar_number if is_lawyer else None,
+            'verified': verified if is_lawyer else None
+        }
+
+        collection.insert_one(user_data)
+        
+        # Ensure index on email for faster logins
+        collection.create_index('email', unique=True)
+
+        return jsonify({'message': 'Registration successful', 'verified': verified}), 201
+    except Exception as e:
+        print(f"Error in register: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500
 
 # Login
 @app.route('/login', methods=['POST'])

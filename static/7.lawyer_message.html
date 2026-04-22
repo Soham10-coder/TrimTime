@@ -3,437 +3,351 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Messages - LegalConnect</title>
+    <title>Messages - LegalConnect</title>
     <link rel="stylesheet" href="global.css">
-    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
-        .messenger-wrapper {
+        .chat-container {
             display: flex;
-            background: white;
+            height: calc(100vh - 220px);
+            background: var(--bg-surface);
             border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border-color);
-            height: calc(100vh - 120px);
+            box-shadow: var(--shadow-md);
             overflow: hidden;
+            border: 1px solid var(--border-color);
         }
-
-        .contacts-panel {
-            width: 300px;
+        .conversations-panel {
+            width: 320px;
+            background: var(--bg-light);
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            background: var(--bg-light);
         }
-
-        .contacts-header {
+        .conversations-header {
             padding: 1.5rem;
-            border-bottom: 1px solid var(--border-color);
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
         }
-        
-        .contact-list {
+        .conversations-list {
             flex: 1;
             overflow-y: auto;
-            padding: 1rem;
         }
-
-        .contact-card {
-            padding: 1rem;
-            background: white;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border-color);
-            margin-bottom: 0.8rem;
+        .conversation-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
             cursor: pointer;
             transition: var(--transition);
         }
-
-        .contact-card:hover, .contact-card.active {
-            border-color: var(--primary);
-            box-shadow: var(--shadow-sm);
+        .conversation-item:hover, .conversation-item.active {
+            background: var(--bg-surface);
+            border-left: 4px solid var(--secondary);
         }
-
-        .contact-card.active {
-            background: #eff6ff;
-        }
-
-        .contact-card h4 {
-            margin: 0 0 0.3rem 0;
-            font-size: 1rem;
-            color: var(--text-main);
-        }
-
         .chat-panel {
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: white;
+            background: var(--bg-surface);
         }
-
         .chat-header {
             padding: 1.5rem;
             border-bottom: 1px solid var(--border-color);
+            background: var(--bg-surface);
             display: flex;
             align-items: center;
         }
-
         .chat-header h3 {
             margin: 0;
             color: var(--primary);
         }
-
-        .messages-container {
+        .chat-messages {
             flex: 1;
             padding: 1.5rem;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
             gap: 1rem;
-            background: var(--bg-surface);
+            background: #fafafa;
         }
-
-        .message-bubble {
+        .message {
             max-width: 70%;
-            padding: 1rem;
-            border-radius: var(--radius-md);
+            padding: 0.8rem 1.2rem;
+            border-radius: 1rem;
+            position: relative;
             font-size: 0.95rem;
-            box-shadow: var(--shadow-sm);
-            word-wrap: break-word;
         }
-
-        .msg-received {
-            background: #f1f5f9;
-            align-self: flex-start;
-            border-bottom-left-radius: 0;
-            color: var(--text-main);
-        }
-
-        .msg-sent {
+        .message.sent {
+            align-self: flex-end;
             background: var(--primary);
             color: white;
-            align-self: flex-end;
             border-bottom-right-radius: 0;
         }
-
-        .msg-time {
+        .message.received {
+            align-self: flex-start;
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-bottom-left-radius: 0;
+            box-shadow: var(--shadow-sm);
+        }
+        .timestamp {
             font-size: 0.75rem;
-            opacity: 0.8;
-            margin-top: 5px;
-            display: block;
+            opacity: 0.7;
+            margin-top: 0.3rem;
             text-align: right;
-            font-weight: 500;
         }
-
-        .file-attachment {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: rgba(0,0,0,0.1);
-            padding: 10px;
-            border-radius: 6px;
-            margin-top: 5px;
-            text-decoration: none;
-            color: inherit;
+        .message.received .timestamp {
+            color: var(--text-muted);
         }
-        .file-attachment:hover {
-            background: rgba(0,0,0,0.15);
-        }
-        .img-attachment {
-            max-width: 100%;
-            border-radius: 6px;
-            margin-top: 8px;
-            display: block;
-            max-height: 250px;
-            object-fit: cover;
-        }
-
-        .input-panel {
+        .chat-input-area {
             padding: 1.5rem;
+            background: var(--bg-surface);
             border-top: 1px solid var(--border-color);
             display: flex;
-            align-items: center;
             gap: 1rem;
+            align-items: center;
+        }
+        .chat-input {
+            flex: 1;
+            padding: 0.8rem 1.2rem;
+            border: 1px solid var(--border-color);
+            border-radius: 2rem;
+            background: var(--bg-light);
+        }
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--secondary);
             background: white;
         }
-
-        .file-btn {
-            background: var(--bg-light);
-            border: 1px solid var(--border-color);
+        .btn-send {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
             cursor: pointer;
-            padding: 0.8rem 1rem;
-            border-radius: var(--radius-md);
-            color: var(--text-muted);
-            font-size: 1.2rem;
-            transition: var(--transition);
-        }
-        .file-btn:hover { color: var(--primary); border-color: var(--primary); }
-
-        .input-panel input[type="text"] {
-            flex: 1;
-            padding: 1rem;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-        }
-
-        .input-panel button.btn-primary {
-            padding: 0 2rem;
-            border-radius: var(--radius-md);
-        }
-
-        .empty-state {
             display: flex;
-            flex: 1;
             align-items: center;
             justify-content: center;
+            transition: var(--transition);
+        }
+        .btn-send:hover {
+            transform: scale(1.05);
+            background: var(--secondary-hover);
+        }
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
             color: var(--text-muted);
-            flex-direction: column;
+            font-size: 1.1rem;
+        }
+        @media (max-width: 768px) {
+            .chat-container {
+                flex-direction: column;
+                height: calc(100vh - 160px); /* Adjust for smaller padding on mobile */
+            }
+            .conversations-panel {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                flex: none;
+                max-height: 150px; /* Constrain list height on mobile */
+            }
+            .conversations-header {
+                padding: 0.8rem 1rem;
+            }
+            .conversation-item {
+                padding: 0.8rem 1rem;
+            }
+            .chat-header {
+                padding: 1rem;
+            }
+            .chat-input-area {
+                padding: 1rem;
+            }
         }
     </style>
 </head>
 <body>
     <div class="dashboard-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="brand">⚖️ LegalConnect</div>
-            <nav class="sidebar-nav">
-                <a href="3.lawyer_dashboard.html">Dashboard</a>
-                <a href="9.manage_cases.html">Manage Cases</a>
-                <a href="8.lawyer_appointment.html">Appointments Record</a>
-                <a href="6.lawyer_clientmg.html">Clients Requests</a>
-                <a href="7.lawyer_message.html" class="active">Messages</a>
-                <a href="4.lawyer_profile.html">Edit Profile</a>
-                <a href="5.view_profile.html">View Profile</a>
-                <a href="1.user_login.html" onclick="logout()" style="margin-top: 2rem; color: #fca5a5;">Logout</a>
-            </nav>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
+        <div class="main-content">
             <div class="top-bar">
-                <button class="menu-toggle" onclick="toggleMenu()">☰</button>
-                <h1>Secure Client Messages</h1>
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>Messages</h1>
             </div>
 
-            <div class="messenger-wrapper">
-                
-                <!-- Active Clients List -->
-                <div class="contacts-panel">
-                    <div class="contacts-header">
-                        <h3 style="margin:0; font-size: 1.1rem;">Accepted Clients</h3>
+            <div class="chat-container">
+                <!-- Left Panel: Conversations -->
+                <div class="conversations-panel">
+                    <div class="conversations-header">
+                        My Clients
                     </div>
-                    <div class="contact-list" id="contactList">
-                        <p style="color:var(--text-muted); text-align:center;">Loading clients...</p>
+                    <div class="conversations-list" id="conversationsList">
+                        <!-- Loaded dynamically -->
                     </div>
                 </div>
 
-                <!-- Live Chat View -->
+                <!-- Right Panel: Chat -->
                 <div class="chat-panel" id="chatPanel" style="display: none;">
                     <div class="chat-header">
-                        <h3 id="currentChatName">Select a client</h3>
+                        <h3 id="currentChatName">Select a conversation</h3>
                     </div>
-                    
-                    <div class="messages-container" id="messagesContainer">
-                        <!-- Messages dynamically inserted here -->
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- Messages go here -->
                     </div>
-
-                    <div class="input-panel">
-                        <input type="file" id="fileAttach" style="display: none;" onchange="handleFileUpload()">
-                        <button class="file-btn" onclick="document.getElementById('fileAttach').click()" title="Send File or Image">📎</button>
-                        <input type="text" id="msgInput" placeholder="Type a secure message..." onkeypress="handleEnter(event)">
-                        <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+                    <div class="chat-input-area">
+                        <input type="text" class="chat-input" id="messageInput" placeholder="Type your message here...">
+                        <button class="btn-send" onclick="sendMessage()">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
                     </div>
                 </div>
-
-                <!-- Empty State before selecting a client -->
-                <div class="chat-panel empty-state" id="emptyState">
-                    <h2 style="color:var(--border-color); font-size:4rem; margin:0;">💬</h2>
-                    <h3 style="margin-top:1rem;">Select a client to start secure messaging.</h3>
-                    <p>Only clients from accepted appointments will appear here.</p>
+                
+                <div class="chat-panel" id="emptyChatPanel">
+                    <div class="empty-state">
+                        <p>Select a client from the left to start messaging</p>
+                    </div>
                 </div>
-
             </div>
-        </main>
+        </div>
     </div>
 
-    <!-- Toast UI -->
-    <div id="toast-container" class="toast-container"></div>
-
+    <!-- Inject unified sidebar -->
+    <script src="sidebar.js"></script>
+    
     <script>
-        function toggleMenu() { document.getElementById('sidebar').classList.toggle('open'); }
-        function logout() { localStorage.clear(); }
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerHTML = `<span>${message}</span>`;
-            container.appendChild(toast);
-            setTimeout(() => { toast.style.animation = 'fadeOut 0.3s forwards'; setTimeout(() => toast.remove(), 300); }, 3000);
-        }
-        
         const socket = io();
         const lawyerEmail = localStorage.getItem('userEmail');
         let currentRoom = null;
-        let targetClientEmail = null;
+        let currentClientEmail = null;
 
-        if(!lawyerEmail) { alert('Session Expired'); window.location.href = '1.user_login.html'; }
-
-        // Fetch accepted clients
-        fetch(`/api/lawyer/appointments?lawyerEmail=${encodeURIComponent(lawyerEmail)}`)
-        .then(res => res.json())
-        .then(appointments => {
-            const contactList = document.getElementById('contactList');
-            contactList.innerHTML = '';
-            const uniqueClients = new Map();
-            appointments.forEach(app => {
-                if((app.status || '').toLowerCase() === 'accepted') {
-                    const clientMail = app.clientEmail || app.client_email;
-                    if(clientMail && !uniqueClients.has(clientMail)) {
-                        uniqueClients.set(clientMail, app.clientName || app.client_name || clientMail);
-                    }
-                }
-            });
-
-            if(uniqueClients.size === 0) {
-                contactList.innerHTML = '<p style="color:var(--text-muted); text-align:center;">No accepted clients yet.</p>';
-            } else {
-                uniqueClients.forEach((clientName, clientEmail) => {
-                    const card = document.createElement('div');
-                    card.className = 'contact-card';
-                    card.innerHTML = `<h4>${clientName}</h4><span style="font-size:0.8rem; color:var(--text-muted);">${clientEmail}</span>`;
-                    card.onclick = () => openChat(clientEmail, clientName, card);
-                    contactList.appendChild(card);
-                });
-
-                const urlParams = new URLSearchParams(window.location.search);
-                const focusEmail = urlParams.get('client_email');
-                if(focusEmail) {
-                    const matchedCard = Array.from(document.querySelectorAll('.contact-card')).find(c => c.innerHTML.includes(focusEmail));
-                    if(matchedCard) matchedCard.click();
-                }
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!lawyerEmail) {
+                window.location.href = '1.user_login.html';
+                return;
             }
+            loadClients();
         });
 
-        function openChat(email, name, cardElement) {
-            document.querySelectorAll('.contact-card').forEach(c => c.classList.remove('active'));
-            cardElement.classList.add('active');
-            document.getElementById('emptyState').style.display = 'none';
-            document.getElementById('chatPanel').style.display = 'flex';
-            document.getElementById('currentChatName').innerText = `Chat with ${name}`;
-            
-            targetClientEmail = email;
-            currentRoom = [lawyerEmail, targetClientEmail].sort().join('_');
-            socket.emit('join_room', { room: currentRoom });
-
-            fetch(`/api/messages/${currentRoom}`)
-            .then(res => res.json())
-            .then(messages => {
-                const container = document.getElementById('messagesContainer');
-                container.innerHTML = '';
-                messages.forEach(msg => renderMessage(msg));
-                scrollToBottom();
-            });
-        }
-
-        function formatIST(timestampStr) {
-            if(!timestampStr) return '';
-            const dateObj = new Date(timestampStr + 'Z'); // Convert UTC string safely
-            
-            const today = new Date();
-            const yest = new Date();
-            yest.setDate(yest.getDate() - 1);
-
-            const isToday = dateObj.toDateString() === today.toDateString();
-            const isYest = dateObj.toDateString() === yest.toDateString();
-
-            const timeStr = dateObj.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute:'2-digit' });
-
-            if(isToday) return `Today, ${timeStr}`;
-            if(isYest) return `Yesterday, ${timeStr}`;
-            return `${dateObj.toLocaleDateString('en-IN', {timeZone: 'Asia/Kolkata'})} ${timeStr}`;
-        }
-
-        // Send Text Message
-        function sendMessage() {
-            const input = document.getElementById('msgInput');
-            const msg = input.value.trim();
-            if(!msg || !currentRoom) return;
-
-            socket.emit('send_message', { room: currentRoom, message: msg, sender: 'lawyer', senderEmail: lawyerEmail });
-            input.value = '';
-        }
-
-        function handleEnter(e) { if(e.key === 'Enter') sendMessage(); }
-
-        // Upload and Send File
-        async function handleFileUpload() {
-            const fileInput = document.getElementById('fileAttach');
-            if(!fileInput.files.length || !currentRoom) return;
-            
-            const file = fileInput.files[0];
-            showToast(`Uploading ${file.name}...`, 'success');
-            
-            const formData = new FormData();
-            formData.append('room', currentRoom);
-            formData.append('file', file);
-
+        async function loadClients() {
             try {
-                const res = await fetch('/api/chat/upload', {
-                    method: 'POST',
-                    body: formData
+                // Fetch appointments to get unique clients
+                const response = await fetch(`/api/lawyer/appointments?lawyerEmail=${encodeURIComponent(lawyerEmail)}`);
+                const appointments = await response.json();
+                
+                const clientsMap = new Map();
+                appointments.forEach(app => {
+                    const status = app.status ? app.status.toLowerCase() : '';
+                    if (status === 'accepted' && app.clientEmail) {
+                        clientsMap.set(app.clientEmail, app.clientName || app.clientEmail);
+                    }
                 });
-                const data = await res.json();
-                if(data.url) {
-                    socket.emit('send_message', {
-                        room: currentRoom,
-                        message: '',
-                        sender: 'lawyer',
-                        senderEmail: lawyerEmail,
-                        fileUrl: data.url,
-                        fileName: data.filename
-                    });
+
+                const list = document.getElementById('conversationsList');
+                list.innerHTML = '';
+                
+                if (clientsMap.size === 0) {
+                    list.innerHTML = '<div style="padding: 1rem; color: #666;">No active clients found.</div>';
+                    return;
                 }
+
+                clientsMap.forEach((name, email) => {
+                    const div = document.createElement('div');
+                    div.className = 'conversation-item';
+                    div.innerHTML = `<strong>${name}</strong><br><small>${email}</small>`;
+                    div.onclick = () => selectChat(email, name, div);
+                    list.appendChild(div);
+                });
             } catch (err) {
-                showToast("File upload failed.", "error");
+                console.error("Error loading clients:", err);
             }
-            fileInput.value = '';
+        }
+
+        function selectChat(clientEmail, clientName, element) {
+            // Update active state
+            document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
+            if(element) element.classList.add('active');
+
+            currentClientEmail = clientEmail;
+            
+            // Generate deterministic room name
+            const emails = [lawyerEmail, clientEmail].sort();
+            currentRoom = `room_${emails[0]}_${emails[1]}`;
+
+            document.getElementById('emptyChatPanel').style.display = 'none';
+            document.getElementById('chatPanel').style.display = 'flex';
+            document.getElementById('currentChatName').innerText = clientName;
+
+            socket.emit('join_room', { room: currentRoom });
+            loadMessages();
+        }
+
+        async function loadMessages() {
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = '';
+            
+            try {
+                const response = await fetch(`/api/messages/${currentRoom}`);
+                const messages = await response.json();
+                
+                messages.forEach(msg => displayMessage(msg));
+                container.scrollTop = container.scrollHeight;
+            } catch (err) {
+                console.error("Error loading messages:", err);
+            }
+        }
+
+        function displayMessage(data) {
+            const container = document.getElementById('chatMessages');
+            const isMine = data.senderEmail === lawyerEmail;
+            
+            const div = document.createElement('div');
+            div.className = `message ${isMine ? 'sent' : 'received'}`;
+            
+            let timeString = '';
+            if (data.timestamp) {
+                const date = new Date(data.timestamp);
+                timeString = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            }
+            
+            div.innerHTML = `
+                <div>${data.message}</div>
+                <div class="timestamp">${timeString}</div>
+            `;
+            
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
         }
 
         socket.on('receive_message', (data) => {
-            renderMessage(data);
-            scrollToBottom();
+            displayMessage(data);
         });
 
-        function renderMessage(msgObj) {
-            const container = document.getElementById('messagesContainer');
-            const div = document.createElement('div');
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
             
-            const isUs = msgObj.senderRole === 'lawyer' || msgObj.sender === 'lawyer';
-            div.className = isUs ? 'message-bubble msg-sent' : 'message-bubble msg-received';
-            
-            const timeStr = formatIST(msgObj.timestamp);
-
-            let contentHtml = msgObj.message ? `<div>${msgObj.message}</div>` : '';
-            
-            if(msgObj.fileUrl) {
-                const ext = msgObj.fileName ? msgObj.fileName.split('.').pop().toLowerCase() : '';
-                if(['jpg','jpeg','png','gif','webp'].includes(ext)) {
-                    contentHtml += `<a href="${msgObj.fileUrl}" target="_blank"><img src="${msgObj.fileUrl}" class="img-attachment" alt="${msgObj.fileName}"></a>`;
-                } else {
-                    contentHtml += `
-                    <a href="${msgObj.fileUrl}" target="_blank" class="file-attachment" download>
-                        📄 <span>${msgObj.fileName || 'Attachment'}</span>
-                    </a>`;
-                }
+            if (message && currentRoom) {
+                socket.emit('send_message', {
+                    room: currentRoom,
+                    message: message,
+                    sender: localStorage.getItem('userName'),
+                    senderEmail: lawyerEmail
+                });
+                input.value = '';
             }
-
-            div.innerHTML = `${contentHtml} <span class="msg-time">${timeStr}</span>`;
-            container.appendChild(div);
         }
 
-        function scrollToBottom() {
-            const container = document.getElementById('messagesContainer');
-            container.scrollTop = container.scrollHeight;
-        }
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
     </script>
 </body>
 </html>
