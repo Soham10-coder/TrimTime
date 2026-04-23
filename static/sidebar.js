@@ -3,8 +3,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const userName = localStorage.getItem('userName') || 'User';
 
     let navLinks = '';
+    let displayName = userName;
 
     if (role === 'lawyer') {
+        displayName = `Adv. ${userName}`;
         navLinks = `
             <a href="3.lawyer_dashboard.html" class="nav-link" data-page="3.lawyer_dashboard.html">
                 <i class="fas fa-home"></i> Dashboard
@@ -29,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </a>
         `;
     } else if (role === 'client') {
+        displayName = userName;
         navLinks = `
             <a href="cdash.html" class="nav-link" data-page="cdash.html">
                 <i class="fas fa-home"></i> Dashboard
@@ -58,11 +61,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const sidebarHTML = `
         <div class="sidebar" id="sidebar">
             <div class="brand">
-                <i class="fas fa-balance-scale" style="color: var(--secondary);"></i>
-                <span style="color: var(--secondary);">LegalConnect</span>
+                <i class="fas fa-balance-scale" style="color: #ffffff;"></i>
+                <span style="color: #ffffff;">Advier</span>
             </div>
             <div style="padding: 0 1.5rem 1rem 1.5rem; color: rgba(255,255,255,0.6); font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 1rem;">
-                Welcome, ${userName}
+                ${displayName}
             </div>
             <nav class="sidebar-nav">
                 ${navLinks}

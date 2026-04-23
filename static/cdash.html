@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Client Dashboard - LegalConnect</title>
+  <title>Client Dashboard - Advier</title>
   <link rel="stylesheet" href="global.css">
   <style>
     .welcome-banner {
@@ -86,7 +86,7 @@
       <!-- Welcome Banner -->
       <div class="welcome-banner">
           <div>
-              <h2 id="welcome-text">Welcome back!</h2>
+              <h1 id="welcome-text">Dashboard</h1>
               <p style="opacity: 0.9;">Manage your legal appointments, view cases, and consult with top lawyers.</p>
           </div>
           <div>
@@ -132,7 +132,7 @@
   <script>
     const name = localStorage.getItem('userName');
     if (name) {
-      document.getElementById('welcome-text').textContent = `Welcome back, ${name}!`;
+      document.getElementById('welcome-text').textContent = name;
     }
 
     const clientEmail = localStorage.getItem('userEmail');

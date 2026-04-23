@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lawyer Dashboard - LegalConnect</title>
+  <title>Lawyer Dashboard - Advier</title>
   <link rel="stylesheet" href="global.css">
   <style>
     .stats-grid {
@@ -71,7 +71,7 @@
         <button class="menu-toggle" onclick="toggleSidebar()">
             <i class="fas fa-bars"></i>
         </button>
-        <h1 id="welcome-text">Welcome, Advocate</h1>
+        <h1 id="welcome-text">Adv.</h1>
       </div>
 
       <!-- Stats -->
@@ -119,7 +119,7 @@
   <script>
     const name = localStorage.getItem('userName');
     if (name) {
-      document.getElementById('welcome-text').textContent = `Welcome, Advocate ${name}`;
+      document.getElementById('welcome-text').textContent = `Adv. ${name}`;
     }
 
     const lawyerEmail = localStorage.getItem('userEmail');

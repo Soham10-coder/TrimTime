@@ -360,12 +360,12 @@ def update_appointment_status():
             sender_password = os.getenv("GMAIL_PASS")  # Use App Password, not your main password!
             receiver_email = client_email
 
-            subject = "Appointment Accepted - LegalConnect"
+            subject = "Appointment Accepted - Advier"
             html = f"""
             <div style="font-family: Arial, sans-serif; background: #f7f7f7; padding: 30px;">
             <div style="max-width: 500px; margin: auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #e0e0e0; padding: 32px;">
                 <div style="text-align:center;">
-                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="LegalConnect" width="64" style="margin-bottom: 16px;">
+                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Advier" width="64" style="margin-bottom: 16px;">
                 <h2 style="color: #1976d2; margin-bottom: 8px;">Appointment Accepted</h2>
                 </div>
                 <p style="font-size: 16px; color: #222;">
@@ -395,7 +395,7 @@ def update_appointment_status():
                 Please be available at the scheduled time. If you have any questions, feel free to reply to this email.
                 </p>
                 <div style="margin-top: 30px; text-align:center;">
-                <span style="color: #888; font-size: 13px;">Thank you for using <b>LegalConnect</b>.</span>
+                <span style="color: #888; font-size: 13px;">Thank you for using <b>Advier</b>.</span>
                 </div>
             </div>
             </div>

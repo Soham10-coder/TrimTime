@@ -258,7 +258,7 @@ textarea {
 
 .sidebar-nav a:hover,
 .sidebar-nav a.active {
-  background-color: var(--secondary);
+  background-color: #ffffff;
   color: var(--primary);
   font-weight: 600;
 }
