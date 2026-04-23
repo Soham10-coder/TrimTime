@@ -8,58 +8,93 @@
   <style>
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 2.5rem;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3rem;
     }
     .stats-card {
-        background: var(--bg-surface);
-        padding: 1.5rem;
+        background: linear-gradient(135deg, #ffffff 0%, #fcfcfc 100%);
+        padding: 2rem;
         border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--border-color);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+        border: 1px solid rgba(0,0,0,0.05);
         display: flex;
         align-items: center;
         gap: 1.5rem;
-        transition: var(--transition);
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        position: relative;
+        overflow: hidden;
     }
+    .stats-card::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; width: 4px; height: 100%;
+        background: var(--primary);
+        border-radius: 4px 0 0 4px;
+    }
+    .stats-card:nth-child(2)::before { background: var(--secondary); }
+    .stats-card:nth-child(3)::before { background: var(--danger); }
+    
     .stats-card:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--shadow-md);
-        border-color: var(--secondary);
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.08);
     }
     .stats-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: var(--bg-light);
+        width: 65px;
+        height: 65px;
+        border-radius: 16px;
+        background: rgba(15, 15, 15, 0.04);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
-        color: var(--secondary); /* Gold */
+        font-size: 1.8rem;
+        color: var(--primary);
+        box-shadow: inset 0 2px 5px rgba(255,255,255,0.8);
+    }
+    .stats-card:nth-child(2) .stats-icon {
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--secondary);
+    }
+    .stats-card:nth-child(3) .stats-icon {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
     }
     .appointments-card {
-        background: var(--bg-surface);
-        padding: 2rem;
+        background: #ffffff;
+        padding: 2.5rem;
         border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--border-color);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.03);
+        border: 1px solid rgba(0,0,0,0.06);
+    }
+    .appointments-card h2 {
+        font-size: 1.5rem;
+        letter-spacing: -0.5px;
     }
     .appointments-card ul {
-      margin-top: 1.5rem;
+      margin-top: 2rem;
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 1.25rem;
     }
     .appointments-card li {
-      background: var(--bg-light);
-      padding: 1.5rem;
+      background: #fafafa;
+      padding: 1.5rem 2rem;
       border-radius: var(--radius-md);
-      border-left: 4px solid var(--primary);
+      border-left: 5px solid var(--primary);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      transition: all 0.3s ease;
+      border-top: 1px solid transparent;
+      border-right: 1px solid transparent;
+      border-bottom: 1px solid transparent;
+    }
+    .appointments-card li:hover {
+        background: #ffffff;
+        box-shadow: 0 12px 24px rgba(0,0,0,0.06);
+        transform: translateX(6px);
+        border-color: rgba(0,0,0,0.05);
+        border-left-color: var(--primary); /* keep left border strong */
     }
   </style>
 </head>
