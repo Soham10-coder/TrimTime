@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Login - Advier</title>
+    <title>Secure Login - Advier ⚖️</title>
     <link rel="stylesheet" href="global.css">
     <style>
         body {
@@ -11,18 +11,44 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, var(--bg-light) 0%, var(--border-color) 100%);
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             padding: 2rem;
+            font-family: 'Inter', sans-serif;
+            position: relative;
+            overflow: hidden;
         }
+        
+        /* Decorative background elements */
+        body::before {
+            content: '';
+            position: absolute;
+            top: -20%; left: -10%;
+            width: 50vw; height: 50vw;
+            background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        body::after {
+            content: '';
+            position: absolute;
+            bottom: -20%; right: -10%;
+            width: 60vw; height: 60vw;
+            background: radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
         .login-wrapper {
             display: flex;
             flex-direction: row;
-            background: var(--bg-surface);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-lg);
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             overflow: hidden;
             max-width: 1000px;
             width: 100%;
+            z-index: 10;
         }
         .login-image {
             flex: 1;
@@ -30,25 +56,13 @@
             position: relative;
             display: none;
         }
-
-        .login-brand {
+        .login-image::after {
+            content: "";
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-            text-align: center;
-            color: var(--secondary); /* Gold */
+            inset: 0;
+            background: linear-gradient(to right, transparent, rgba(15,23,42,1));
         }
-        .login-brand h1 {
-            font-size: 2.5rem;
-            color: var(--secondary);
-            margin-bottom: 0.5rem;
-        }
-        .login-brand p {
-            color: white;
-            font-size: 1.1rem;
-        }
+
         @media (min-width: 768px) {
             .login-image {
                 display: block;
@@ -60,27 +74,78 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+            background: rgba(15, 23, 42, 0.8);
         }
         .login-form-container h2 {
-            font-size: 2rem;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-        .login-form-container p.subtitle {
-            color: var(--text-muted);
-            margin-bottom: 2.5rem;
-        }
-        .auth-links {
-            margin-top: 1.5rem;
+            font-size: 2.2rem;
+            color: #ffffff;
+            margin-bottom: 2rem;
+            font-weight: 700;
+            letter-spacing: 2px;
             text-align: center;
-            font-size: 0.95rem;
         }
-        .auth-links a {
-            font-weight: 600;
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        label {
+            display: block;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 1rem 1.2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        input[type="email"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
         }
         .btn-full {
             width: 100%;
             margin-top: 1rem;
+            padding: 1rem;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
+        .btn-full:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+        .auth-links {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+        .auth-links a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        .auth-links a:hover {
+            color: #60a5fa;
         }
     </style>
 </head>
@@ -90,7 +155,7 @@
         <div class="login-image">
         </div>
         <div class="login-form-container">
-            <h2 style="letter-spacing: 2px;">ADVIER</h2>
+            <h2>ADVIER</h2>
             
             <form onsubmit="return redirectToDashboard(event)">
                 <div class="form-group">

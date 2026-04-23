@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Find a Lawyer - Advier</title>
+    <title>Find a Lawyer - Advier ⚖️</title>
     <link rel="stylesheet" href="global.css">
     <style>
         .lawyer-list {
@@ -112,6 +112,25 @@
                 const specialty = document.createElement("p");
                 specialty.textContent = `${lawyer.specialization || 'General Practice'} Specialist`;
 
+                const ratingDiv = document.createElement("div");
+                ratingDiv.style.marginBottom = "1.5rem";
+                ratingDiv.style.color = "#fbbf24";
+                ratingDiv.style.fontSize = "1rem";
+                
+                const avgRating = lawyer.averageRating || 0;
+                let starsHTML = '';
+                for(let i=1; i<=5; i++) {
+                    if (i <= Math.round(avgRating)) {
+                        starsHTML += '<i class="fas fa-star"></i>';
+                    } else {
+                        starsHTML += '<i class="far fa-star"></i>';
+                    }
+                }
+                starsHTML += ` <span style="color: var(--text-muted); font-size: 0.85rem;">(${avgRating})</span>`;
+                ratingDiv.innerHTML = starsHTML;
+
+                specialty.style.marginBottom = "0.5rem";
+
                 const btn = document.createElement("button");
                 btn.className = "btn btn-outline";
                 btn.textContent = "View Profile";
@@ -119,6 +138,7 @@
                 card.appendChild(img);
                 card.appendChild(name);
                 card.appendChild(specialty);
+                card.appendChild(ratingDiv);
                 card.appendChild(btn);
                 container.appendChild(card);
             });

@@ -215,6 +215,8 @@ def get_profile(email):
     profile['profilePicUrl'] = get_url(profile.get('profilePic'))
     profile['certificationsUrls'] = [get_url(p) for p in profile.get('certifications', [])]
     profile['graduationCertificatesUrls'] = [get_url(p) for p in profile.get('graduationCertificates', [])]
+    profile['averageRating'] = profile.get('averageRating', 0)
+    profile['ratings'] = profile.get('ratings', [])
 
     return jsonify(profile), 200
 
@@ -252,7 +254,8 @@ def get_lawyers():
                 'lastName': lawyer.get('lastName', ''),
                 'email': email,
                 'specialization': profile.get('specialization', 'Not specified'),
-                'profilePic': profile_pic_url
+                'profilePic': profile_pic_url,
+                'averageRating': profile.get('averageRating', 0)
             })
     return jsonify(results), 200
 
@@ -425,6 +428,57 @@ def get_client_details():
     if not client:
         return jsonify({'message': 'Client not found'}), 404
     return jsonify(client), 200
+
+# --- Rating System ---
+@app.route('/api/lawyer/rate', methods=['POST'])
+def rate_lawyer():
+    data = request.get_json()
+    lawyer_email = data.get('lawyerEmail')
+    client_email = data.get('clientEmail')
+    rating = data.get('rating')
+    review = data.get('review', '')
+
+    if not all([lawyer_email, client_email, rating]):
+        return jsonify({'message': 'Lawyer email, client email, and rating are required.'}), 400
+
+    try:
+        rating_value = int(rating)
+        if rating_value < 1 or rating_value > 5:
+            return jsonify({'message': 'Rating must be between 1 and 5.'}), 400
+    except ValueError:
+        return jsonify({'message': 'Invalid rating value.'}), 400
+
+    rating_doc = {
+        'client_email': client_email,
+        'rating': rating_value,
+        'review': review,
+        'timestamp': datetime.utcnow()
+    }
+
+    profile = profiles.find_one({'email': lawyer_email})
+    if not profile:
+        return jsonify({'message': 'Lawyer profile not found.'}), 404
+
+    profiles.update_one(
+        {'email': lawyer_email},
+        {'$pull': {'ratings': {'client_email': client_email}}}
+    )
+    
+    profiles.update_one(
+        {'email': lawyer_email},
+        {'$push': {'ratings': rating_doc}}
+    )
+
+    updated_profile = profiles.find_one({'email': lawyer_email})
+    all_ratings = updated_profile.get('ratings', [])
+    if all_ratings:
+        avg_rating = sum(r['rating'] for r in all_ratings) / len(all_ratings)
+        profiles.update_one(
+            {'email': lawyer_email},
+            {'$set': {'averageRating': round(avg_rating, 1)}}
+        )
+
+    return jsonify({'message': 'Rating submitted successfully.', 'averageRating': round(avg_rating, 1)}), 200
 
 # --- Chat System ---
 @app.route('/api/chat/upload', methods=['POST'])
