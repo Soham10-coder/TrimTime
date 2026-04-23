@@ -9,8 +9,8 @@
   /* Brand Colors */
   --primary: #0f0f0f; /* Matte Black */
   --primary-hover: #222222;
-  --secondary: #d4af37; /* Gold Accent */
-  --secondary-hover: #b5952f;
+  --secondary: #3b82f6; /* Blue Accent */
+  --secondary-hover: #2563eb;
   --accent-light: #e0e0e0;
   --danger: #ef4444; 
   --danger-hover: #dc2626;
@@ -176,7 +176,7 @@ input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--secondary);
   background-color: var(--bg-surface);
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 textarea {
@@ -231,7 +231,7 @@ textarea {
   font-weight: 700;
   margin-bottom: 2.5rem;
   text-align: center;
-  color: var(--secondary); /* Gold text for brand */
+  color: var(--secondary); /* Accent text for brand */
   letter-spacing: 0.5px;
   display: flex;
   align-items: center;
