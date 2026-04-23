@@ -291,8 +291,7 @@
                 
                 const lawyersMap = new Map();
                 appointments.forEach(app => {
-                    const status = app.status ? app.status.toLowerCase() : '';
-                    if (status === 'accepted' && app.lawyer_email) {
+                    if (app.lawyer_email) {
                         lawyersMap.set(app.lawyer_email, app.lawyer_email); 
                     }
                 });

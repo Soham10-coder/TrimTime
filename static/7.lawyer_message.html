@@ -286,13 +286,12 @@
 
         async function loadClients() {
             try {
-                const response = await fetch(`/api/lawyer/appointments?lawyerEmail=${encodeURIComponent(clientEmail)}`);
+                const response = await fetch(`/api/lawyer/appointments?lawyerEmail=${encodeURIComponent(lawyerEmail)}`);
                 const appointments = await response.json();
                 
                 const clientsMap = new Map();
                 appointments.forEach(app => {
-                    const status = app.status ? app.status.toLowerCase() : '';
-                    if (status === 'accepted' && app.clientEmail) {
+                    if (app.clientEmail) {
                         clientsMap.set(app.clientEmail, app.clientName || app.clientEmail); 
                     }
                 });
@@ -312,7 +311,7 @@
                     div.innerHTML = `
                         <div class="avatar">${initial}</div>
                         <div>
-                            <strong style="color:var(--primary);">Advocate</strong><br>
+                            <strong style="color:var(--primary);">Client</strong><br>
                             <small style="color:var(--text-muted);">${email}</small>
                         </div>
                     `;
