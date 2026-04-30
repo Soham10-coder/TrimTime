@@ -9,13 +9,14 @@
     <style>
         .chat-container {
             display: flex;
-            height: calc(100vh - 120px);
+            /* Adjust height to account for 2.5rem top/bottom padding + top-bar height (approx 80px) + margin */
+            height: calc(100vh - 200px);
             background: #ffffff;
             border-radius: var(--radius-lg);
             box-shadow: 0 10px 40px rgba(0,0,0,0.08);
             overflow: hidden;
             border: 1px solid rgba(0,0,0,0.05);
-            margin-top: 1rem;
+            margin-top: 0;
         }
         .conversations-panel {
             width: 350px;
@@ -23,6 +24,7 @@
             border-right: 1px solid rgba(0,0,0,0.05);
             display: flex;
             flex-direction: column;
+            transition: transform 0.3s ease;
         }
         .conversations-header {
             padding: 1.5rem;
@@ -68,6 +70,7 @@
             flex-direction: column;
             background: #eef2f6; /* Subtle chat background */
             position: relative;
+            min-width: 0;
         }
         .chat-header {
             padding: 1.2rem 1.5rem;
@@ -83,6 +86,18 @@
             margin: 0;
             color: var(--primary);
             font-size: 1.2rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .btn-back {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.5rem;
         }
         .chat-messages {
             flex: 1;
@@ -130,7 +145,7 @@
             display: block;
         }
         .chat-input-area {
-            padding: 1.2rem 1.5rem;
+            padding: 1rem 1.5rem;
             background: #ffffff;
             border-top: 1px solid rgba(0,0,0,0.05);
             display: flex;
@@ -148,7 +163,7 @@
         .btn-attach:hover { color: var(--primary); }
         .chat-input {
             flex: 1;
-            padding: 1rem 1.5rem;
+            padding: 0.8rem 1.2rem;
             border: 1px solid rgba(0,0,0,0.1);
             border-radius: 2rem;
             background: #f8fafc;
@@ -166,8 +181,8 @@
             color: white;
             border: none;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 45px;
+            height: 45px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -210,6 +225,48 @@
             background: rgba(0,0,0,0.03);
         }
         .file-attachment i { font-size: 1.5rem; }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .chat-container {
+                height: calc(100vh - 130px); /* Tighter mobile layout */
+                position: relative;
+            }
+            .conversations-panel {
+                width: 100%;
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 100%;
+                z-index: 5;
+            }
+            .conversations-panel.hidden {
+                transform: translateX(-100%);
+            }
+            .chat-panel {
+                width: 100%;
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 100%;
+                z-index: 1;
+            }
+            .chat-panel.active {
+                z-index: 10; /* Bring above conversations */
+            }
+            .btn-back {
+                display: block;
+            }
+            .message {
+                max-width: 85%; /* Give more space to text on small screens */
+            }
+            .chat-messages {
+                padding: 1rem;
+            }
+            .chat-input-area {
+                padding: 0.8rem 1rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -236,6 +293,9 @@
                 <!-- Right Panel: Chat -->
                 <div class="chat-panel" id="chatPanel" style="display: none;">
                     <div class="chat-header">
+                        <button class="btn-back" onclick="backToConversations()">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
                         <div class="avatar" id="headerAvatar">L</div>
                         <div>
                             <h3 id="currentChatName">Select a conversation</h3>
@@ -337,10 +397,24 @@
             document.getElementById('currentChatName').innerText = clientName;
             document.getElementById('headerAvatar').innerText = clientName.charAt(0).toUpperCase();
 
+            // Mobile view handling
+            if (window.innerWidth <= 768) {
+                document.querySelector('.conversations-panel').classList.add('hidden');
+                document.getElementById('chatPanel').classList.add('active');
+            }
+
             renderedMessageIds.clear(); // reset deduplication for new room
 
             socket.emit('join_room', { room: currentRoom });
             loadMessages();
+        }
+
+        function backToConversations() {
+            document.querySelector('.conversations-panel').classList.remove('hidden');
+            document.getElementById('chatPanel').classList.remove('active');
+            document.getElementById('chatPanel').style.display = 'none';
+            document.getElementById('emptyChatPanel').style.display = 'flex';
+            currentRoom = null;
         }
 
         async function loadMessages() {
