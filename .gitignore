@@ -65,3 +65,6 @@ uploads/
 /static/images (1).jpeg
 /static/law.jpg
 /static/sidebar.js
+
+# SSH private keys
+private_key.pem

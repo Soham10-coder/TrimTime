@@ -1,8 +1,10 @@
-const API_BASE_URL = 'http://localhost:5000/api';
-
-// Simple check to see if running in production or development
 const getBaseUrl = () => {
-  return API_BASE_URL;
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:5000/api';
+  }
+  // Use same host on port 5000 for API
+  return `${window.location.protocol}//${hostname}:5000/api`;
 };
 
 class ApiClient {
