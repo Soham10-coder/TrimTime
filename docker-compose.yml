@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  backend:
+    image: ${REGISTRY}/trimtime-backend:${IMAGE_TAG}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "5000:5000"
+    restart: always
+
+  frontend:
+    image: ${REGISTRY}/trimtime-frontend:${IMAGE_TAG}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: always
