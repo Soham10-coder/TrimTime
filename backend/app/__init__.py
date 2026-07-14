@@ -16,8 +16,9 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # Enable CORS (support credentials for HTTP-only cookies)
-    CORS(app, supports_credentials=True, origins=["http://localhost:5173", "http://localhost:3000"])
+    import re
+    # Enable CORS (support credentials for HTTP-only cookies, matching all origins)
+    CORS(app, supports_credentials=True, origins=re.compile(r"https?://.*"))
 
     # Initialize Limiter with App
     limiter.init_app(app)
