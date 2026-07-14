@@ -10,6 +10,8 @@ services:
       - .env
     ports:
       - "5000:5000"
+    volumes:
+      - uploads_volume:/app/uploads
     restart: always
 
   frontend:
@@ -22,3 +24,6 @@ services:
     depends_on:
       - backend
     restart: always
+
+volumes:
+  uploads_volume:
