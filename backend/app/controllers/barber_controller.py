@@ -135,6 +135,20 @@ def validate_customer_otp():
         if booking.get('status') == 'completed':
             return jsonify({'message': 'This appointment has already been completed.'}), 400
 
+        # DATE GUARD: Prevent early check-in for future dates or expired dates
+        today_str = datetime.date.today().strftime('%Y-%m-%d')
+        booking_date = booking.get('date')
+
+        if booking_date > today_str:
+            return jsonify({
+                'message': f"⚠️ Early Check-In Denied! This appointment is scheduled for {booking_date}. OTP validation is only permitted on the scheduled date."
+            }), 400
+
+        if booking_date < today_str:
+            return jsonify({
+                'message': f"⚠️ Expired Appointment! This appointment was scheduled for {booking_date} and has already passed."
+            }), 400
+
         now = datetime.datetime.utcnow()
         bookings_col.update_one(
             {'_id': booking['_id']},
@@ -248,7 +262,6 @@ def get_barbers():
         min_rating = request.args.get('minRating')
         max_price = request.args.get('maxPrice')
         
-        # Return all active barbers cleanly
         query = {}
         
         if city: query['city'] = {'$regex': f"^{city}$", '$options': 'i'}
