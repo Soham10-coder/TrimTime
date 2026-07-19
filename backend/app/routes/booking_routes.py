@@ -14,7 +14,7 @@ booking_bp = Blueprint('booking_bp', __name__)
 booking_bp.route('/slots', methods=['GET'])(get_available_slots)
 booking_bp.route('/webhook', methods=['POST'])(razorpay_webhook)
 
-# Secured routes (Customers)
+# Secured routes (Strictly Customers Only)
 booking_bp.route('/create', methods=['POST'])(
     token_required(require_role('customer')(create_booking))
 )

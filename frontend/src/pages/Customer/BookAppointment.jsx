@@ -2,13 +2,14 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { api } from '../../utils/api';
-import { Scissors, Clock, Calendar, Check, ArrowRight, User, Sparkles, Receipt, AlertCircle, ShieldCheck, MapPin, UserCheck, ExternalLink } from 'lucide-react';
+import PaymentModal from '../../components/PaymentModal';
+import { Scissors, Clock, Calendar, Check, ArrowRight, User, Sparkles, Receipt, AlertCircle, ShieldCheck, MapPin, UserCheck, ExternalLink, Lock, AlertTriangle, LogIn } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
 export default function BookAppointment() {
   const { barberId } = useParams();
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
   // Stepper state: 1 -> Select Barber Staff, 2 -> Select Service, 3 -> Select Date, 4 -> Select Time Slot, 5 -> Checkout
@@ -27,6 +28,9 @@ export default function BookAppointment() {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+  
+  // Payment Gateway Modal State
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   
   // States
   const [loading, setLoading] = useState(true);
@@ -108,12 +112,24 @@ export default function BookAppointment() {
     setStep(5);
   };
 
-  const handleCheckout = async () => {
+  const handleSwitchToCustomer = () => {
+    logout();
+    navigate('/login', { state: { from: { pathname: `/book/${barberId}` } } });
+  };
+
+  const handleOpenPaymentModal = () => {
     if (!user) {
       navigate('/login', { state: { from: { pathname: `/book/${barberId}` } } });
       return;
     }
+    if (user.role === 'barber' || user.role === 'admin') {
+      setError('Barber accounts cannot book appointments. Please log in with a Customer account.');
+      return;
+    }
+    setIsPaymentModalOpen(true);
+  };
 
+  const handleFinalizeBookingAfterPayment = async (paymentDetails) => {
     setCheckoutLoading(true);
     setError('');
 
@@ -125,7 +141,9 @@ export default function BookAppointment() {
         staffName: selectedStaff?.name || 'Senior Stylist',
         date: selectedDate,
         timeSlot: selectedSlot.time,
-        couponCode: appliedCoupon ? appliedCoupon.code : ''
+        couponCode: appliedCoupon ? appliedCoupon.code : '',
+        paymentMethod: paymentDetails?.method || 'UPI',
+        transactionId: paymentDetails?.transactionId || `TXN_${Date.now()}`
       };
       
       const res = await api.post('/booking/create', payload);
@@ -146,13 +164,18 @@ export default function BookAppointment() {
         totalAmount: bookingData.totalAmount,
         date: bookingData.date,
         timeSlot: bookingData.timeSlot,
-        qrCode: bookingData.qrCode || ""
+        qrCode: bookingData.qrCode || "",
+        transactionId: payload.transactionId,
+        paymentMethod: payload.paymentMethod
       });
+      
+      setIsPaymentModalOpen(false);
       confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
       setCheckoutLoading(false);
 
     } catch (err) {
       setError(err.message);
+      setIsPaymentModalOpen(false);
       setCheckoutLoading(false);
     }
   };
@@ -211,7 +234,6 @@ export default function BookAppointment() {
     );
   }
 
-  // SUCCESS PAGE STATE RENDER WITH GOOGLE MAPS LINK & 6-DIGIT CHECK-IN OTP
   if (bookingResult) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center">
@@ -225,8 +247,11 @@ export default function BookAppointment() {
           </div>
 
           <div>
-            <h1 className="text-2xl font-bold font-display text-brand-900 dark:text-brand-50">Booking Confirmed!</h1>
-            <p className="text-xs text-brand-500 mt-1">Ref ID: <span className="font-bold text-brand-800 dark:text-brand-200">{bookingResult.id}</span></p>
+            <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest bg-green-100 px-3 py-1 rounded-full">
+              Payment Paid via {bookingResult.paymentMethod || 'UPI'} &bull; {bookingResult.transactionId}
+            </span>
+            <h1 className="text-2xl font-bold font-display text-brand-900 dark:text-brand-50 mt-2">Booking Confirmed!</h1>
+            <p className="text-xs text-brand-500 mt-0.5">Ref ID: <span className="font-bold text-brand-800 dark:text-brand-200">{bookingResult.id}</span></p>
           </div>
 
           <div className="p-5 bg-accent-50 dark:bg-brand-950 border border-accent-200 dark:border-accent-800/40 rounded-2xl space-y-2">
@@ -241,7 +266,6 @@ export default function BookAppointment() {
             </p>
           </div>
 
-          {/* 📍 Direct Google Maps Button on Booking Success Receipt */}
           <a
             href={barber?.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${barber?.lat || 18.5204},${barber?.lng || 73.8567}`}
             target="_blank"
@@ -268,7 +292,7 @@ export default function BookAppointment() {
               <span>Date & Time:</span> <span className="text-brand-900 dark:text-brand-50 font-mono font-bold">{bookingResult.date} at {bookingResult.timeSlot}</span>
             </p>
             <div className="pt-2 border-t flex justify-between text-brand-900 dark:text-brand-50 font-bold">
-              <span>Total Paid:</span> <span className="text-green-600">₹{bookingResult.totalAmount}</span>
+              <span>Total Paid:</span> <span className="text-green-600 font-extrabold text-sm">₹{bookingResult.totalAmount}</span>
             </div>
           </div>
 
@@ -297,7 +321,6 @@ export default function BookAppointment() {
           </div>
         </div>
 
-        {/* 🗺️ Direct Google Maps Location Link Inside Shop Card at Booking */}
         <a
           href={barber?.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${barber?.lat || 18.5204},${barber?.lng || 73.8567}`}
           target="_blank"
@@ -314,7 +337,7 @@ export default function BookAppointment() {
         <span className={step >= 2 ? 'text-accent-500 font-extrabold' : ''}>2. Select Service</span>
         <span className={step >= 3 ? 'text-accent-500 font-extrabold' : ''}>3. Select Date</span>
         <span className={step >= 4 ? 'text-accent-500 font-extrabold' : ''}>4. Select Time</span>
-        <span className={step >= 5 ? 'text-accent-500 font-extrabold' : ''}>5. Checkout</span>
+        <span className={step >= 5 ? 'text-accent-500 font-extrabold' : ''}>5. Checkout & Payment</span>
       </div>
 
       {/* STEP 1: SELECT BARBER STAFF MEMBER */}
@@ -466,10 +489,30 @@ export default function BookAppointment() {
         </div>
       )}
 
-      {/* STEP 5: CHECKOUT WITH 10-15% CONVENIENCE FEE BREAKDOWN */}
+      {/* STEP 5: CHECKOUT WITH FULL PAYMENT GATEWAY */}
       {step === 5 && (
         <div className="max-w-md mx-auto bg-white dark:bg-brand-900 p-8 rounded-3xl border shadow-xl space-y-6">
           <h2 className="text-xl font-bold font-display text-brand-900 dark:text-brand-50 text-center">Appointment Summary</h2>
+
+          {/* BARBER ROLE WARNING BANNER */}
+          {user && (user.role === 'barber' || user.role === 'admin') && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-2xl space-y-2">
+              <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-xs">
+                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                <span>Barber Account Logged In</span>
+              </div>
+              <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
+                You are currently logged in as a <b>Barber Shop Account</b>. Barber accounts manage salons and cannot book appointments.
+              </p>
+              <button
+                type="button"
+                onClick={handleSwitchToCustomer}
+                className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm mt-1"
+              >
+                <LogIn className="w-3.5 h-3.5" /> Log In with Customer Account
+              </button>
+            </div>
+          )}
 
           {error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-xl font-bold">{error}</div>}
 
@@ -490,7 +533,7 @@ export default function BookAppointment() {
               <span>Service Fee:</span> <span className="text-brand-900 dark:text-brand-50 font-bold">₹{getServicePrice()}</span>
             </div>
             <div className="flex justify-between text-brand-600 dark:text-brand-400">
-              <span>Online Platform Charge (10%):</span> <span className="text-amber-600 font-bold">₹{getPlatformFee()}</span>
+              <span>Online Convenience Charge (10%):</span> <span className="text-amber-600 font-bold">₹{getPlatformFee()}</span>
             </div>
             <div className="pt-2 border-t flex justify-between text-base font-extrabold text-brand-900 dark:text-brand-50">
               <span>Total Amount Payable:</span> <span className="text-green-600">₹{getTotalPayable()}</span>
@@ -498,14 +541,31 @@ export default function BookAppointment() {
           </div>
 
           <button
-            onClick={handleCheckout}
-            disabled={checkoutLoading}
-            className="w-full py-3.5 bg-accent-500 hover:bg-accent-600 text-white font-bold rounded-2xl text-xs transition-all shadow-md flex justify-center items-center gap-2"
+            onClick={handleOpenPaymentModal}
+            disabled={checkoutLoading || (user && user.role !== 'customer')}
+            className={`w-full py-4 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white font-bold rounded-2xl text-xs transition-all shadow-lg flex justify-center items-center gap-2 ${
+              user && user.role !== 'customer' ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            {checkoutLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : `Pay ₹${getTotalPayable()} & Confirm Booking`}
+            <Lock className="w-4 h-4" />
+            <span>Proceed to Secure Payment (₹{getTotalPayable()})</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       )}
+
+      {/* FULL PAYMENT GATEWAY MODAL */}
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        bookingData={{
+          shopName: barber?.shopName,
+          hairstyleName: selectedHairstyle?.name,
+          date: selectedDate,
+          totalAmount: getTotalPayable()
+        }}
+        onPaymentSuccess={handleFinalizeBookingAfterPayment}
+      />
 
     </div>
   );
