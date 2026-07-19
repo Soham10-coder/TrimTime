@@ -55,4 +55,4 @@ jobs:
             export IMAGE_TAG=${{ env.IMAGE_TAG }}
             docker pull ${{ env.REGISTRY }}/trimtime-backend:${{ env.IMAGE_TAG }}
             docker pull ${{ env.REGISTRY }}/trimtime-frontend:${{ env.IMAGE_TAG }}
-            docker compose up -d --remove-orphans
+            docker-compose up -d --remove-orphans || docker compose up -d --remove-orphans
