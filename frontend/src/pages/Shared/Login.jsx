@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 
 export default function Login() {
   const { login } = useContext(AuthContext);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(''); // Can be email or mobile phone
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -15,7 +15,6 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirect target if redirected from booking page
   const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e) => {
@@ -33,22 +32,19 @@ export default function Login() {
     setLoading(false);
 
     if (res.success) {
-      // Redirect based on role
       const role = res.user.role;
       if (role === 'admin') {
         navigate('/admin');
       } else if (role === 'barber') {
         navigate('/barber');
       } else {
-        // Customer
         navigate(from, { replace: true });
       }
     } else {
       if (res.code === 'UNVERIFIED') {
-        // Redirect to OTP verification page
         navigate('/verify-otp', { state: { email } });
       } else {
-        setError(res.message || 'Invalid credentials');
+        setError(res.message || 'Invalid email/mobile or password');
       }
     }
   };
@@ -61,13 +57,12 @@ export default function Login() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md bg-white dark:bg-brand-900 p-8 rounded-2xl shadow-xl border border-brand-200 dark:border-brand-800"
       >
-        {/* Brand Icon */}
         <div className="text-center mb-8">
           <div className="inline-flex p-3 bg-gradient-to-tr from-accent-600 to-accent-400 rounded-2xl text-white mb-4">
             <Scissors className="h-6 w-6" />
           </div>
           <h2 className="font-display text-3xl font-bold text-brand-900 dark:text-brand-50">Welcome Back</h2>
-          <p className="text-sm text-brand-500 dark:text-brand-400 mt-2">Log in to manage appointments & grooming slots</p>
+          <p className="text-sm text-brand-500 dark:text-brand-400 mt-2">Log in with Email or Mobile Number</p>
         </div>
 
         {error && (
@@ -78,14 +73,13 @@ export default function Login() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Email input */}
           <div>
-            <label className="block text-sm font-semibold text-brand-700 dark:text-brand-300 mb-1.5">Email Address</label>
+            <label className="block text-sm font-semibold text-brand-700 dark:text-brand-300 mb-1.5">Email Address or Mobile Number</label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-3.5 h-5 w-5 text-brand-400" />
               <input
-                type="email"
-                placeholder="you@example.com"
+                type="text"
+                placeholder="you@example.com or 9876543210"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-11 pr-4 py-3 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 text-brand-900 dark:text-brand-50"
@@ -94,7 +88,6 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Password input */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
               <label className="text-sm font-semibold text-brand-700 dark:text-brand-300">Password</label>
@@ -125,7 +118,6 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={loading}

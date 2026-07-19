@@ -73,9 +73,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const registerCustomer = async (name, email, phone, password) => {
+  const registerCustomer = async (name, email, phone, password, gender = 'Male') => {
     try {
-      const res = await api.post('/auth/register', { name, email, phone, password });
+      const res = await api.post('/auth/register', { name, email, phone, password, gender });
       const data = await res.json();
 
       if (!res.ok) {
