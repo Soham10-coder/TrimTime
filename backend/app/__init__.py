@@ -4,7 +4,7 @@ from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from config import Config
-from app.db import init_indexes
+from app.db import init_indexes, seed_default_data
 
 # Initialize Limiter
 limiter = Limiter(
@@ -23,9 +23,10 @@ def create_app():
     # Initialize Limiter with App
     limiter.init_app(app)
 
-    # Database index setup
+    # Database index setup & auto-seeding
     with app.app_context():
         init_indexes()
+        seed_default_data()
 
     # Serve uploaded files route
     @app.route('/uploads/<path:filename>')
@@ -39,11 +40,13 @@ def create_app():
     from app.routes.barber_routes import barber_bp
     from app.routes.booking_routes import booking_bp
     from app.routes.admin_routes import admin_bp
+    from app.routes.wizard_routes import wizard_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(barber_bp, url_prefix='/api/barber')
     app.register_blueprint(booking_bp, url_prefix='/api/booking')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
+    app.register_blueprint(wizard_bp, url_prefix='/api/barber/wizard')
 
     # Basic Health Check
     @app.route('/api/health', methods=['GET'])
