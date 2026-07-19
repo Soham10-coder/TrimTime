@@ -49,6 +49,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 3m
           script: |
             mkdir -p /home/${{ secrets.EC2_USER }}/trimtime
             cd /home/${{ secrets.EC2_USER }}/trimtime
