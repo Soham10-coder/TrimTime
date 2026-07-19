@@ -3,8 +3,8 @@ const getBaseUrl = () => {
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'http://localhost:5000/api';
   }
-  // Use same host on port 5000 for API
-  return `${window.location.protocol}//${hostname}:5000/api`;
+  // On EC2 production, use relative /api endpoint proxied by Nginx on port 80
+  return '/api';
 };
 
 class ApiClient {
@@ -54,11 +54,9 @@ class ApiClient {
           // Token expired, attempt refresh
           const success = await this.refreshToken();
           if (success) {
-            // Retry request with new token
             options.headers['Authorization'] = `Bearer ${this.accessToken}`;
             response = await fetch(url, options);
           } else {
-            // Refresh failed, clear session
             this.setToken(null);
             localStorage.removeItem('trimtime_user');
             window.dispatchEvent(new Event('auth_session_expired'));
@@ -83,7 +81,7 @@ class ApiClient {
         const response = await fetch(`${getBaseUrl()}/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include' // Send refresh cookie
+          credentials: 'include'
         });
 
         if (response.ok) {
@@ -105,7 +103,6 @@ class ApiClient {
     return this.refreshInProgress;
   }
 
-  // HTTP helper wrappers
   async get(endpoint, options = {}) {
     return this.request(endpoint, { ...options, method: 'GET' });
   }
