@@ -1,18 +1,29 @@
 services:
+  mongo:
+    image: mongo:6.0
+    container_name: trimtime-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
   backend:
     image: ${REGISTRY}/trimtime-backend:${IMAGE_TAG}
     build:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      - MONGO_URI=${MONGO_URI:-mongodb://localhost:27017/}
+      - MONGO_URI=${MONGO_URI:-mongodb://mongo:27017/}
       - SECRET_KEY=${SECRET_KEY:-trimtime-secret-key-production-123}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-trimtime-jwt-secret-key-123}
-      - JWT_REFRESH_SECRET_KEY=${JWT_REFRESH_SECRET_KEY:-trimtime-jwt-refresh-secret-key-123}
+      - JWT_REFRESH_SECRET_KEY=${JWT_REFRESH_SECRET_KEY:-trimtime-jwt-refresh-secret-901234}
     ports:
       - "5000:5000"
     volumes:
       - uploads_volume:/app/uploads
+    depends_on:
+      - mongo
     restart: always
 
   frontend:
@@ -28,3 +39,4 @@ services:
 
 volumes:
   uploads_volume:
+  mongo_data:
