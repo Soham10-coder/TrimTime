@@ -1,8 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, MapPin, Star, Scissors, Clock, Calendar, CheckCircle2, ChevronDown, Award } from 'lucide-react';
+import { Search, MapPin, Star, Scissors, Clock, Calendar, CheckCircle2, ChevronDown, Award, ExternalLink, Map as MapIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../utils/api';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 export default function LandingPage() {
   const [barbers, setBarbers] = useState([]);
@@ -11,6 +24,7 @@ export default function LandingPage() {
   const [searchShop, setSearchShop] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [activeFaq, setActiveFaq] = useState(null);
+  const [showMapView, setShowMapView] = useState(true);
   
   const navigate = useNavigate();
 
@@ -39,13 +53,15 @@ export default function LandingPage() {
     fetchBarbers(searchCity, searchShop, filterCategory);
   };
 
-  // Faq list
   const faqs = [
     { q: "How do I book an appointment?", a: "Simply browse our list of verified barbers, select a shop, choose your preferred hairstyle, pick an available slot, make your secure payment online, and your booking is instantly confirmed!" },
     { q: "Can I cancel or reschedule my slot?", a: "Yes, you can cancel your appointment up to 24 hours prior to the slot through your Customer Dashboard for a full automated refund. Cancellations under 24 hours are non-refundable." },
     { q: "How do shop owners register?", a: "Click on the 'List Your Shop' button in the navbar. Fill in the required fields (experience, location, pictures, PAN/Aadhaar proof) and submit. Once verified by our admin, your shop will go live!" },
     { q: "Is online payment safe?", a: "Absolutely. We route all payments through Razorpay, which supports UPI, Credit/Debit cards, Net Banking, and secure wallets, fully backed by verification webhooks." }
   ];
+
+  // Default map center
+  const defaultCenter = barbers.length > 0 && barbers[0].lat ? [barbers[0].lat, barbers[0].lng] : [18.5204, 73.8567];
 
   return (
     <div className="relative overflow-hidden">
@@ -72,7 +88,6 @@ export default function LandingPage() {
             Discover top-rated local barbers, select specialized hairstyles, check real-time dynamic schedules, and confirm bookings instantly.
           </p>
 
-          {/* Call to Actions */}
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             <a 
               href="#search-barber" 
@@ -101,7 +116,6 @@ export default function LandingPage() {
           <h2 className="text-xl font-bold text-brand-900 dark:text-brand-50 mb-6 font-display">Find Your Ideal Barber Shop</h2>
           
           <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* City Search */}
             <div className="relative">
               <MapPin className="absolute left-3 top-3.5 h-5 w-5 text-brand-400" />
               <input
@@ -113,7 +127,6 @@ export default function LandingPage() {
               />
             </div>
 
-            {/* Shop Name Search */}
             <div className="relative">
               <Search className="absolute left-3 top-3.5 h-5 w-5 text-brand-400" />
               <input
@@ -125,7 +138,6 @@ export default function LandingPage() {
               />
             </div>
 
-            {/* Hairstyle Category Selector */}
             <div className="relative">
               <Scissors className="absolute left-3 top-3.5 h-5 w-5 text-brand-400" />
               <select
@@ -134,18 +146,16 @@ export default function LandingPage() {
                 className="w-full pl-10 pr-4 py-3 bg-white/70 dark:bg-brand-900/70 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 text-brand-700 dark:text-brand-300 appearance-none"
               >
                 <option value="">All Services</option>
-                <option value="Fade Cut">Fade Cuts</option>
-                <option value="Buzz Cut">Buzz Cuts</option>
+                <option value="Haircut">Male/Female Haircuts</option>
                 <option value="Beard">Beard Trimming</option>
-                <option value="Coloring">Hair Coloring</option>
-                <option value="Spa">Hair Spa</option>
+                <option value="Facial">Facials & Cleanup</option>
+                <option value="Hair Treatment">Hair Spa & Treatments</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
                 <ChevronDown className="w-4 h-4" />
               </div>
             </div>
 
-            {/* Search Submit Button */}
             <button
               type="submit"
               className="w-full py-3 bg-brand-900 dark:bg-accent-600 hover:bg-accent-600 dark:hover:bg-accent-500 text-white rounded-xl font-bold transition-all text-sm shadow-md"
@@ -156,15 +166,75 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* 3. BARBER RESULTS LIST */}
-      <section className="max-w-7xl mx-auto px-4 py-12" id="barbers">
+      {/* 3. INTERACTIVE SALONS MAP SECTION */}
+      {barbers.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 pb-8">
+          <div className="bg-white dark:bg-brand-900 rounded-3xl border border-brand-200 dark:border-brand-800 p-6 shadow-sm space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
+                  <MapIcon className="w-5 h-5 text-accent-500" /> Interactive City Salons Map
+                </h3>
+                <p className="text-xs text-brand-500">Click any map pin to view shop details, address, and Google Maps directions.</p>
+              </div>
+              <button
+                onClick={() => setShowMapView(!showMapView)}
+                className="px-3.5 py-1.5 bg-brand-100 dark:bg-brand-800 text-brand-700 dark:text-brand-300 text-xs font-bold rounded-xl"
+              >
+                {showMapView ? 'Hide Map' : 'Show Map'}
+              </button>
+            </div>
+
+            {showMapView && (
+              <div className="w-full h-80 rounded-2xl overflow-hidden border shadow-inner relative z-0">
+                <MapContainer center={defaultCenter} zoom={12} scrollWheelZoom={true} className="w-full h-full">
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  {barbers.map((b) => (
+                    b.lat && b.lng && (
+                      <Marker key={b.id} position={[b.lat, b.lng]}>
+                        <Popup>
+                          <div className="p-1 text-xs space-y-1 font-sans">
+                            <strong className="block font-bold text-sm text-brand-900">{b.shopName}</strong>
+                            <p className="text-brand-600">{b.address}, {b.city}</p>
+                            <div className="pt-2 flex gap-2">
+                              <button
+                                onClick={() => navigate(`/book/${b.id}`)}
+                                className="px-2.5 py-1 bg-amber-500 text-white rounded text-[10px] font-bold"
+                              >
+                                Book Now
+                              </button>
+                              <a
+                                href={b.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${b.lat},${b.lng}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-2.5 py-1 bg-stone-800 text-white rounded text-[10px] font-bold flex items-center gap-0.5"
+                              >
+                                Maps <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            </div>
+                          </div>
+                        </Popup>
+                      </Marker>
+                    )
+                  ))}
+                </MapContainer>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* 4. BARBER RESULTS LIST */}
+      <section className="max-w-7xl mx-auto px-4 py-8" id="barbers">
         <div className="flex justify-between items-baseline mb-8">
           <h2 className="text-3xl font-bold font-display text-brand-900 dark:text-brand-50">Verified Barber Shops</h2>
           <span className="text-sm font-medium text-brand-500 dark:text-brand-400">{barbers.length} active listings</span>
         </div>
 
         {loading ? (
-          // Loading Skeletons
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((n) => (
               <div key={n} className="border border-brand-200 dark:border-brand-800 rounded-2xl p-4 animate-pulse space-y-4">
@@ -182,7 +252,6 @@ export default function LandingPage() {
             <p className="text-brand-500 dark:text-brand-400 mt-1">Try resetting your filters or searching a different city.</p>
           </div>
         ) : (
-          // Barber Grid
           <motion.div 
             initial="hidden"
             animate="show"
@@ -201,7 +270,6 @@ export default function LandingPage() {
                 }}
                 className="glass-card overflow-hidden rounded-2xl border border-brand-200 dark:border-brand-800 hover:shadow-lg dark:hover:shadow-brand-950/20 transition-all flex flex-col group"
               >
-                {/* Shop Photo */}
                 <div className="relative h-48 bg-brand-200 dark:bg-brand-800 overflow-hidden">
                   <img
                     src={b.shopImages[0] || b.profilePic || 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=600&auto=format&fit=crop'}
@@ -215,17 +283,29 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                {/* Card Details */}
-                <div className="p-5 flex-grow flex flex-col">
-                  <h3 className="text-xl font-bold font-display text-brand-900 dark:text-brand-50 group-hover:text-accent-500 transition-colors">
-                    {b.shopName}
-                  </h3>
-                  <p className="text-sm text-brand-500 dark:text-brand-400 mt-1 flex items-start gap-1">
-                    <MapPin className="w-4 h-4 text-brand-400 flex-shrink-0 mt-0.5" />
-                    <span>{b.address}, {b.city}</span>
-                  </p>
+                <div className="p-5 flex-grow flex flex-col justify-between space-y-3">
+                  <div>
+                    <h3 className="text-xl font-bold font-display text-brand-900 dark:text-brand-50 group-hover:text-accent-500 transition-colors">
+                      {b.shopName}
+                    </h3>
+                    <p className="text-xs text-brand-500 dark:text-brand-400 mt-1 flex items-start gap-1">
+                      <MapPin className="w-4 h-4 text-accent-500 flex-shrink-0 mt-0.5" />
+                      <span>{b.address || b.city}</span>
+                    </p>
+                  </div>
+
+                  {/* DIRECT GOOGLE MAPS NAVIGATION BUTTON ON SALON CARD */}
+                  <a
+                    href={b.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${b.lat || 18.5204},${b.lng || 73.8567}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-xs font-bold text-accent-600 flex items-center justify-between hover:bg-accent-50"
+                  >
+                    <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-accent-500" /> View Shop Map Location</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
                   
-                  <div className="mt-4 flex items-center justify-between text-xs text-brand-600 dark:text-brand-400 border-t border-brand-100 dark:border-brand-800/60 pt-4">
+                  <div className="flex items-center justify-between text-xs text-brand-600 dark:text-brand-400 border-t border-brand-100 dark:border-brand-800/60 pt-3">
                     <span className="flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-accent-500" />
                       {b.openingTime} - {b.closingTime}
@@ -236,18 +316,12 @@ export default function LandingPage() {
                     </span>
                   </div>
 
-                  <p className="mt-3 text-sm text-brand-600 dark:text-brand-400 line-clamp-2">
-                    {b.description || "Premium styling, shaves, and grooming options customized for you."}
-                  </p>
-
-                  <div className="mt-5 pt-3">
-                    <button
-                      onClick={() => navigate(`/book/${b.id}`)}
-                      className="w-full py-2.5 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white font-semibold rounded-xl text-sm transition-all shadow-md group-hover:shadow-accent-500/10"
-                    >
-                      Book Service
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => navigate(`/book/${b.id}`)}
+                    className="w-full py-2.5 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white font-semibold rounded-xl text-sm transition-all shadow-md mt-2"
+                  >
+                    Book Appointment
+                  </button>
                 </div>
               </motion.div>
             ))}
@@ -255,7 +329,7 @@ export default function LandingPage() {
         )}
       </section>
 
-      {/* 4. WHY CHOOSE US */}
+      {/* 5. WHY CHOOSE US */}
       <section className="bg-brand-100/50 dark:bg-brand-900/30 py-20 transition-colors" id="why-choose-us">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center max-w-2xl mx-auto mb-16">
@@ -291,7 +365,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 5. FAQs ACCORDION */}
+      {/* 6. FAQs ACCORDION */}
       <section className="max-w-4xl mx-auto px-4 py-20">
         <h2 className="text-3xl font-bold text-center font-display text-brand-900 dark:text-brand-50 mb-12">Frequently Asked Questions</h2>
         

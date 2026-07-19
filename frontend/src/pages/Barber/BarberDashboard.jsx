@@ -1,36 +1,64 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { api } from '../../utils/api';
-import { Calendar, Clock, DollarSign, Users, Scissors, Star, ToggleLeft, ToggleRight, Edit, Trash2, Plus, Settings, Sparkles, Check, X, ClipboardList } from 'lucide-react';
+import MapLocationPicker from '../../components/MapLocationPicker';
+import { 
+  Calendar, Clock, DollarSign, Users, Scissors, Star, ToggleLeft, ToggleRight, 
+  Edit, Trash2, Plus, Settings, Sparkles, Check, X, ClipboardList, ShieldCheck, 
+  MapPin, ExternalLink, CheckCircle2, AlertCircle, Image as ImageIcon, UserCheck, Locate 
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BarberDashboard() {
   const { user, updateProfile } = useContext(AuthContext);
-  const [activeTab, setActiveTab] = useState('bookings');
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'otp_validate', 'bookings', 'staff', 'services', 'reviews', 'settings'
   
   // Dashboard Metrics
   const [bookings, setBookings] = useState([]);
   const [hairstyles, setHairstyles] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [profile, setProfile] = useState(null);
+  const [staffList, setStaffList] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Settings form states
+  // In-Person OTP Validation states
+  const [otpInput, setOtpInput] = useState('');
+  const [otpSuccessMsg, setOtpSuccessMsg] = useState('');
+  const [otpErrorMsg, setOtpErrorMsg] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+
+  // Shop Settings form states (Opening, Closing, Weekly holiday, Location)
   const [openingTime, setOpeningTime] = useState('09:00');
   const [closingTime, setClosingTime] = useState('20:00');
   const [weeklyHoliday, setWeeklyHoliday] = useState('6');
   const [holidayMode, setHolidayMode] = useState(false);
   const [experience, setExperience] = useState('5');
   const [description, setDescription] = useState('');
+  const [lat, setLat] = useState(18.5204);
+  const [lng, setLng] = useState(73.8567);
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [geoLocating, setGeoLocating] = useState(false);
   
   // Service CRUD form states
   const [serviceModal, setServiceModal] = useState(false);
   const [editingService, setEditingService] = useState(null);
   const [serviceName, setServiceName] = useState('');
-  const [serviceCategory, setServiceCategory] = useState('Fade Cut');
+  const [serviceCategory, setServiceCategory] = useState('Haircut');
   const [servicePrice, setServicePrice] = useState('');
   const [serviceDuration, setServiceDuration] = useState('30');
   const [serviceDesc, setServiceDesc] = useState('');
   const [serviceFile, setServiceFile] = useState(null);
+
+  // Barber Staff CRUD form states
+  const [staffModal, setStaffModal] = useState(false);
+  const [editingStaff, setEditingStaff] = useState(null);
+  const [staffName, setStaffName] = useState('');
+  const [staffRole, setStaffRole] = useState('Senior Barber & Stylist');
+  const [staffShift, setStaffShift] = useState('09:00 AM - 08:00 PM');
+  const [staffPhone, setStaffPhone] = useState('');
+  const [staffHoliday, setStaffHoliday] = useState('Sunday');
+  const [staffPhoto, setStaffPhoto] = useState(null);
 
   const [settingsSuccess, setSettingsSuccess] = useState('');
   const [serviceError, setServiceError] = useState('');
@@ -50,21 +78,76 @@ export default function BarberDashboard() {
         setBookings(await bRes.json());
         setHairstyles(await hRes.json());
         
-        const profile = await pRes.json();
-        setReviews(profile.reviews || []);
+        const pData = await pRes.json();
+        setProfile(pData);
+        setReviews(pData.reviews || []);
+        setStaffList(pData.staff || []);
         
-        // Map settings
-        setOpeningTime(profile.openingTime || '09:00');
-        setClosingTime(profile.closingTime || '20:00');
-        setWeeklyHoliday(profile.weeklyHoliday !== undefined ? String(profile.weeklyHoliday) : '6');
-        setHolidayMode(profile.holidayMode || false);
-        setExperience(profile.experience || '5');
-        setDescription(profile.description || '');
+        // Map shop settings
+        setOpeningTime(pData.openingTime || '09:00');
+        setClosingTime(pData.closingTime || '20:00');
+        setWeeklyHoliday(pData.weeklyHoliday !== undefined ? String(pData.weeklyHoliday) : '6');
+        setHolidayMode(pData.holidayMode || false);
+        setExperience(pData.experience || '5');
+        setDescription(pData.description || '');
+        setLat(pData.lat || 18.5204);
+        setLng(pData.lng || 73.8567);
+        setAddress(pData.address || '');
+        setCity(pData.city || '');
       }
     } catch (e) {
       console.error("Failed to load dashboard data:", e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDetectGPS = () => {
+    if (navigator.geolocation) {
+      setGeoLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLat(position.coords.latitude.toFixed(6));
+          setLng(position.coords.longitude.toFixed(6));
+          setGeoLocating(false);
+          alert(`GPS Location Detected! Latitude: ${position.coords.latitude.toFixed(6)}, Longitude: ${position.coords.longitude.toFixed(6)}`);
+        },
+        (error) => {
+          setGeoLocating(false);
+          alert("Could not fetch GPS location. Please allow browser location access or select location on map.");
+        }
+      );
+    } else {
+      alert("Geolocation is not supported by your browser.");
+    }
+  };
+
+  const handleMapLocationSelect = (newLat, newLng) => {
+    setLat(parseFloat(newLat).toFixed(6));
+    setLng(parseFloat(newLng).toFixed(6));
+  };
+
+  const handleValidateOtp = async (e) => {
+    e.preventDefault();
+    setOtpSuccessMsg('');
+    setOtpErrorMsg('');
+    setOtpLoading(true);
+
+    try {
+      const res = await api.post('/barber/validate-otp', { otp: otpInput });
+      const data = await res.json();
+      setOtpLoading(false);
+
+      if (res.ok) {
+        setOtpSuccessMsg(data.message || 'OTP Verified! Customer checked in and appointment completed.');
+        setOtpInput('');
+        fetchBarberDashboardData();
+      } else {
+        setOtpErrorMsg(data.message || 'Invalid Check-In OTP. Please try again.');
+      }
+    } catch (err) {
+      setOtpLoading(false);
+      setOtpErrorMsg('Network error validating OTP.');
     }
   };
 
@@ -79,10 +162,14 @@ export default function BarberDashboard() {
     formData.append('holidayMode', holidayMode);
     formData.append('experience', experience);
     formData.append('description', description);
+    formData.append('lat', lat);
+    formData.append('lng', lng);
+    formData.append('address', address);
+    formData.append('city', city);
 
     const res = await updateProfile(formData);
     if (res.success) {
-      setSettingsSuccess('Schedule settings updated successfully!');
+      setSettingsSuccess('Shop hours & interactive map location updated successfully!');
       setTimeout(() => setSettingsSuccess(''), 3000);
       fetchBarberDashboardData();
     } else {
@@ -90,10 +177,55 @@ export default function BarberDashboard() {
     }
   };
 
+  const handleOpenAddStaff = () => {
+    setEditingStaff(null);
+    setStaffName('');
+    setStaffRole('Senior Barber & Stylist');
+    setStaffShift('09:00 AM - 08:00 PM');
+    setStaffPhone('');
+    setStaffHoliday('Sunday');
+    setStaffPhoto(null);
+    setStaffModal(true);
+  };
+
+  const handleOpenEditStaff = (st) => {
+    setEditingStaff(st);
+    setStaffName(st.name);
+    setStaffRole(st.role || 'Barber Stylist');
+    setStaffShift(st.shift || '09:00 AM - 08:00 PM');
+    setStaffPhone(st.phone || '');
+    setStaffHoliday(st.holiday || 'Sunday');
+    setStaffPhoto(null);
+    setStaffModal(true);
+  };
+
+  const handleAddStaffSubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('name', staffName);
+    formData.append('role', staffRole);
+    formData.append('shift', staffShift);
+    formData.append('phone', staffPhone);
+    formData.append('holiday', staffHoliday);
+    if (staffPhoto) formData.append('photo', staffPhoto);
+
+    try {
+      const res = await api.post('/barber/staff', formData);
+      if (res.ok) {
+        setStaffModal(false);
+        fetchBarberDashboardData();
+      } else {
+        alert("Failed to save staff member.");
+      }
+    } catch (err) {
+      alert("Error saving staff member.");
+    }
+  };
+
   const handleOpenAddService = () => {
     setEditingService(null);
     setServiceName('');
-    setServiceCategory('Fade Cut');
+    setServiceCategory('Haircut');
     setServicePrice('');
     setServiceDuration('30');
     setServiceDesc('');
@@ -129,10 +261,8 @@ export default function BarberDashboard() {
     try {
       let res;
       if (editingService) {
-        // Edit service
         res = await api.put(`/barber/hairstyles/${editingService.id}`, formData);
       } else {
-        // Add service
         res = await api.post('/barber/hairstyles', formData);
       }
 
@@ -149,38 +279,13 @@ export default function BarberDashboard() {
   };
 
   const handleDeleteService = async (id) => {
-    if (!confirm("Are you sure you want to remove this hairstyle service?")) return;
+    if (!confirm("Are you sure you want to remove this service?")) return;
     try {
       const res = await api.delete(`/barber/hairstyles/${id}`);
-      if (res.ok) {
-        fetchBarberDashboardData();
-      }
+      if (res.ok) fetchBarberDashboardData();
     } catch (e) {
-      alert("Failed to delete hairstyle.");
+      alert("Failed to delete service.");
     }
-  };
-
-  // Calculations for analytics
-  const getTodayEarnings = () => {
-    const today = new Date().toISOString().split('T')[0];
-    const todays = bookings.filter(b => b.date === today && b.status === 'confirmed');
-    return todays.reduce((sum, b) => sum + b.price, 0);
-  };
-
-  const getMonthlyEarnings = () => {
-    const month = new Date().getMonth(); // 0-11
-    const year = new Date().getFullYear();
-    const monthly = bookings.filter(b => {
-      if (b.status !== 'confirmed') return false;
-      const bDate = new Date(b.date);
-      return bDate.getMonth() === month && bDate.getFullYear() === year;
-    });
-    return monthly.reduce((sum, b) => sum + b.price, 0);
-  };
-
-  const getTodayBookings = () => {
-    const today = new Date().toISOString().split('T')[0];
-    return bookings.filter(b => b.date === today && b.status === 'confirmed').length;
   };
 
   if (loading) {
@@ -191,474 +296,454 @@ export default function BarberDashboard() {
     );
   }
 
+  const grossRevenue = profile?.grossRevenue || 0;
+  const platformFeePercent = profile?.platformFeePercent || 10.0;
+  const platformCommission = profile?.platformCommission || 0;
+  const netRevenue = profile?.netRevenue || 0;
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12">
+    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
       
-      {/* PROFILE HEAD */}
-      <div className="glass-panel p-6 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm flex items-center justify-between mb-10">
+      {/* HEADER BAR WITH SHOP HOURS & MAP LINK */}
+      <div className="glass-panel p-6 rounded-3xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
         <div>
-          <span className="text-xs text-brand-500 font-bold uppercase tracking-wider">Barber Dashboard</span>
-          <h1 className="text-3xl font-bold font-display text-brand-900 dark:text-brand-50">{user.shopName}</h1>
-          <p className="text-sm text-brand-600 dark:text-brand-400">Welcome back, {user.name} &bull; {user.email}</p>
-        </div>
-        {user.profilePic && (
-          <img src={user.profilePic} className="w-16 h-16 rounded-full object-cover border" alt="Avatar" />
-        )}
-      </div>
-
-      {/* METRICS ROW */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 p-5 rounded-2xl shadow-sm">
-          <DollarSign className="w-5 h-5 text-green-500 mb-2" />
-          <span className="text-xs font-bold text-brand-400 uppercase tracking-wide block">Today's Sales</span>
-          <span className="text-2xl font-extrabold text-brand-800 dark:text-brand-100 font-display">₹{getTodayEarnings()}</span>
-        </div>
-
-        <div className="bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 p-5 rounded-2xl shadow-sm">
-          <DollarSign className="w-5 h-5 text-accent-500 mb-2" />
-          <span className="text-xs font-bold text-brand-400 uppercase tracking-wide block">Monthly Sales</span>
-          <span className="text-2xl font-extrabold text-brand-800 dark:text-brand-100 font-display">₹{getMonthlyEarnings()}</span>
-        </div>
-
-        <div className="bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 p-5 rounded-2xl shadow-sm">
-          <Calendar className="w-5 h-5 text-blue-500 mb-2" />
-          <span className="text-xs font-bold text-brand-400 uppercase tracking-wide block">Today's Slots</span>
-          <span className="text-2xl font-extrabold text-brand-800 dark:text-brand-100 font-display">{getTodayBookings()} booked</span>
-        </div>
-
-        <div className="bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 p-5 rounded-2xl shadow-sm">
-          <ClipboardList className="w-5 h-5 text-indigo-500 mb-2" />
-          <span className="text-xs font-bold text-brand-400 uppercase tracking-wide block">Upcoming Slots</span>
-          <span className="text-2xl font-extrabold text-brand-800 dark:text-brand-100 font-display">
-            {bookings.filter(b => b.status === 'confirmed').length} total
-          </span>
-        </div>
-      </div>
-
-      {/* DASHBOARD TABS SYSTEM */}
-      <div className="flex border-b border-brand-200 dark:border-brand-800 mb-8 overflow-x-auto gap-4">
-        <button
-          onClick={() => setActiveTab('bookings')}
-          className={`py-3.5 px-4 font-semibold text-sm border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
-            activeTab === 'bookings' 
-              ? 'border-accent-500 text-accent-500 font-bold' 
-              : 'border-transparent text-brand-600 dark:text-brand-400 hover:text-accent-500'
-          }`}
-        >
-          <Calendar className="w-4 h-4" />
-          Appointments Calendar
-        </button>
-        <button
-          onClick={() => setActiveTab('services')}
-          className={`py-3.5 px-4 font-semibold text-sm border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
-            activeTab === 'services' 
-              ? 'border-accent-500 text-accent-500 font-bold' 
-              : 'border-transparent text-brand-600 dark:text-brand-400 hover:text-accent-500'
-          }`}
-        >
-          <Scissors className="w-4 h-4" />
-          Manage Hairstyles
-        </button>
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={`py-3.5 px-4 font-semibold text-sm border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
-            activeTab === 'settings' 
-              ? 'border-accent-500 text-accent-500 font-bold' 
-              : 'border-transparent text-brand-600 dark:text-brand-400 hover:text-accent-500'
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          Shop Settings
-        </button>
-        <button
-          onClick={() => setActiveTab('reviews')}
-          className={`py-3.5 px-4 font-semibold text-sm border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
-            activeTab === 'reviews' 
-              ? 'border-accent-500 text-accent-500 font-bold' 
-              : 'border-transparent text-brand-600 dark:text-brand-400 hover:text-accent-500'
-          }`}
-        >
-          <Star className="w-4 h-4" />
-          Reviews List
-        </button>
-      </div>
-
-      {/* --- TAB CONTENT PANELS --- */}
-      <div>
-        
-        {/* TAB 1: BOOKINGS LIST */}
-        {activeTab === 'bookings' && (
-          <div className="bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 rounded-3xl p-6 shadow-sm">
-            <h2 className="text-xl font-bold font-display text-brand-900 dark:text-brand-50 mb-6 flex items-center gap-2">
-              <ClipboardList className="w-5 h-5 text-accent-500" />
-              Appointment Records
-            </h2>
-            
-            {bookings.length === 0 ? (
-              <p className="text-center py-12 text-brand-400 text-sm">No client slots scheduled yet.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left border-collapse">
-                  <thead>
-                    <tr className="bg-brand-50 dark:bg-brand-950 text-brand-500 uppercase text-xs font-bold border-b border-brand-200 dark:border-brand-800">
-                      <th className="p-4">Booking ID</th>
-                      <th className="p-4">Customer</th>
-                      <th className="p-4">Date & Time</th>
-                      <th className="p-4">Hairstyle Service</th>
-                      <th className="p-4">Price Paid</th>
-                      <th className="p-4">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bookings.map((b) => (
-                      <tr key={b.id} className="border-b border-brand-100 dark:border-brand-800/40 hover:bg-brand-50/50 dark:hover:bg-brand-950/20 text-brand-700 dark:text-brand-300">
-                        <td className="p-4 font-bold font-mono text-xs">{b.bookingId}</td>
-                        <td className="p-4 font-semibold">{b.customer.name} <br/><span className="font-normal text-xs text-brand-400">{b.customer.phone}</span></td>
-                        <td className="p-4">{b.date} <br/><span className="text-xs font-semibold text-accent-600 dark:text-accent-400">{b.timeSlot}</span></td>
-                        <td className="p-4">{b.hairstyle.name} <br/><span className="text-xs text-brand-400">{b.hairstyle.duration} mins</span></td>
-                        <td className="p-4 font-bold text-brand-900 dark:text-brand-50">₹{b.price}</td>
-                        <td className="p-4">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                            b.status === 'confirmed' 
-                              ? 'bg-green-100 text-green-700 dark:bg-green-950/20' 
-                              : b.status === 'cancelled'
-                                ? 'bg-red-100 text-red-700 dark:bg-red-950/20'
-                                : 'bg-amber-100 text-amber-700 dark:bg-amber-950/20'
-                          }`}>
-                            {b.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-accent-500">Salon Operations Control Center</span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-brand-900 dark:text-brand-50 mt-0.5">{profile?.shopName || 'My Salon'}</h1>
+          <div className="text-xs text-brand-500 mt-1 flex flex-wrap items-center gap-3">
+            <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-accent-500" /> {address || city || 'Shop Location'}</span>
+            <span className="flex items-center gap-1 font-mono"><Clock className="w-3.5 h-3.5 text-accent-500" /> Open: {openingTime} - {closingTime}</span>
+            {profile?.googleMapsUrl && (
+              <a href={profile.googleMapsUrl} target="_blank" rel="noreferrer" className="text-accent-500 hover:underline flex items-center gap-0.5 font-bold">
+                Google Maps <ExternalLink className="w-3 h-3" />
+              </a>
             )}
           </div>
-        )}
+        </div>
 
-        {/* TAB 2: MANAGE HAIRSTYLES */}
-        {activeTab === 'services' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold font-display text-brand-900 dark:text-brand-50">Hairstyles & Pricing</h2>
-              <button
-                onClick={handleOpenAddService}
-                className="px-4 py-2 bg-gradient-to-r from-accent-600 to-accent-500 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm hover:shadow-lg transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                Add New Hairstyle
-              </button>
+        <button onClick={() => setActiveTab('otp_validate')} className="px-5 py-2.5 bg-accent-500 hover:bg-accent-600 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-md">
+          <ShieldCheck className="w-4 h-4" /> Validate In-Person OTP
+        </button>
+      </div>
+
+      {/* NAVIGATION TABS */}
+      <div className="flex overflow-x-auto gap-2 border-b pb-3 text-xs font-bold">
+        {[
+          { key: 'overview', label: 'Financial Overview', icon: DollarSign },
+          { key: 'otp_validate', label: 'In-Person OTP Check-In', icon: ShieldCheck },
+          { key: 'bookings', label: `Bookings Hub (${bookings.length})`, icon: Calendar },
+          { key: 'staff', label: `Barber Staff (${staffList.length})`, icon: UserCheck },
+          { key: 'services', label: `Services Catalog (${hairstyles.length})`, icon: Scissors },
+          { key: 'reviews', label: `Reviews (${reviews.length})`, icon: Star },
+          { key: 'settings', label: 'Shop Operating Hours & Map Location', icon: Settings }
+        ].map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-4 py-2.5 rounded-2xl font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+                activeTab === tab.key 
+                  ? 'bg-brand-900 text-white dark:bg-accent-600 shadow' 
+                  : 'bg-white dark:bg-brand-900 border text-brand-700 dark:text-brand-300'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" /> {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* TAB 1: FINANCIAL REVENUE OVERVIEW */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-6 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-3xl shadow-lg">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">Net Earnings (Net Revenue)</span>
+              <h2 className="text-4xl font-extrabold font-display mt-1">₹{netRevenue}</h2>
+              <p className="text-[11px] text-white/80 mt-2">After {platformFeePercent}% online booking charge</p>
             </div>
 
-            {hairstyles.length === 0 ? (
-              <div className="text-center py-20 bg-white dark:bg-brand-900 rounded-3xl border border-brand-200 dark:border-brand-800">
-                <Scissors className="w-10 h-10 text-brand-300 dark:text-brand-700 mx-auto mb-3" />
-                <h3 className="font-bold text-brand-800 dark:text-brand-200">No Services Added</h3>
-                <p className="text-sm text-brand-500 mt-1">Clients can only book once you add hairstyle options.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {hairstyles.map((s) => (
-                  <div key={s.id} className="bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between group">
-                    <div className="h-44 bg-brand-100 overflow-hidden relative">
-                      <img src={s.imageUrl || 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=400'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Service pic" />
-                      <span className="absolute bottom-3 left-3 bg-brand-900/90 text-white px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest">{s.category}</span>
-                    </div>
+            <div className="p-6 bg-white dark:bg-brand-900 border rounded-3xl shadow-sm">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-500">Gross Online Revenue</span>
+              <h2 className="text-3xl font-extrabold font-display text-brand-900 dark:text-brand-50 mt-1">₹{grossRevenue}</h2>
+              <p className="text-[11px] text-brand-400 mt-2">Total amount paid by customers online</p>
+            </div>
 
-                    <div className="p-5 flex-grow flex flex-col justify-between">
-                      <div>
-                        <h3 className="font-bold font-display text-brand-900 dark:text-brand-50 text-lg group-hover:text-accent-500 transition-colors">{s.name}</h3>
-                        <p className="text-xs text-brand-500 mt-1 line-clamp-2">{s.description || 'Premium haircut customized to your style preference.'}</p>
-                      </div>
-
-                      <div className="mt-4 pt-3 border-t border-brand-100 dark:border-brand-800/40 flex items-center justify-between">
-                        <span className="text-xs text-brand-500 font-semibold flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-accent-500" />
-                          {s.duration} minutes
-                        </span>
-                        <span className="text-lg font-extrabold text-brand-900 dark:text-brand-50 font-display">₹{s.price}</span>
-                      </div>
-
-                      <div className="flex gap-2 mt-4 pt-2 border-t border-brand-100 dark:border-brand-800/40">
-                        <button
-                          onClick={() => handleOpenEditService(s)}
-                          className="flex-1 py-2 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 hover:text-accent-500 hover:border-accent-500 rounded-xl text-xs font-bold flex items-center justify-center gap-1"
-                        >
-                          <Edit className="w-3.5 h-3.5" />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteService(s.id)}
-                          className="px-3 py-2 bg-red-50 dark:bg-red-950/20 text-red-600 hover:bg-red-100 rounded-xl text-xs font-bold"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="p-6 bg-white dark:bg-brand-900 border rounded-3xl shadow-sm">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-500">Platform Charge ({platformFeePercent}%)</span>
+              <h2 className="text-3xl font-extrabold font-display text-amber-500 mt-1">₹{platformCommission}</h2>
+              <p className="text-[11px] text-brand-400 mt-2">Online booking convenience fee</p>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* TAB 3: SHOP SETTINGS */}
-        {activeTab === 'settings' && (
-          <div className="bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 rounded-3xl p-6 shadow-sm max-w-2xl">
-            <h2 className="text-xl font-bold font-display text-brand-900 dark:text-brand-50 mb-6 flex items-center gap-2">
-              <Settings className="w-5 h-5 text-accent-500" />
-              Schedule & Timing Customizations
-            </h2>
-
-            {settingsSuccess && (
-              <div className="flex items-center gap-1.5 p-3.5 mb-6 bg-green-50 text-green-700 text-sm rounded-xl border border-green-200">
-                <Check className="w-4.5 h-4.5" />
-                <span>{settingsSuccess}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleUpdateSettings} className="space-y-5">
-              
-              {/* Holiday Mode switch */}
-              <div className="flex items-center justify-between p-4 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-2xl">
-                <div>
-                  <h4 className="font-bold text-brand-800 dark:text-brand-200 text-sm flex items-center gap-1.5">
-                    Holiday Mode Activated
-                  </h4>
-                  <p className="text-xs text-brand-500 mt-0.5">Toggle to instantly suspend all client bookings slots</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setHolidayMode(!holidayMode)}
-                  className="focus:outline-none text-accent-500"
-                >
-                  {holidayMode ? (
-                    <ToggleRight className="w-12 h-12 text-accent-500" />
-                  ) : (
-                    <ToggleLeft className="w-12 h-12 text-brand-400" />
-                  )}
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-brand-500 mb-1">Opening Hour</label>
-                  <input
-                    type="text"
-                    value={openingTime}
-                    onChange={(e) => setOpeningTime(e.target.value)}
-                    className="w-full px-3 py-2 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none text-brand-900 dark:text-brand-50"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase text-brand-500 mb-1">Closing Hour</label>
-                  <input
-                    type="text"
-                    value={closingTime}
-                    onChange={(e) => setClosingTime(e.target.value)}
-                    className="w-full px-3 py-2 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none text-brand-900 dark:text-brand-50"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase text-brand-500 mb-1">Weekly Holiday</label>
-                  <select
-                    value={weeklyHoliday}
-                    onChange={(e) => setWeeklyHoliday(e.target.value)}
-                    className="w-full px-3 py-2 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none text-brand-700 dark:text-brand-300"
-                  >
-                    <option value="6">Sunday</option>
-                    <option value="0">Monday</option>
-                    <option value="1">Tuesday</option>
-                    <option value="2">Wednesday</option>
-                    <option value="3">Thursday</option>
-                    <option value="4">Friday</option>
-                    <option value="5">Saturday</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase text-brand-500 mb-1">Years of Experience</label>
-                <input
-                  type="number"
-                  value={experience}
-                  onChange={(e) => setExperience(e.target.value)}
-                  className="w-full px-3 py-2 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none text-brand-900 dark:text-brand-50"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase text-brand-500 mb-1">Shop Description</label>
-                <textarea
-                  rows="3"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3 py-2 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none text-brand-900 dark:text-brand-50"
-                ></textarea>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-3 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white font-bold rounded-xl text-sm transition-all"
-              >
-                Save Timing Profile
-              </button>
-            </form>
+      {/* TAB 2: IN-PERSON OTP VALIDATION */}
+      {activeTab === 'otp_validate' && (
+        <div className="max-w-xl mx-auto bg-white dark:bg-brand-900 p-8 rounded-3xl border shadow-xl space-y-6">
+          <div className="text-center">
+            <div className="inline-flex p-3 bg-accent-100 text-accent-700 dark:bg-accent-950 dark:text-accent-400 rounded-2xl mb-3">
+              <ShieldCheck className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold font-display text-brand-900 dark:text-brand-50">In-Person Customer Check-In OTP</h3>
+            <p className="text-xs text-brand-500 mt-1">When customer arrives at your salon, ask for their 6-digit Check-In OTP to validate attendance.</p>
           </div>
-        )}
 
-        {/* TAB 4: REVIEWS LIST */}
-        {activeTab === 'reviews' && (
-          <div className="bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 rounded-3xl p-6 shadow-sm max-w-3xl">
-            <h2 className="text-xl font-bold font-display text-brand-900 dark:text-brand-50 mb-6 flex items-center gap-2">
-              <Star className="w-5 h-5 text-accent-500" />
-              Customer Reviews Board
-            </h2>
+          {otpSuccessMsg && (
+            <div className="p-4 bg-green-50 text-green-700 text-xs font-bold rounded-2xl border border-green-200 flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-green-600" />
+              <span>{otpSuccessMsg}</span>
+            </div>
+          )}
 
-            {reviews.length === 0 ? (
-              <p className="text-center py-12 text-brand-400 text-sm">No reviews posted yet.</p>
-            ) : (
-              <div className="space-y-6">
-                {reviews.map((r, idx) => (
-                  <div key={idx} className="border-b border-brand-100 dark:border-brand-800/40 pb-5 last:border-0 last:pb-0">
-                    <div className="flex justify-between items-baseline">
-                      <h4 className="font-bold text-brand-800 dark:text-brand-200">{r.customerName}</h4>
-                      <span className="text-xs text-brand-400">{r.date}</span>
-                    </div>
-                    
-                    <div className="flex gap-1.5 my-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className={`w-3.5 h-3.5 ${star <= r.rating ? 'fill-amber-400 text-amber-400' : 'text-brand-200'}`} />
-                      ))}
-                    </div>
+          {otpErrorMsg && (
+            <div className="p-4 bg-red-50 text-red-700 text-xs font-bold rounded-2xl border border-red-200 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-600" />
+              <span>{otpErrorMsg}</span>
+            </div>
+          )}
 
-                    <p className="text-sm text-brand-600 dark:text-brand-400 leading-relaxed italic">"{r.comment || 'Satisfactory haircut service.'}"</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          <form onSubmit={handleValidateOtp} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-brand-700 dark:text-brand-300 mb-1.5 uppercase tracking-wider">Enter 6-Digit Check-In OTP *</label>
+              <input
+                type="text"
+                required
+                maxLength="6"
+                placeholder="e.g. 849201"
+                value={otpInput}
+                onChange={(e) => setOtpInput(e.target.value)}
+                className="w-full text-center text-2xl font-mono tracking-widest p-4 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-2xl font-bold text-brand-900 dark:text-brand-50"
+              />
+            </div>
 
-      </div>
-
-      {/* --- ADD/EDIT HAIRSTYLE SERVICE MODAL --- */}
-      <AnimatePresence>
-        {serviceModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-brand-900 max-w-md w-full p-6 rounded-3xl border border-brand-200 dark:border-brand-800 relative shadow-xl"
+            <button
+              type="submit"
+              disabled={otpLoading}
+              className="w-full py-3.5 bg-accent-500 hover:bg-accent-600 text-white font-bold rounded-2xl text-xs transition-all shadow-md flex justify-center items-center gap-2"
             >
-              <button 
-                onClick={() => setServiceModal(false)}
-                className="absolute top-4 right-4 text-brand-400 hover:text-brand-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              {otpLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : "Validate & Complete Appointment"}
+            </button>
+          </form>
+        </div>
+      )}
 
-              <h3 className="text-xl font-bold font-display text-brand-900 dark:text-brand-50 mb-1">
-                {editingService ? "Modify Hairstyle Service" : "Add Hairstyle Service"}
-              </h3>
-              <p className="text-sm text-brand-500 dark:text-brand-400 mb-6">List service names, durations and pricing tags</p>
+      {/* TAB 3: BOOKINGS HUB */}
+      {activeTab === 'bookings' && (
+        <div className="bg-white dark:bg-brand-900 rounded-3xl border overflow-hidden shadow-sm">
+          <div className="p-6 border-b flex justify-between items-center">
+            <h3 className="text-base font-bold font-display text-brand-900 dark:text-brand-50">Salon Appointments Schedule</h3>
+            <span className="text-xs text-brand-500 font-semibold">{bookings.length} Total Bookings</span>
+          </div>
 
-              {serviceError && (
-                <div className="flex items-center gap-1.5 p-3.5 bg-red-50 text-red-600 text-xs rounded-xl mb-4">
-                  <X className="w-4 h-4" />
-                  <span>{serviceError}</span>
-                </div>
-              )}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-brand-50 dark:bg-brand-950 border-b text-brand-500 uppercase font-bold">
+                <tr>
+                  <th className="p-4">Customer</th>
+                  <th className="p-4">Assigned Barber</th>
+                  <th className="p-4">Service</th>
+                  <th className="p-4">Date & Time</th>
+                  <th className="p-4">OTP</th>
+                  <th className="p-4">Net Price</th>
+                  <th className="p-4">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {bookings.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="p-8 text-center text-brand-400">No appointments logged yet.</td>
+                  </tr>
+                ) : (
+                  bookings.map((b) => (
+                    <tr key={b.id} className="hover:bg-brand-50/50">
+                      <td className="p-4 font-bold text-brand-900 dark:text-brand-50">{b.customer?.name}</td>
+                      <td className="p-4 font-semibold text-accent-600">{b.staffName || 'Senior Stylist'}</td>
+                      <td className="p-4 font-medium">{b.hairstyle?.name}</td>
+                      <td className="p-4 font-mono">{b.date} at {b.timeSlot}</td>
+                      <td className="p-4 font-mono font-bold text-brand-900 dark:text-brand-50">{b.checkInOtp || 'N/A'}</td>
+                      <td className="p-4 font-bold text-green-600">₹{b.price}</td>
+                      <td className="p-4">
+                        <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${
+                          b.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-accent-100 text-accent-700'
+                        }`}>
+                          {b.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-              <form onSubmit={handleServiceSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-brand-500 mb-1">Service Name</label>
-                  <input
-                    type="text"
-                    value={serviceName}
-                    onChange={(e) => setServiceName(e.target.value)}
-                    placeholder="e.g. Pompadour Fade"
-                    className="w-full px-4 py-2.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none text-brand-900 dark:text-brand-50"
-                    required
-                  />
-                </div>
+      {/* TAB 4: MULTI-BARBER STAFF MANAGEMENT */}
+      {activeTab === 'staff' && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center bg-white dark:bg-brand-900 p-6 rounded-3xl border">
+            <div>
+              <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50">Salon Barber Staff Roster</h3>
+              <p className="text-xs text-brand-500">Edit shift hours and set independent weekly holidays according to each barber.</p>
+            </div>
+            <button onClick={handleOpenAddStaff} className="px-4 py-2 bg-accent-500 hover:bg-accent-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm">
+              <Plus className="w-4 h-4" /> Add Barber Staff
+            </button>
+          </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-brand-500 mb-1">Price (INR)</label>
-                    <input
-                      type="number"
-                      value={servicePrice}
-                      onChange={(e) => setServicePrice(e.target.value)}
-                      placeholder="e.g. 350"
-                      className="w-full px-4 py-2.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none text-brand-900 dark:text-brand-50"
-                      required
-                    />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {staffList.length === 0 ? (
+              <div className="col-span-3 p-12 text-center text-xs text-brand-400 bg-white dark:bg-brand-900 rounded-3xl border">
+                No barber staff configured yet. Click "+ Add Barber Staff" to add your team.
+              </div>
+            ) : (
+              staffList.map((s, idx) => (
+                <div key={idx} className="bg-white dark:bg-brand-900 p-5 rounded-3xl border shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-accent-100 text-accent-700 font-extrabold flex items-center justify-center text-lg overflow-hidden">
+                        {s.photoUrl ? <img src={s.photoUrl} alt={s.name} className="w-full h-full object-cover" /> : s.name?.charAt(0)}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm text-brand-900 dark:text-brand-50">{s.name}</h4>
+                        <p className="text-xs text-accent-600 font-semibold">{s.role}</p>
+                      </div>
+                    </div>
+                    <button onClick={() => handleOpenEditStaff(s)} className="p-1.5 text-brand-500 hover:text-accent-500">
+                      <Edit className="w-4 h-4" />
+                    </button>
                   </div>
 
+                  <div className="pt-2 border-t text-xs space-y-1">
+                    <p className="flex justify-between text-brand-600 dark:text-brand-400">
+                      <span>Shift Hours:</span> <span className="font-mono font-bold text-brand-900 dark:text-brand-50">{s.shift || '09:00 AM - 08:00 PM'}</span>
+                    </p>
+                    <p className="flex justify-between text-brand-600 dark:text-brand-400">
+                      <span>Weekly Holiday:</span> <span className="font-bold text-amber-600">{s.holiday || 'Sunday'}</span>
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: SERVICES CATALOG */}
+      {activeTab === 'services' && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center bg-white dark:bg-brand-900 p-6 rounded-3xl border">
+            <div>
+              <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50">Services, Hairstyles & Facials Catalog</h3>
+              <p className="text-xs text-brand-500">Service photos are stored securely in AWS S3 buckets.</p>
+            </div>
+            <button onClick={handleOpenAddService} className="px-4 py-2 bg-accent-500 hover:bg-accent-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm">
+              <Plus className="w-4 h-4" /> Add Service
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {hairstyles.length === 0 ? (
+              <div className="col-span-3 p-12 text-center text-xs text-brand-400 bg-white dark:bg-brand-900 rounded-3xl border">
+                No services added yet. Click "+ Add Service" to add male/female haircuts, facials, or hair treatments.
+              </div>
+            ) : (
+              hairstyles.map((s) => (
+                <div key={s.id} className="bg-white dark:bg-brand-900 p-5 rounded-3xl border shadow-sm space-y-3">
+                  {s.imageUrl && (
+                    <div className="w-full h-36 rounded-2xl overflow-hidden bg-brand-100">
+                      <img src={s.imageUrl} alt={s.name} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="flex justify-between items-start">
+                    <span className="px-2.5 py-0.5 bg-accent-100 text-accent-700 text-[10px] font-bold rounded-full uppercase">{s.category || 'Grooming'}</span>
+                    <span className="text-lg font-extrabold text-brand-900 dark:text-brand-50">₹{s.price}</span>
+                  </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase text-brand-500 mb-1">Duration (minutes)</label>
-                    <select
-                      value={serviceDuration}
-                      onChange={(e) => setServiceDuration(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none text-brand-700 dark:text-brand-300"
-                    >
-                      <option value="15">15 mins</option>
-                      <option value="30">30 mins</option>
-                      <option value="45">45 mins</option>
-                      <option value="60">60 mins</option>
-                      <option value="90">90 mins</option>
+                    <h4 className="font-bold text-sm text-brand-900 dark:text-brand-50">{s.name}</h4>
+                    <p className="text-xs text-brand-500 mt-0.5">{s.description}</p>
+                  </div>
+                  <div className="pt-2 border-t flex justify-between items-center text-xs">
+                    <span className="text-brand-400 font-semibold">{s.duration || 30} mins</span>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleOpenEditService(s)} className="p-1.5 text-brand-600 hover:text-accent-500"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => handleDeleteService(s.id)} className="p-1.5 text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 7: SHOP OPERATING HOURS & INTERACTIVE MAP LOCATION PICKER */}
+      {activeTab === 'settings' && (
+        <form onSubmit={handleUpdateSettings} className="bg-white dark:bg-brand-900 p-6 rounded-3xl border max-w-xl space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50">Interactive Map Location & Shop Hours</h3>
+              <p className="text-xs text-brand-500">Click or drag the marker on the map to choose your exact shop location.</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleDetectGPS}
+              disabled={geoLocating}
+              className="px-3 py-1.5 bg-accent-100 text-accent-700 dark:bg-accent-950 dark:text-accent-400 font-bold rounded-xl text-xs flex items-center gap-1.5 hover:bg-accent-200"
+            >
+              <Locate className="w-3.5 h-3.5" /> {geoLocating ? 'Detecting...' : '📍 GPS Auto Detect'}
+            </button>
+          </div>
+
+          {settingsSuccess && <div className="p-3 bg-green-50 text-green-700 text-xs font-bold rounded-xl">{settingsSuccess}</div>}
+
+          {/* INTERACTIVE MAP PICKER COMPONENT */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-brand-700 dark:text-brand-300">Click on Map to Pick Shop Location Pin *</label>
+            <MapLocationPicker 
+              lat={lat} 
+              lng={lng} 
+              onLocationSelect={handleMapLocationSelect} 
+            />
+            <p className="text-[11px] text-brand-400">Selected Coordinates: Lat <span className="font-mono font-bold text-brand-900 dark:text-brand-50">{lat}</span>, Lng <span className="font-mono font-bold text-brand-900 dark:text-brand-50">{lng}</span></p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-brand-500 mb-1">Shop Opening Time *</label>
+              <input type="time" value={openingTime} onChange={(e) => setOpeningTime(e.target.value)} className="w-full p-2.5 bg-brand-50 border rounded-xl text-xs font-mono font-bold" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-brand-500 mb-1">Shop Closing Time *</label>
+              <input type="time" value={closingTime} onChange={(e) => setClosingTime(e.target.value)} className="w-full p-2.5 bg-brand-50 border rounded-xl text-xs font-mono font-bold" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-brand-500 mb-1">Full Shop Address *</label>
+            <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="e.g. 102 MG Road, Bandra West, Mumbai" className="w-full p-2.5 bg-brand-50 border rounded-xl text-xs" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-brand-500 mb-1">City *</label>
+              <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Mumbai" className="w-full p-2.5 bg-brand-50 border rounded-xl text-xs" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-brand-500 mb-1">Shop Holiday</label>
+              <select value={weeklyHoliday} onChange={(e) => setWeeklyHoliday(e.target.value)} className="w-full p-2.5 bg-brand-50 border rounded-xl text-xs font-bold">
+                <option value="6">Sunday</option>
+                <option value="0">Monday</option>
+                <option value="1">Tuesday</option>
+                <option value="2">Wednesday</option>
+                <option value="3">Thursday</option>
+                <option value="4">Friday</option>
+                <option value="5">Saturday</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" className="px-6 py-2.5 bg-accent-500 text-white font-bold rounded-xl text-xs shadow-md">
+            Save Shop Location & Hours
+          </button>
+        </form>
+      )}
+
+      {/* ADD / EDIT STAFF MODAL */}
+      <AnimatePresence>
+        {staffModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-brand-900 max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4">
+              <div className="flex justify-between items-center border-b pb-3">
+                <h3 className="font-bold text-base font-display">{editingStaff ? 'Edit Barber Staff Shift & Holiday' : 'Add Barber Staff Member'}</h3>
+                <button onClick={() => setStaffModal(false)}><X className="w-5 h-5 text-brand-400" /></button>
+              </div>
+
+              <form onSubmit={handleAddStaffSubmit} className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-semibold mb-1">Staff Member Name *</label>
+                  <input type="text" required value={staffName} onChange={(e) => setStaffName(e.target.value)} placeholder="Vikram Sharma" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Role / Specialty</label>
+                  <input type="text" value={staffRole} onChange={(e) => setStaffRole(e.target.value)} placeholder="Senior Fade & Beard Specialist" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold mb-1">Shift Hours *</label>
+                    <input type="text" value={staffShift} onChange={(e) => setStaffShift(e.target.value)} placeholder="09:00 AM - 05:00 PM" className="w-full p-2.5 bg-brand-50 border rounded-xl font-mono" />
+                  </div>
+                  <div>
+                    <label className="block font-semibold mb-1">Individual Holiday *</label>
+                    <select value={staffHoliday} onChange={(e) => setStaffHoliday(e.target.value)} className="w-full p-2.5 bg-brand-50 border rounded-xl font-bold">
+                      <option value="Monday">Monday</option>
+                      <option value="Tuesday">Tuesday</option>
+                      <option value="Wednesday">Wednesday</option>
+                      <option value="Thursday">Thursday</option>
+                      <option value="Friday">Friday</option>
+                      <option value="Saturday">Saturday</option>
+                      <option value="Sunday">Sunday</option>
                     </select>
                   </div>
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold uppercase text-brand-500 mb-1">Hairstyle Category</label>
-                  <select
-                    value={serviceCategory}
-                    onChange={(e) => setServiceCategory(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none text-brand-700 dark:text-brand-300"
-                  >
-                    <option value="Fade Cut">Fade Cut</option>
-                    <option value="French Crop">French Crop</option>
-                    <option value="Buzz Cut">Buzz Cut</option>
-                    <option value="Undercut">Undercut</option>
-                    <option value="Beard">Beard Styling</option>
-                    <option value="Coloring">Hair Coloring</option>
-                    <option value="Spa">Hair Spa</option>
-                  </select>
+                  <label className="block font-semibold mb-1">Staff Photo (S3 Bucket Upload)</label>
+                  <input type="file" accept="image/*" onChange={(e) => setStaffPhoto(e.target.files[0])} className="w-full p-2 bg-brand-50 border rounded-xl" />
                 </div>
 
+                <button type="submit" className="w-full py-3 bg-accent-500 text-white font-bold rounded-xl shadow mt-2">
+                  {editingStaff ? 'Update Staff Member' : 'Save Staff Member'}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* SERVICE MODAL */}
+      <AnimatePresence>
+        {serviceModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-brand-900 max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4">
+              <div className="flex justify-between items-center border-b pb-3">
+                <h3 className="font-bold text-base font-display">{editingService ? 'Edit Service' : 'Add New Service'}</h3>
+                <button onClick={() => setServiceModal(false)}><X className="w-5 h-5 text-brand-400" /></button>
+              </div>
+
+              {serviceError && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-xl">{serviceError}</div>}
+
+              <form onSubmit={handleServiceSubmit} className="space-y-3 text-xs">
                 <div>
-                  <label className="block text-xs font-bold uppercase text-brand-500 mb-1">Short Description</label>
-                  <input
-                    type="text"
-                    value={serviceDesc}
-                    onChange={(e) => setServiceDesc(e.target.value)}
-                    placeholder="Brief detail of grooming steps..."
-                    className="w-full px-4 py-2.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none text-brand-900 dark:text-brand-50"
-                  />
+                  <label className="block font-semibold mb-1">Service Name *</label>
+                  <input type="text" required value={serviceName} onChange={(e) => setServiceName(e.target.value)} placeholder="Executive Haircut / Herbal Facial" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold mb-1">Category</label>
+                    <select value={serviceCategory} onChange={(e) => setServiceCategory(e.target.value)} className="w-full p-2.5 bg-brand-50 border rounded-xl">
+                      <option value="Haircut">Male/Female Haircut</option>
+                      <option value="Beard">Beard Styling</option>
+                      <option value="Facial">Facial Treatment</option>
+                      <option value="Hair Treatment">Hair Spa & Treatment</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-semibold mb-1">Price (₹) *</label>
+                    <input type="number" required value={servicePrice} onChange={(e) => setServicePrice(e.target.value)} placeholder="350" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Duration (Minutes)</label>
+                  <input type="number" value={serviceDuration} onChange={(e) => setServiceDuration(e.target.value)} placeholder="30" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Service Photo (S3 Bucket Upload)</label>
+                  <input type="file" accept="image/*" onChange={(e) => setServiceFile(e.target.files[0])} className="w-full p-2 bg-brand-50 border rounded-xl" />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold uppercase text-brand-500 mb-1">Hairstyle Cover Image</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setServiceFile(e.target.files[0])}
-                    className="w-full text-xs text-brand-500 cursor-pointer"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-brand-900 dark:bg-accent-600 hover:bg-accent-600 dark:hover:bg-accent-500 text-white font-bold rounded-xl text-sm transition-all"
-                >
-                  Save Hairstyle
+                <button type="submit" className="w-full py-3 bg-accent-500 text-white font-bold rounded-xl shadow mt-2">
+                  Save Service
                 </button>
               </form>
             </motion.div>

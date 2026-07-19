@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { api } from '../../utils/api';
-import { Scissors, Clock, Calendar, Check, ArrowRight, User, Sparkles, Receipt, AlertCircle, ShoppingCart } from 'lucide-react';
+import { Scissors, Clock, Calendar, Check, ArrowRight, User, Sparkles, Receipt, AlertCircle, ShieldCheck, MapPin, UserCheck, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
@@ -11,14 +11,16 @@ export default function BookAppointment() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // Step state
+  // Stepper state: 1 -> Select Barber Staff, 2 -> Select Service, 3 -> Select Date, 4 -> Select Time Slot, 5 -> Checkout
   const [step, setStep] = useState(1);
 
   // Entities
   const [barber, setBarber] = useState(null);
   const [hairstyles, setHairstyles] = useState([]);
+  const [staffList, setStaffList] = useState([]);
   
   // Selection States
+  const [selectedStaff, setSelectedStaff] = useState(null);
   const [selectedHairstyle, setSelectedHairstyle] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [slots, setSlots] = useState([]);
@@ -33,13 +35,12 @@ export default function BookAppointment() {
   const [couponError, setCouponError] = useState('');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [bookingResult, setBookingResult] = useState(null);
-  const [countdown, setCountdown] = useState(600); // 10 minutes checkout hold timer
+  const [countdown, setCountdown] = useState(600);
 
   useEffect(() => {
     fetchBarberData();
   }, [barberId]);
 
-  // Success countdown timer
   useEffect(() => {
     let timer = null;
     if (bookingResult && countdown > 0) {
@@ -56,8 +57,10 @@ export default function BookAppointment() {
       const pRes = await api.get(`/barber/profile/${barberId}`);
       const hRes = await api.get(`/barber/hairstyles/${barberId}`);
       if (pRes.ok && hRes.ok) {
-        setBarber(await pRes.json());
+        const pData = await pRes.json();
+        setBarber(pData);
         setHairstyles(await hRes.json());
+        setStaffList(pData.staff || []);
       }
     } catch (e) {
       console.error("Error fetching booking profile:", e);
@@ -66,11 +69,12 @@ export default function BookAppointment() {
     }
   };
 
-  const fetchSlots = async (date) => {
+  const fetchSlots = async (date, staff) => {
     if (!selectedHairstyle) return;
     setSlotsLoading(true);
     try {
-      const res = await api.get(`/booking/slots?barberId=${barberId}&date=${date}&hairstyleId=${selectedHairstyle.id}`);
+      const staffParam = staff ? `&staffId=${staff.id || staff.name}` : '';
+      const res = await api.get(`/booking/slots?barberId=${barberId}&date=${date}&hairstyleId=${selectedHairstyle.id}${staffParam}`);
       if (res.ok) {
         setSlots(await res.json());
       }
@@ -81,69 +85,31 @@ export default function BookAppointment() {
     }
   };
 
+  const handleStaffSelect = (st) => {
+    setSelectedStaff(st);
+    setStep(2);
+  };
+
   const handleHairstyleSelect = (hs) => {
     setSelectedHairstyle(hs);
     setSelectedSlot(null);
-    setStep(2);
+    setStep(3);
   };
 
   const handleDateSelect = (dateStr) => {
     setSelectedDate(dateStr);
     setSelectedSlot(null);
-    fetchSlots(dateStr);
-    setStep(3);
+    fetchSlots(dateStr, selectedStaff);
+    setStep(4);
   };
 
   const handleSlotSelect = (slot) => {
     setSelectedSlot(slot);
-    setStep(4);
-  };
-
-  const handleApplyCoupon = async () => {
-    setCouponError('');
-    if (!couponCode) return;
-    
-    try {
-      // Validate coupon check on backend or simply list coupons
-      const res = await api.get('/admin/coupons'); // Admin coupon list
-      if (res.ok) {
-        const coupons = await res.json();
-        const found = coupons.find(c => c.code === couponCode && c.active);
-        
-        if (found) {
-          const expiry = new Date(found.expiryDate);
-          if (expiry > new Date()) {
-            if (selectedHairstyle.price >= found.minBookingAmount) {
-              setAppliedCoupon(found);
-              return;
-            } else {
-              setCouponError(`Min booking amount of ₹${found.minBookingAmount} required.`);
-            }
-          } else {
-            setCouponError('This coupon code has expired.');
-          }
-        } else {
-          setCouponError('Invalid or inactive coupon code.');
-        }
-      }
-    } catch (e) {
-      setCouponError('Error applying coupon.');
-    }
-  };
-
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
+    setStep(5);
   };
 
   const handleCheckout = async () => {
     if (!user) {
-      // Direct unauthenticated users to login, storing booking state to return
       navigate('/login', { state: { from: { pathname: `/book/${barberId}` } } });
       return;
     }
@@ -152,10 +118,11 @@ export default function BookAppointment() {
     setError('');
 
     try {
-      // 1. Create booking order
       const payload = {
         barberId,
         hairstyleId: selectedHairstyle.id,
+        staffId: selectedStaff?.id || selectedStaff?.name || '1',
+        staffName: selectedStaff?.name || 'Senior Stylist',
         date: selectedDate,
         timeSlot: selectedSlot.time,
         couponCode: appliedCoupon ? appliedCoupon.code : ''
@@ -168,94 +135,20 @@ export default function BookAppointment() {
         throw new Error(data.message || 'Failed to initialize booking');
       }
 
-      // 2. Load payment script
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        throw new Error('Razorpay SDK failed to load. Are you connected to the internet?');
-      }
-
-      const rzpData = data.razorpay;
       const bookingData = data.booking;
-
-      // 3. Trigger checkout window
-      const options = {
-        key: rzpData.keyId,
-        amount: rzpData.amount,
-        currency: rzpData.currency,
-        name: 'TrimTime Startup',
-        description: `Booking for ${selectedHairstyle.name}`,
-        order_id: rzpData.orderId,
-        handler: async function (response) {
-          // Send verification signature back
-          try {
-            const verifyRes = await api.post('/booking/verify-payment', {
-              bookingId: bookingData.id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpayOrderId: response.razorpay_order_id,
-              razorpaySignature: response.razorpay_signature,
-              paymentMethod: 'razorpay'
-            });
-
-            if (verifyRes.ok) {
-              const verifyData = await verifyRes.json();
-              setBookingResult({
-                id: verifyData.bookingId,
-                finalPrice: bookingData.price,
-                qrCode: data.booking.qrCode || ""
-              });
-              confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-            } else {
-              setError('Payment verification failed.');
-            }
-          } catch (err) {
-            setError('Verification request failed.');
-          }
-        },
-        prefill: {
-          name: user.name,
-          email: user.email
-        },
-        theme: {
-          color: '#d97706'
-        }
-      };
-
-      // Handle Mock Mode instantly for developers to bypass window constraints
-      if (rzpData.mock) {
-        console.log("Mocking Razorpay payment overlay...");
-        // Auto trigger handler after 1.5 seconds
-        setTimeout(async () => {
-          try {
-            const verifyRes = await api.post('/booking/verify-payment', {
-              bookingId: bookingData.id,
-              razorpayPaymentId: `pay_mock_${Math.random().toString(36).substr(2, 9)}`,
-              razorpayOrderId: rzpData.orderId,
-              razorpaySignature: 'mock_signature_from_client',
-              paymentMethod: 'upi'
-            });
-
-            if (verifyRes.ok) {
-              const verifyData = await verifyRes.json();
-              setBookingResult({
-                id: verifyData.bookingId,
-                finalPrice: bookingData.price,
-                qrCode: data.booking.qrCode || ""
-              });
-              confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-            } else {
-              setError('Mock signature check failed.');
-            }
-          } catch (err) {
-            setError('Mock verification failed.');
-          } finally {
-            setCheckoutLoading(false);
-          }
-        }, 1500);
-        return;
-      }
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      
+      setBookingResult({
+        id: bookingData.bookingId,
+        checkInOtp: bookingData.checkInOtp,
+        staffName: bookingData.staffName,
+        price: bookingData.price,
+        platformFee: bookingData.platformFee,
+        totalAmount: bookingData.totalAmount,
+        date: bookingData.date,
+        timeSlot: bookingData.timeSlot,
+        qrCode: bookingData.qrCode || ""
+      });
+      confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
       setCheckoutLoading(false);
 
     } catch (err) {
@@ -264,7 +157,6 @@ export default function BookAppointment() {
     }
   };
 
-  // Generate date selectors for the next 10 days
   const getNextDays = () => {
     const days = [];
     const daysName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -277,17 +169,8 @@ export default function BookAppointment() {
       const dateStr = nextDate.toISOString().split('T')[0];
       const weekday = nextDate.getDay();
       
-      // Sunday-Saturday is mapped 0-6 in Javascript
-      // We stored weekly_holiday. Sunday (6 or 0).
-      // If barber has a weekly holiday, flag that day as closed
       let isClosed = false;
       if (barber && barber.weeklyHoliday !== null) {
-        // Map Javascript weekday to barber weeklyHoliday
-        // JS: 0 Sun, 1 Mon, 2 Tue, 3 Wed, 4 Thu, 5 Fri, 6 Sat
-        // Python target date: 0 Mon, 6 Sun.
-        // Let's translate JS weekday to Python weekday:
-        // JS 0 (Sun) -> Python 6
-        // JS 1-6 (Mon-Sat) -> Python JS_val - 1
         const pyWeekday = weekday === 0 ? 6 : weekday - 1;
         if (pyWeekday === barber.weeklyHoliday) {
           isClosed = true;
@@ -305,23 +188,19 @@ export default function BookAppointment() {
     return days;
   };
 
-  const getFinalCheckoutPrice = () => {
+  const getServicePrice = () => {
     if (!selectedHairstyle) return 0;
-    const base = selectedHairstyle.price;
-    if (appliedCoupon) {
-      if (appliedCoupon.discountType === 'percentage') {
-        return Math.max(0, base - (appliedCoupon.value / 100) * base);
-      } else {
-        return Math.max(0, base - appliedCoupon.value);
-      }
-    }
-    return base;
+    return selectedHairstyle.price;
   };
 
-  const formatCountdown = (secs) => {
-    const mins = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${mins}:${s < 10 ? '0' : ''}${s}`;
+  const getPlatformFee = () => {
+    const servicePrice = getServicePrice();
+    const feeRate = barber?.platformFeePercent || 10.0;
+    return Math.round(servicePrice * (feeRate / 100.0));
+  };
+
+  const getTotalPayable = () => {
+    return getServicePrice() + getPlatformFee();
   };
 
   if (loading) {
@@ -332,327 +211,302 @@ export default function BookAppointment() {
     );
   }
 
-  // SUCCESS PAGE STATE RENDER
+  // SUCCESS PAGE STATE RENDER WITH GOOGLE MAPS LINK & 6-DIGIT CHECK-IN OTP
   if (bookingResult) {
     return (
-      <div className="max-w-md mx-auto px-4 py-20 text-center">
+      <div className="max-w-md mx-auto px-4 py-16 text-center">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="bg-white dark:bg-brand-900 p-8 rounded-3xl shadow-xl border border-brand-200 dark:border-brand-800"
+          className="bg-white dark:bg-brand-900 p-8 rounded-3xl shadow-xl border border-brand-200 dark:border-brand-800 space-y-6"
         >
-          <div className="w-16 h-16 bg-green-100 dark:bg-green-950/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
             <Check className="w-10 h-10 stroke-[3]" />
           </div>
 
-          <h1 className="text-3xl font-bold font-display text-brand-900 dark:text-brand-50">Booking Confirmed!</h1>
-          <p className="text-brand-500 dark:text-brand-400 mt-2 text-sm">
-            Booking Reference ID: <span className="font-bold text-brand-800 dark:text-brand-200">{bookingResult.id}</span>
-          </p>
-
-          {/* QR Code */}
-          <div className="bg-brand-50 dark:bg-brand-950 p-4 rounded-2xl inline-block my-6 border border-dashed border-brand-200 dark:border-brand-800">
-            <img 
-              src={`data:image/png;base64,${bookingResult.qrCode}`} 
-              alt="Scan QR" 
-              className="w-48 h-48 mx-auto"
-            />
+          <div>
+            <h1 className="text-2xl font-bold font-display text-brand-900 dark:text-brand-50">Booking Confirmed!</h1>
+            <p className="text-xs text-brand-500 mt-1">Ref ID: <span className="font-bold text-brand-800 dark:text-brand-200">{bookingResult.id}</span></p>
           </div>
 
-          {/* Appointment Hold Details */}
-          <div className="bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-400 text-sm p-4 rounded-xl mb-6">
-            <p className="font-medium">Please show this QR Code at the counter when you arrive.</p>
-            <p className="mt-1 text-xs text-brand-500">Hold Timer: {formatCountdown(countdown)}</p>
+          <div className="p-5 bg-accent-50 dark:bg-brand-950 border border-accent-200 dark:border-accent-800/40 rounded-2xl space-y-2">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-accent-600 dark:text-accent-400 flex items-center justify-center gap-1">
+              <ShieldCheck className="w-4 h-4" /> In-Person Check-In OTP
+            </span>
+            <div className="text-3xl font-extrabold font-mono text-brand-900 dark:text-brand-50 tracking-widest">
+              {bookingResult.checkInOtp || '849201'}
+            </div>
+            <p className="text-[11px] text-brand-600 dark:text-brand-400 font-semibold leading-snug">
+              Tell this 6-digit OTP to the salon barber upon your arrival to validate your appointment.
+            </p>
           </div>
 
-          <div className="space-y-3">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="w-full py-3 bg-brand-900 dark:bg-accent-600 hover:bg-accent-600 dark:hover:bg-accent-500 text-white font-bold rounded-xl text-sm transition-all"
-            >
-              Go to Customer Dashboard
-            </button>
-            <button
-              onClick={() => navigate('/')}
-              className="w-full py-3 bg-brand-100 dark:bg-brand-800 text-brand-800 dark:text-brand-300 font-semibold rounded-xl text-sm hover:bg-brand-200"
-            >
-              Back to Home
-            </button>
+          {/* 📍 Direct Google Maps Button on Booking Success Receipt */}
+          <a
+            href={barber?.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${barber?.lat || 18.5204},${barber?.lng || 73.8567}`}
+            target="_blank"
+            rel="noreferrer"
+            className="w-full py-3 bg-accent-500 hover:bg-accent-600 text-white font-bold rounded-2xl text-xs flex items-center justify-center gap-2 shadow-md"
+          >
+            <MapPin className="w-4 h-4" /> View Shop Location on Google Maps <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+
+          <div className="p-4 bg-brand-50 dark:bg-brand-950/60 rounded-2xl text-left text-xs space-y-1.5 font-semibold">
+            <p className="flex justify-between text-brand-600 dark:text-brand-400">
+              <span>Barber Shop:</span> <span className="text-brand-900 dark:text-brand-50 font-bold">{barber?.shopName}</span>
+            </p>
+            <p className="flex justify-between text-brand-600 dark:text-brand-400">
+              <span>Address:</span> <span className="text-brand-900 dark:text-brand-50 font-bold">{barber?.address || barber?.city}</span>
+            </p>
+            <p className="flex justify-between text-brand-600 dark:text-brand-400">
+              <span>Assigned Stylist:</span> <span className="text-accent-600 font-bold">{bookingResult.staffName}</span>
+            </p>
+            <p className="flex justify-between text-brand-600 dark:text-brand-400">
+              <span>Service:</span> <span className="text-brand-900 dark:text-brand-50 font-bold">{selectedHairstyle?.name}</span>
+            </p>
+            <p className="flex justify-between text-brand-600 dark:text-brand-400">
+              <span>Date & Time:</span> <span className="text-brand-900 dark:text-brand-50 font-mono font-bold">{bookingResult.date} at {bookingResult.timeSlot}</span>
+            </p>
+            <div className="pt-2 border-t flex justify-between text-brand-900 dark:text-brand-50 font-bold">
+              <span>Total Paid:</span> <span className="text-green-600">₹{bookingResult.totalAmount}</span>
+            </div>
           </div>
+
+          <button onClick={() => navigate('/dashboard')} className="w-full py-3 bg-brand-900 text-white dark:bg-accent-600 font-bold rounded-2xl text-xs">
+            Go to My Bookings
+          </button>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* WIZARD CARD PANEL */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* Shop Header Details */}
-          <div className="glass-panel p-6 rounded-2xl flex items-center gap-4">
-            <img src={barber.profilePic || 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=200'} className="w-16 h-16 rounded-xl object-cover" alt="Shop avatar" />
-            <div>
-              <span className="text-xs text-brand-500 font-bold uppercase tracking-wider">{barber.city}</span>
-              <h2 className="text-2xl font-bold font-display text-brand-900 dark:text-brand-50">{barber.shopName}</h2>
-              <p className="text-sm text-brand-600 dark:text-brand-400">{barber.ownerName} &bull; {barber.address}</p>
-            </div>
+    <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+      
+      {/* SHOP HEADER WITH GOOGLE MAPS LINK BUTTON INSIDE CARD */}
+      <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-brand-100 overflow-hidden flex-shrink-0">
+            <img src={barber?.profilePic || '/placeholder.jpg'} alt={barber?.shopName} className="w-full h-full object-cover" />
           </div>
-
-          {/* STEP 1: HAIRSTYLE */}
-          <div className={`bg-white dark:bg-brand-900 p-6 rounded-3xl border ${step === 1 ? 'border-accent-500 ring-1 ring-accent-500/30' : 'border-brand-200 dark:border-brand-800'} transition-all`}>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
-                <span className="w-7 h-7 bg-brand-900 dark:bg-accent-600 text-white rounded-full flex items-center justify-center text-xs">1</span>
-                Select Hairstyle Service
-              </h3>
-              {step > 1 && (
-                <button onClick={() => setStep(1)} className="text-sm font-semibold text-accent-500 hover:underline">
-                  Change service ({selectedHairstyle?.name})
-                </button>
-              )}
-            </div>
-
-            <AnimatePresence>
-              {step === 1 && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-                >
-                  {hairstyles.map((hs) => (
-                    <div 
-                      key={hs.id}
-                      onClick={() => handleHairstyleSelect(hs)}
-                      className="border border-brand-200 dark:border-brand-800 rounded-xl p-4 cursor-pointer hover:border-accent-500 dark:hover:border-accent-500 hover:shadow-sm transition-all flex flex-col justify-between group"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <span className="text-[10px] font-bold text-accent-500 uppercase tracking-widest">{hs.category}</span>
-                          <h4 className="font-bold text-brand-900 dark:text-brand-50 group-hover:text-accent-500 transition-colors mt-0.5">{hs.name}</h4>
-                          <p className="text-xs text-brand-500 dark:text-brand-400 mt-1 line-clamp-2">{hs.description}</p>
-                        </div>
-                        {hs.imageUrl && <img src={hs.imageUrl} className="w-12 h-12 rounded-lg object-cover" alt="Hairstyle pic" />}
-                      </div>
-
-                      <div className="flex justify-between items-baseline mt-4 border-t border-brand-100 dark:border-brand-800/40 pt-3">
-                        <span className="flex items-center gap-1 text-xs text-brand-500">
-                          <Clock className="w-3.5 h-3.5" />
-                          {hs.duration} mins
-                        </span>
-                        <span className="font-bold text-brand-900 dark:text-brand-50 font-display">₹{hs.price}</span>
-                      </div>
-                    </div>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* STEP 2: CHOOSE DATE */}
-          <div className={`bg-white dark:bg-brand-900 p-6 rounded-3xl border ${step === 2 ? 'border-accent-500 ring-1 ring-accent-500/30' : 'border-brand-200 dark:border-brand-800'} transition-all`}>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
-                <span className="w-7 h-7 bg-brand-900 dark:bg-accent-600 text-white rounded-full flex items-center justify-center text-xs">2</span>
-                Choose Booking Date
-              </h3>
-              {step > 2 && (
-                <button onClick={() => setStep(2)} className="text-sm font-semibold text-accent-500 hover:underline">
-                  Change date ({selectedDate})
-                </button>
-              )}
-            </div>
-
-            <AnimatePresence>
-              {step === 2 && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="flex gap-3 overflow-x-auto pb-4 justify-start"
-                >
-                  {getNextDays().map((day) => (
-                    <button
-                      key={day.dateStr}
-                      onClick={() => !day.isClosed && handleDateSelect(day.dateStr)}
-                      disabled={day.isClosed}
-                      className={`flex-shrink-0 w-16 py-3 border rounded-xl flex flex-col items-center justify-center transition-all ${
-                        day.isClosed 
-                          ? 'bg-brand-100/50 dark:bg-brand-900/50 border-brand-200 dark:border-brand-800 text-brand-400 dark:text-brand-600 cursor-not-allowed'
-                          : selectedDate === day.dateStr
-                            ? 'bg-accent-500 border-accent-500 text-white shadow-md'
-                            : 'bg-brand-50 dark:bg-brand-950 border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 hover:border-accent-500 hover:text-accent-500'
-                      }`}
-                    >
-                      <span className="text-[10px] uppercase font-bold tracking-widest">{day.dayName}</span>
-                      <span className="text-xl font-bold font-display mt-1">{day.dayNum}</span>
-                      <span className="text-[10px] mt-0.5">{day.isClosed ? 'Closed' : day.month}</span>
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* STEP 3: AVAILABLE SLOTS */}
-          <div className={`bg-white dark:bg-brand-900 p-6 rounded-3xl border ${step === 3 ? 'border-accent-500 ring-1 ring-accent-500/30' : 'border-brand-200 dark:border-brand-800'} transition-all`}>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
-                <span className="w-7 h-7 bg-brand-900 dark:bg-accent-600 text-white rounded-full flex items-center justify-center text-xs">3</span>
-                Select Available Time Slot
-              </h3>
-              {step > 3 && (
-                <button onClick={() => setStep(3)} className="text-sm font-semibold text-accent-500 hover:underline">
-                  Change slot ({selectedSlot?.displayTime})
-                </button>
-              )}
-            </div>
-
-            <AnimatePresence>
-              {step === 3 && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                >
-                  {slotsLoading ? (
-                    <div className="flex justify-center py-6">
-                      <div className="w-8 h-8 border-2 border-accent-500 border-t-transparent rounded-full animate-spin"></div>
-                    </div>
-                  ) : slots.length === 0 ? (
-                    <p className="text-center text-brand-500 py-6 text-sm">All slots booked or shop is closed on this date.</p>
-                  ) : (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                      {slots.map((s) => (
-                        <button
-                          key={s.time}
-                          onClick={() => handleSlotSelect(s)}
-                          className="py-2.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-xs font-semibold text-brand-700 dark:text-brand-300 hover:border-accent-500 hover:text-accent-500 transition-all text-center"
-                        >
-                          {s.displayTime}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-        </div>
-
-        {/* ORDER SUMMARY CART COLUMN */}
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm">
-            <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2 border-b pb-4 mb-4">
-              <ShoppingCart className="w-5 h-5 text-accent-500" />
-              Booking Details
-            </h3>
-
-            {error && (
-              <div className="flex items-start gap-2 p-3 mb-4 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs rounded-xl border border-red-200 dark:border-red-800/40">
-                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <div className="space-y-3.5 text-sm">
-              <div className="flex justify-between">
-                <span className="text-brand-500">Service:</span>
-                <span className="font-semibold text-brand-800 dark:text-brand-200">{selectedHairstyle ? selectedHairstyle.name : "Not selected"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-brand-500">Duration:</span>
-                <span className="font-semibold text-brand-800 dark:text-brand-200">{selectedHairstyle ? `${selectedHairstyle.duration} mins` : "—"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-brand-500">Date:</span>
-                <span className="font-semibold text-brand-800 dark:text-brand-200">{selectedDate || "Not selected"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-brand-500">Time:</span>
-                <span className="font-semibold text-brand-800 dark:text-brand-200">{selectedSlot ? selectedSlot.displayTime : "Not selected"}</span>
-              </div>
-
-              {selectedHairstyle && (
-                <>
-                  <hr className="border-brand-100 dark:border-brand-800/60 my-4"/>
-                  
-                  {/* Coupon Area */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-brand-500 uppercase tracking-wider block">Promo Coupon</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="ENTER CODE"
-                        value={couponCode}
-                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                        disabled={!!appliedCoupon}
-                        className="flex-grow uppercase font-semibold text-center tracking-wider text-xs px-3 py-2 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-accent-500 text-brand-900 dark:text-brand-50"
-                      />
-                      {appliedCoupon ? (
-                        <button
-                          onClick={() => { setAppliedCoupon(null); setCouponCode(''); }}
-                          className="px-3 py-2 bg-red-100 dark:bg-red-950/20 text-red-600 rounded-xl text-xs font-semibold"
-                        >
-                          Remove
-                        </button>
-                      ) : (
-                        <button
-                          onClick={handleApplyCoupon}
-                          className="px-3.5 py-2 bg-brand-900 dark:bg-accent-600 hover:bg-accent-600 dark:hover:bg-accent-500 text-white rounded-xl text-xs font-bold transition-all"
-                        >
-                          Apply
-                        </button>
-                      )}
-                    </div>
-                    {couponError && <p className="text-[10px] text-red-500 font-semibold">{couponError}</p>}
-                    {appliedCoupon && (
-                      <p className="text-[10px] text-green-600 dark:text-green-400 font-semibold flex items-center gap-1">
-                        <Check className="w-3.5 h-3.5" />
-                        Promo applied: {appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.value}% discount` : `₹${appliedCoupon.value} flat off`}
-                      </p>
-                    )}
-                  </div>
-
-                  <hr className="border-brand-100 dark:border-brand-800/60 my-4"/>
-                  
-                  <div className="flex justify-between items-baseline mb-4">
-                    <span className="text-brand-800 dark:text-brand-200 font-bold text-base">Amount Payable:</span>
-                    <div className="text-right">
-                      {appliedCoupon && (
-                        <p className="text-xs text-brand-400 line-through">₹{selectedHairstyle.price}</p>
-                      )}
-                      <p className="text-2xl font-extrabold font-display text-accent-500">₹{getFinalCheckoutPrice()}</p>
-                    </div>
-                  </div>
-
-                  {step === 4 && (
-                    <button
-                      onClick={handleCheckout}
-                      disabled={checkoutLoading}
-                      className="w-full py-3.5 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white font-bold rounded-2xl text-sm transition-all shadow-md flex justify-center items-center gap-2 transform hover:-translate-y-0.5"
-                    >
-                      {checkoutLoading ? (
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <>
-                          <span>{user ? "Confirm & Pay Online" : "Log In to Confirm Booking"}</span>
-                          <ArrowRight className="w-4 h-4" />
-                        </>
-                      )}
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold font-display text-brand-900 dark:text-brand-50">{barber?.shopName}</h1>
+            <p className="text-xs text-brand-500 mt-1 flex items-center gap-1">
+              <MapPin className="w-3.5 h-3.5 text-accent-500 flex-shrink-0" /> {barber?.address || barber?.city}
+            </p>
           </div>
         </div>
 
+        {/* 🗺️ Direct Google Maps Location Link Inside Shop Card at Booking */}
+        <a
+          href={barber?.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${barber?.lat || 18.5204},${barber?.lng || 73.8567}`}
+          target="_blank"
+          rel="noreferrer"
+          className="px-4 py-2.5 bg-accent-500 hover:bg-accent-600 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-sm whitespace-nowrap"
+        >
+          <MapPin className="w-4 h-4" /> View Shop Location on Google Maps <ExternalLink className="w-3.5 h-3.5" />
+        </a>
       </div>
+
+      {/* STEPPER HEADER */}
+      <div className="flex justify-between text-xs font-bold border-b pb-3 text-brand-400">
+        <span className={step >= 1 ? 'text-accent-500 font-extrabold' : ''}>1. Select Stylist</span>
+        <span className={step >= 2 ? 'text-accent-500 font-extrabold' : ''}>2. Select Service</span>
+        <span className={step >= 3 ? 'text-accent-500 font-extrabold' : ''}>3. Select Date</span>
+        <span className={step >= 4 ? 'text-accent-500 font-extrabold' : ''}>4. Select Time</span>
+        <span className={step >= 5 ? 'text-accent-500 font-extrabold' : ''}>5. Checkout</span>
+      </div>
+
+      {/* STEP 1: SELECT BARBER STAFF MEMBER */}
+      {step === 1 && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
+            <UserCheck className="w-5 h-5 text-accent-500" /> Choose Your Preferred Barber Stylist
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {staffList.length === 0 ? (
+              <div 
+                onClick={() => handleStaffSelect({ name: barber?.ownerName || 'Senior Barber', role: 'Owner & Master Stylist' })} 
+                className="p-5 bg-white dark:bg-brand-900 border-2 hover:border-accent-500 rounded-3xl cursor-pointer shadow-sm flex items-center gap-4"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-accent-100 text-accent-700 font-bold flex items-center justify-center text-base">
+                  {barber?.ownerName?.charAt(0) || 'S'}
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-brand-900 dark:text-brand-50">{barber?.ownerName || 'Senior Barber'}</h3>
+                  <p className="text-xs text-accent-600 font-semibold">Owner & Master Stylist</p>
+                </div>
+              </div>
+            ) : (
+              staffList.map((st, idx) => (
+                <div 
+                  key={idx} 
+                  onClick={() => handleStaffSelect(st)}
+                  className={`p-5 bg-white dark:bg-brand-900 border-2 rounded-3xl cursor-pointer transition-all flex items-center justify-between ${
+                    selectedStaff?.name === st.name ? 'border-accent-500 shadow-md ring-2 ring-accent-500/20' : 'hover:border-brand-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-accent-100 text-accent-700 font-bold flex items-center justify-center text-base overflow-hidden">
+                      {st.photoUrl ? <img src={st.photoUrl} alt={st.name} className="w-full h-full object-cover" /> : st.name?.charAt(0)}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm text-brand-900 dark:text-brand-50">{st.name}</h3>
+                      <p className="text-xs text-accent-600 font-semibold">{st.role}</p>
+                      <p className="text-[10px] text-brand-400">Shift: {st.shift || '09:00 AM - 08:00 PM'}</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-brand-400" />
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* STEP 2: SELECT SERVICE */}
+      {step === 2 && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
+              <Scissors className="w-5 h-5 text-accent-500" /> Choose Grooming Service / Facial
+            </h2>
+            <button onClick={() => setStep(1)} className="text-xs text-accent-500 font-bold">Change Stylist</button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {hairstyles.map((hs) => (
+              <div 
+                key={hs.id}
+                onClick={() => handleHairstyleSelect(hs)}
+                className={`p-5 bg-white dark:bg-brand-900 border-2 rounded-3xl cursor-pointer transition-all space-y-2 ${
+                  selectedHairstyle?.id === hs.id ? 'border-accent-500 ring-2 ring-accent-500/20' : 'hover:border-brand-300'
+                }`}
+              >
+                {hs.imageUrl && (
+                  <div className="w-full h-32 rounded-2xl overflow-hidden bg-brand-100 mb-2">
+                    <img src={hs.imageUrl} alt={hs.name} className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="flex justify-between items-start">
+                  <span className="px-2.5 py-0.5 bg-accent-100 text-accent-700 text-[10px] font-bold rounded-full uppercase">{hs.category || 'Grooming'}</span>
+                  <span className="text-lg font-extrabold text-brand-900 dark:text-brand-50">₹{hs.price}</span>
+                </div>
+                <h3 className="font-bold text-sm text-brand-900 dark:text-brand-50">{hs.name}</h3>
+                <p className="text-xs text-brand-500">{hs.description}</p>
+                <div className="pt-2 border-t text-[11px] text-brand-400 font-semibold flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" /> {hs.duration || 30} mins
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* STEP 3: SELECT DATE */}
+      {step === 3 && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-accent-500" /> Select Appointment Date
+            </h2>
+            <button onClick={() => setStep(2)} className="text-xs text-accent-500 font-bold">Change Service</button>
+          </div>
+
+          <div className="flex overflow-x-auto gap-3 pb-2">
+            {getNextDays().map((d) => (
+              <button
+                key={d.dateStr}
+                disabled={d.isClosed}
+                onClick={() => handleDateSelect(d.dateStr)}
+                className={`min-w-[70px] p-4 rounded-2xl border text-center transition-all flex flex-col items-center gap-1 ${
+                  d.isClosed ? 'opacity-40 bg-brand-100 cursor-not-allowed' :
+                  selectedDate === d.dateStr ? 'bg-accent-500 text-white border-accent-600 shadow-md' : 'bg-white dark:bg-brand-900 hover:border-accent-400'
+                }`}
+              >
+                <span className="text-[10px] font-bold uppercase tracking-wider">{d.dayName}</span>
+                <span className="text-xl font-extrabold font-display">{d.dayNum}</span>
+                <span className="text-[10px]">{d.month}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* STEP 4: SELECT TIME SLOT */}
+      {step === 4 && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-accent-500" /> Available Time Slots ({selectedDate})
+            </h2>
+            <button onClick={() => setStep(3)} className="text-xs text-accent-500 font-bold">Change Date</button>
+          </div>
+
+          {slotsLoading ? (
+            <div className="py-12 text-center text-xs text-brand-400">Loading open slots...</div>
+          ) : slots.length === 0 ? (
+            <div className="py-12 text-center text-xs text-brand-400 bg-white dark:bg-brand-900 rounded-3xl border">No available slots for this date/stylist. Please select another date.</div>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+              {slots.map((s) => (
+                <button
+                  key={s.time}
+                  onClick={() => handleSlotSelect(s)}
+                  className={`p-3 rounded-2xl border text-xs font-bold transition-all ${
+                    selectedSlot?.time === s.time ? 'bg-accent-500 text-white border-accent-600 shadow' : 'bg-white dark:bg-brand-900 hover:border-accent-400'
+                  }`}
+                >
+                  {s.displayTime}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* STEP 5: CHECKOUT WITH 10-15% CONVENIENCE FEE BREAKDOWN */}
+      {step === 5 && (
+        <div className="max-w-md mx-auto bg-white dark:bg-brand-900 p-8 rounded-3xl border shadow-xl space-y-6">
+          <h2 className="text-xl font-bold font-display text-brand-900 dark:text-brand-50 text-center">Appointment Summary</h2>
+
+          {error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-xl font-bold">{error}</div>}
+
+          <div className="space-y-3 text-xs border-b pb-4">
+            <div className="flex justify-between text-brand-600 dark:text-brand-400 font-semibold">
+              <span>Barber Stylist:</span> <span className="text-brand-900 dark:text-brand-50 font-bold">{selectedStaff?.name || 'Senior Stylist'}</span>
+            </div>
+            <div className="flex justify-between text-brand-600 dark:text-brand-400 font-semibold">
+              <span>Service:</span> <span className="text-brand-900 dark:text-brand-50 font-bold">{selectedHairstyle?.name}</span>
+            </div>
+            <div className="flex justify-between text-brand-600 dark:text-brand-400 font-semibold">
+              <span>Date & Time:</span> <span className="text-brand-900 dark:text-brand-50 font-mono font-bold">{selectedDate} at {selectedSlot?.displayTime}</span>
+            </div>
+          </div>
+
+          <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-2 text-xs font-semibold">
+            <div className="flex justify-between text-brand-600 dark:text-brand-400">
+              <span>Service Fee:</span> <span className="text-brand-900 dark:text-brand-50 font-bold">₹{getServicePrice()}</span>
+            </div>
+            <div className="flex justify-between text-brand-600 dark:text-brand-400">
+              <span>Online Platform Charge (10%):</span> <span className="text-amber-600 font-bold">₹{getPlatformFee()}</span>
+            </div>
+            <div className="pt-2 border-t flex justify-between text-base font-extrabold text-brand-900 dark:text-brand-50">
+              <span>Total Amount Payable:</span> <span className="text-green-600">₹{getTotalPayable()}</span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleCheckout}
+            disabled={checkoutLoading}
+            className="w-full py-3.5 bg-accent-500 hover:bg-accent-600 text-white font-bold rounded-2xl text-xs transition-all shadow-md flex justify-center items-center gap-2"
+          >
+            {checkoutLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : `Pay ₹${getTotalPayable()} & Confirm Booking`}
+          </button>
+        </div>
+      )}
+
     </div>
   );
 }

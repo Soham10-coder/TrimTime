@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { api } from '../../utils/api';
-import { Calendar, Clock, MapPin, Receipt, Star, X, AlertTriangle, ShieldCheck, StarOff } from 'lucide-react';
+import { Calendar, Clock, MapPin, Receipt, Star, X, AlertTriangle, ShieldCheck, StarOff, ExternalLink, UserCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CustomerDashboard() {
@@ -79,7 +79,6 @@ export default function CustomerDashboard() {
     }
   };
 
-  // Generate printable HTML invoice
   const downloadInvoice = (b) => {
     const printWindow = window.open('', '_blank');
     const invoiceHtml = `
@@ -120,6 +119,7 @@ export default function CustomerDashboard() {
           <div style="text-align: right;">
             <h4 style="margin: 0 0 8px 0; color: #78716c;">Invoice Details:</h4>
             <p style="margin: 4px 0;"><b>Invoice ID:</b> #${b.bookingId}</p>
+            <p style="margin: 4px 0;"><b>Check-In OTP:</b> ${b.checkInOtp || 'N/A'}</p>
             <p style="margin: 4px 0;"><b>Date Booked:</b> ${b.date}</p>
             <p style="margin: 4px 0;"><b>Time Slot:</b> ${b.timeSlot}</p>
           </div>
@@ -129,38 +129,30 @@ export default function CustomerDashboard() {
           <thead>
             <tr>
               <th>Description (Hairstyle Service)</th>
-              <th>Duration</th>
+              <th>Assigned Stylist</th>
               <th style="text-align: right;">Price</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>${b.hairstyle.name}</td>
-              <td>${b.hairstyle.duration} minutes</td>
-              <td style="text-align: right;">₹${b.price.toFixed(2)}</td>
+              <td>${b.staffName || 'Senior Stylist'}</td>
+              <td style="text-align: right;">₹${(b.totalAmount || b.price).toFixed(2)}</td>
             </tr>
           </tbody>
         </table>
 
         <div class="total-box">
-          <div>
-            <span>Subtotal:</span>
-            <span>₹${b.price.toFixed(2)}</span>
-          </div>
-          <div>
-            <span>Discount Applied:</span>
-            <span>- ₹${(b.price - b.price).toFixed(2)}</span>
-          </div>
           <div class="total-price" style="margin-top: 10px;">
             <span>Total Paid:</span>
-            <span>₹${b.price.toFixed(2)}</span>
+            <span>₹${(b.totalAmount || b.price).toFixed(2)}</span>
           </div>
         </div>
 
         <div style="clear: both;"></div>
 
         <div class="footer">
-          <p>Thank you for using TrimTime. Please present the QR code in your dashboard to redeem this service.</p>
+          <p>Thank you for using TrimTime. Please tell your 6-digit Check-In OTP to the salon upon arrival.</p>
           <p>&copy; 2026 TrimTime Inc. All rights reserved.</p>
         </div>
       </body>
@@ -172,7 +164,6 @@ export default function CustomerDashboard() {
   };
 
   const getPointsBalance = () => {
-    // Check if points exist or mock
     return user ? user.loyaltyPoints || 30 : 0;
   };
 
@@ -184,7 +175,6 @@ export default function CustomerDashboard() {
     );
   }
 
-  // Filter Active vs Past bookings
   const activeBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'pending');
   const pastBookings = bookings.filter(b => b.status === 'completed' || b.status === 'cancelled');
 
@@ -203,7 +193,6 @@ export default function CustomerDashboard() {
           </div>
         </div>
         
-        {/* Loyalty Points tracker card */}
         <div className="bg-brand-900 dark:bg-brand-800 text-white p-4 rounded-2xl flex items-center gap-4 border border-brand-800">
           <div className="p-2.5 bg-accent-500/20 text-accent-500 rounded-xl">
             <ShieldCheck className="w-6 h-6" />
@@ -215,12 +204,11 @@ export default function CustomerDashboard() {
         </div>
       </div>
 
-      {/* 2. APPOINTMENTS TABS */}
+      {/* 2. APPOINTMENTS HUB */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Active Bookings Column */}
         <div className="lg:col-span-2 space-y-6">
-          <h2 className="text-2xl font-bold font-display text-brand-900 dark:text-brand-50">Active Appointments</h2>
+          <h2 className="text-2xl font-bold font-display text-brand-900 dark:text-brand-50">Active Appointments & Location</h2>
           
           {activeBookings.length === 0 ? (
             <div className="text-center py-12 bg-white/40 dark:bg-brand-900/40 rounded-2xl border border-brand-200 dark:border-brand-800 text-brand-500">
@@ -232,40 +220,82 @@ export default function CustomerDashboard() {
               {activeBookings.map((b) => (
                 <div 
                   key={b.id} 
-                  className="bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4"
+                  className="bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 rounded-3xl p-6 shadow-sm space-y-4"
                 >
-                  <div className="flex gap-4 items-start">
-                    <img src={b.barber.profilePic || 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=100'} className="w-14 h-14 rounded-xl object-cover" alt="Shop avatar" />
-                    <div>
-                      <span className="text-[10px] font-bold text-accent-500 uppercase tracking-widest">{b.hairstyle.name}</span>
-                      <h3 className="font-bold text-brand-900 dark:text-brand-50 font-display mt-0.5">{b.barber.shopName}</h3>
-                      
-                      <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-brand-600 dark:text-brand-400">
-                        <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-accent-500" />{b.date}</span>
-                        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-accent-500" />{b.timeSlot} ({b.hairstyle.duration} mins)</span>
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b pb-4">
+                    <div className="flex gap-4 items-start">
+                      <img src={b.barber.profilePic || '/placeholder.jpg'} className="w-14 h-14 rounded-2xl object-cover" alt="Shop avatar" />
+                      <div>
+                        <span className="text-[10px] font-bold text-accent-500 uppercase tracking-widest">{b.hairstyle.name}</span>
+                        <h3 className="font-bold text-lg text-brand-900 dark:text-brand-50 font-display">{b.barber.shopName}</h3>
+                        <p className="text-xs text-accent-600 font-semibold flex items-center gap-1 mt-0.5">
+                          <UserCheck className="w-3.5 h-3.5" /> Stylist: {b.staffName || 'Senior Barber'}
+                        </p>
                       </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="font-extrabold text-brand-900 dark:text-brand-50 text-xl block">₹{b.totalAmount || b.price}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-green-600 bg-green-100 dark:bg-green-950/40 px-2.5 py-0.5 rounded-full">Paid Online</span>
                     </div>
                   </div>
 
-                  <div className="flex sm:flex-col items-baseline sm:items-end justify-between sm:justify-start gap-4">
-                    <span className="font-bold text-brand-900 dark:text-brand-50 font-display text-lg">₹{b.price}</span>
-                    
-                    <div className="flex sm:flex-col gap-2 w-full sm:w-auto">
+                  {/* LOCATION & GOOGLE MAPS NAVIGATION CARD */}
+                  <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <span className="text-[10px] font-bold text-brand-400 uppercase tracking-wider block">Shop Location Address</span>
+                      <p className="text-xs font-bold text-brand-900 dark:text-brand-50 flex items-center gap-1 mt-0.5">
+                        <MapPin className="w-3.5 h-3.5 text-accent-500 flex-shrink-0" /> {b.barber.address || 'Shop Location'}
+                      </p>
+                    </div>
+
+                    {b.barber.googleMapsUrl && (
+                      <a
+                        href={b.barber.googleMapsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-4 py-2 bg-accent-500 hover:bg-accent-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm whitespace-nowrap"
+                      >
+                        <MapPin className="w-3.5 h-3.5" /> Navigate on Google Maps <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+
+                  {/* 6-DIGIT CHECK-IN OTP CARD */}
+                  {b.checkInOtp && (
+                    <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-2xl flex justify-between items-center">
+                      <div>
+                        <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider block">In-Person Check-In OTP</span>
+                        <p className="text-[11px] text-brand-600 dark:text-brand-400 font-medium">Tell this OTP to barber upon arrival</p>
+                      </div>
+                      <span className="text-2xl font-extrabold font-mono text-brand-900 dark:text-brand-50 tracking-widest bg-white dark:bg-brand-900 px-4 py-1 rounded-xl border">
+                        {b.checkInOtp}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center pt-2">
+                    <div className="flex gap-3 text-xs text-brand-600 dark:text-brand-400 font-mono">
+                      <span>📅 {b.date}</span>
+                      <span>⏰ {b.timeSlot}</span>
+                    </div>
+
+                    <div className="flex gap-2">
                       <button
                         onClick={() => downloadInvoice(b)}
-                        className="flex-grow sm:flex-grow-0 px-3 py-1.5 bg-brand-100 dark:bg-brand-800 text-brand-700 dark:text-brand-300 hover:text-accent-500 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
+                        className="px-3.5 py-1.5 bg-brand-100 dark:bg-brand-800 text-brand-700 dark:text-brand-300 hover:text-accent-500 rounded-xl text-xs font-semibold flex items-center gap-1.5"
                       >
-                        <Receipt className="w-3.5 h-3.5" />
-                        Invoice
+                        <Receipt className="w-3.5 h-3.5" /> Invoice
                       </button>
                       <button
                         onClick={() => setCancelModalId(b.id)}
-                        className="flex-grow sm:flex-grow-0 px-3 py-1.5 bg-red-50 dark:bg-red-950/20 text-red-600 hover:bg-red-100 rounded-lg text-xs font-semibold"
+                        className="px-3.5 py-1.5 bg-red-50 dark:bg-red-950/20 text-red-600 hover:bg-red-100 rounded-xl text-xs font-semibold"
                       >
-                        Cancel Slot
+                        Cancel
                       </button>
                     </div>
                   </div>
+
                 </div>
               ))}
             </div>
@@ -283,13 +313,12 @@ export default function CustomerDashboard() {
                   className="bg-brand-50/50 dark:bg-brand-900/50 border border-brand-200 dark:border-brand-800/60 rounded-2xl p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 opacity-80"
                 >
                   <div className="flex gap-4">
-                    <img src={b.barber.profilePic || 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=100'} className="w-12 h-12 rounded-xl object-cover grayscale" alt="Shop avatar" />
+                    <img src={b.barber.profilePic || '/placeholder.jpg'} className="w-12 h-12 rounded-xl object-cover grayscale" alt="Shop avatar" />
                     <div>
                       <h4 className="font-bold text-brand-800 dark:text-brand-200 font-display">{b.barber.shopName}</h4>
                       <p className="text-xs text-brand-500 mt-1">{b.hairstyle.name} &bull; {b.date} &bull; {b.timeSlot}</p>
                       
-                      {/* Status pill */}
-                      <span className={`inline-block mt-2.5 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                      <span className={`inline-block mt-2 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                         b.status === 'completed' 
                           ? 'bg-green-100 text-green-700 dark:bg-green-950/20 dark:text-green-400' 
                           : 'bg-red-100 text-red-700 dark:bg-red-950/20 dark:text-red-400'
@@ -300,15 +329,14 @@ export default function CustomerDashboard() {
                   </div>
 
                   <div className="flex sm:flex-col items-baseline sm:items-end justify-between sm:justify-start gap-4">
-                    <span className="font-bold text-brand-800 dark:text-brand-200 font-display">₹{b.price}</span>
+                    <span className="font-bold text-brand-800 dark:text-brand-200 font-display">₹{b.totalAmount || b.price}</span>
                     
                     {b.status === 'completed' && (
                       <button
                         onClick={() => setRatingBooking({ id: b.id, barberId: b.barber_id || b.barberId || 'mockid', shopName: b.barber.shopName })}
                         className="px-3.5 py-1.5 bg-accent-500 hover:bg-accent-600 text-white text-xs font-bold rounded-lg flex items-center gap-1 shadow-sm"
                       >
-                        <Star className="w-3.5 h-3.5 fill-white text-white" />
-                        Rate Barber
+                        <Star className="w-3.5 h-3.5 fill-white text-white" /> Rate Barber
                       </button>
                     )}
                   </div>
@@ -319,21 +347,20 @@ export default function CustomerDashboard() {
 
         </div>
 
-        {/* SIDE BAR / MAP PLACEHOLDER */}
+        {/* SIDE BAR / SEARCH SALONS CARD */}
         <div className="space-y-6">
-          <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800">
-            <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 mb-3">Nearby Grooming Spots</h3>
-            <div className="bg-brand-50 dark:bg-brand-950 h-52 rounded-2xl border flex flex-col items-center justify-center text-center p-4">
-              <MapPin className="w-8 h-8 text-accent-500 mb-2 animate-bounce" />
-              <p className="text-sm font-semibold text-brand-800 dark:text-brand-200">Google Maps Navigation</p>
-              <p className="text-xs text-brand-500 dark:text-brand-500 mt-1">Distance calculation filters are slated for future release.</p>
+          <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 space-y-4">
+            <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50">Quick Location Navigation</h3>
+            <p className="text-xs text-brand-500">Clicking "Navigate on Google Maps" opens live GPS turn-by-turn directions directly to your booked salon's door.</p>
+            <div className="p-4 bg-accent-50 dark:bg-brand-950 rounded-2xl border border-accent-200 text-xs font-bold text-accent-700">
+              📍 Automatic Distance Engine: Calculates real-time distance from your current location to all salons.
             </div>
           </div>
         </div>
 
       </div>
 
-      {/* --- RATING MODAL POPUP --- */}
+      {/* RATING MODAL */}
       <AnimatePresence>
         {ratingBooking && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -350,58 +377,50 @@ export default function CustomerDashboard() {
                 <X className="w-5 h-5" />
               </button>
 
-              <h3 className="text-xl font-bold font-display text-brand-900 dark:text-brand-50 mb-1">Rate Your Styling</h3>
-              <p className="text-sm text-brand-500 dark:text-brand-400 mb-6">Write a review for {ratingBooking.shopName}</p>
+              <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 mb-1">
+                Rate {ratingBooking.shopName}
+              </h3>
+              <p className="text-xs text-brand-500 mb-6">How was your haircut & grooming experience?</p>
 
-              {reviewError && (
-                <div className="flex items-center gap-1.5 p-3 mb-4 bg-red-50 text-red-600 text-xs rounded-lg">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                  <span>{reviewError}</span>
-                </div>
-              )}
-
-              {reviewSuccess && (
-                <div className="flex items-center gap-1.5 p-3 mb-4 bg-green-50 text-green-600 text-xs rounded-lg">
-                  <ShieldCheck className="w-4 h-4 flex-shrink-0" />
-                  <span>{reviewSuccess}</span>
-                </div>
-              )}
+              {reviewSuccess && <div className="p-3 bg-green-50 text-green-700 text-xs font-bold rounded-xl mb-4">{reviewSuccess}</div>}
+              {reviewError && <div className="p-3 bg-red-50 text-red-700 text-xs font-bold rounded-xl mb-4">{reviewError}</div>}
 
               <form onSubmit={submitReview} className="space-y-4">
-                {/* Stars selector */}
-                <div>
-                  <label className="block text-xs font-bold uppercase text-brand-500 mb-2">Service Rating Score</label>
-                  <div className="flex gap-1.5">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setRatingStars(star)}
-                        className="focus:outline-none"
-                      >
-                        <Star className={`w-8 h-8 ${star <= ratingStars ? 'fill-amber-400 text-amber-400' : 'text-brand-300 dark:text-brand-700'}`} />
-                      </button>
-                    ))}
-                  </div>
+                <div className="flex justify-center gap-2 mb-4">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRatingStars(star)}
+                      className="p-1.5 focus:outline-none transition-transform hover:scale-110"
+                    >
+                      <Star 
+                        className={`w-8 h-8 ${
+                          star <= ratingStars 
+                            ? 'fill-amber-400 text-amber-400' 
+                            : 'text-brand-300 dark:text-brand-700'
+                        }`} 
+                      />
+                    </button>
+                  ))}
                 </div>
 
-                {/* Comment area */}
                 <div>
-                  <label className="block text-xs font-bold uppercase text-brand-500 mb-2">Write Review Comment</label>
+                  <label className="block text-xs font-bold text-brand-700 dark:text-brand-300 mb-1">Your Review Comment</label>
                   <textarea
                     rows="3"
                     value={ratingComment}
                     onChange={(e) => setRatingComment(e.target.value)}
-                    placeholder="Tell us about the scissors precision, hairstyle alignment, or shop hygiene..."
-                    className="w-full px-4 py-2.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none text-brand-900 dark:text-brand-50"
+                    placeholder="Describe your experience with the barber..."
+                    className="w-full p-3 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-xs"
                   ></textarea>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-3 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white font-bold rounded-xl text-sm transition-all"
+                  className="w-full py-3 bg-accent-500 hover:bg-accent-600 text-white font-bold rounded-xl text-xs shadow-md"
                 >
-                  Submit Review Feedback
+                  Submit Review
                 </button>
               </form>
             </motion.div>
@@ -409,35 +428,18 @@ export default function CustomerDashboard() {
         )}
       </AnimatePresence>
 
-      {/* --- CANCELLATION POPUP DIALOG --- */}
+      {/* CANCEL MODAL */}
       <AnimatePresence>
         {cancelModalId && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-brand-900 max-w-sm w-full p-6 rounded-2xl shadow-xl text-center"
-            >
-              <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-brand-900 dark:text-brand-50 font-display">Confirm Cancellation</h3>
-              <p className="text-sm text-brand-600 dark:text-brand-400 mt-2">
-                Are you sure you want to cancel this booking? If the appointment is in more than 24 hours, you will receive an automatic full refund.
-              </p>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white dark:bg-brand-900 max-w-sm w-full p-6 rounded-3xl border border-brand-200 dark:border-brand-800 text-center space-y-4">
+              <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto" />
+              <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50">Cancel Appointment?</h3>
+              <p className="text-xs text-brand-500">Cancellations made 24+ hours before the slot are eligible for a 100% full online refund.</p>
               
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setCancelModalId(null)}
-                  className="flex-1 py-2 bg-brand-100 dark:bg-brand-800 text-brand-800 dark:text-brand-300 font-semibold rounded-xl text-sm hover:bg-brand-200"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => handleCancel(cancelModalId)}
-                  className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl text-sm"
-                >
-                  Cancel Booking
-                </button>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setCancelModalId(null)} className="flex-1 py-2.5 bg-brand-100 text-brand-700 rounded-xl text-xs font-bold">Keep Booking</button>
+                <button onClick={() => handleCancel(cancelModalId)} className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-xs font-bold shadow">Confirm Cancel</button>
               </div>
             </motion.div>
           </div>
