@@ -38,7 +38,6 @@ def register_customer():
         if not email or not password or not name:
             return jsonify({'message': 'Name, email and password are required'}), 400
 
-        # Validate inputs
         val_e, msg_e = validate_email(email)
         if not val_e:
             return jsonify({'message': msg_e}), 400
@@ -56,11 +55,9 @@ def register_customer():
         if not val_g:
             return jsonify({'message': msg_g}), 400
 
-        # Validate role
         if role not in ['customer', 'admin']:
             role = 'customer'
 
-        # Check existing user
         if users_col.find_one({'$or': [{'email': email}, {'phone': phone}] if phone else [{'email': email}]}):
             return jsonify({'message': 'Email or phone number is already registered'}), 409
 
@@ -90,13 +87,18 @@ def register_customer():
             'created_at': datetime.datetime.utcnow()
         })
 
-        # Send Email Verification
-        send_verification_otp(email, name, otp)
+        # Send Email Verification via SMTP
+        email_sent = send_verification_otp(email, name, otp)
 
-        return jsonify({
-            'message': 'Registration successful. Please verify email with OTP sent.',
-            'email': email
-        }), 201
+        res_body = {
+            'message': 'Registration successful. Please verify your email with the 6-digit OTP.',
+            'email': email,
+            'emailSent': email_sent
+        }
+        if not email_sent:
+            res_body['devOtp'] = otp
+
+        return jsonify(res_body), 201
 
     except Exception as e:
         logger.error(f"Error in register_customer: {e}")
@@ -112,28 +114,31 @@ def verify_otp():
         if not email or not otp:
             return jsonify({'message': 'Email and OTP are required'}), 400
 
-        # Validate OTP
-        record = otps_col.find_one({'email': email, 'otp': otp, 'type': otp_type})
+        record = otps_col.find_one({'email': email, 'type': otp_type})
         if not record:
-            return jsonify({'message': 'Invalid OTP or expired code'}), 400
+            return jsonify({'message': 'No OTP request found for this email'}), 404
 
-        # Check expiry (10 minutes)
         now = datetime.datetime.utcnow()
         if (now - record['created_at']).total_seconds() > 600:
             otps_col.delete_one({'_id': record['_id']})
-            return jsonify({'message': 'OTP has expired'}), 400
+            return jsonify({'message': 'OTP has expired. Please request a new one.'}), 400
 
-        # Update verification status in users collection
-        users_col.update_one({'email': email}, {'$set': {'verified': True}})
-        
-        # Delete OTP record
+        if record['otp'] != otp:
+            return jsonify({'message': 'Invalid OTP code'}), 400
+
         otps_col.delete_one({'_id': record['_id']})
 
-        return jsonify({'message': 'OTP verified successfully. Your account is active.'}), 200
+        if otp_type == 'signup':
+            users_col.update_one({'email': email}, {'$set': {'verified': True}})
+            return jsonify({'message': 'Email verified successfully. You can now log in.'}), 200
+        elif otp_type == 'reset':
+            return jsonify({'message': 'OTP verified successfully. Proceed to reset password.'}), 200
+
+        return jsonify({'message': 'OTP verified'}), 200
 
     except Exception as e:
         logger.error(f"Error in verify_otp: {e}")
-        return jsonify({'message': 'Internal server error'}), 500
+        return jsonify({'message': 'Internal Server Error'}), 500
 
 def resend_otp():
     try:
@@ -145,7 +150,7 @@ def resend_otp():
             return jsonify({'message': 'Email is required'}), 400
 
         user = users_col.find_one({'email': email})
-        if not user:
+        if not user and otp_type == 'signup':
             return jsonify({'message': 'User not found'}), 404
 
         otp = generate_otp()
@@ -157,12 +162,20 @@ def resend_otp():
             'created_at': datetime.datetime.utcnow()
         })
 
+        name = user.get('name', 'User') if user else 'User'
         if otp_type == 'signup':
-            send_verification_otp(email, user.get('name'), otp)
+            email_sent = send_verification_otp(email, name, otp)
         else:
-            send_reset_otp(email, otp)
+            email_sent = send_reset_otp(email, otp)
 
-        return jsonify({'message': 'OTP resent successfully.'}), 200
+        res_body = {
+            'message': 'A new OTP has been sent to your email.',
+            'emailSent': email_sent
+        }
+        if not email_sent:
+            res_body['devOtp'] = otp
+
+        return jsonify(res_body), 200
 
     except Exception as e:
         logger.error(f"Error in resend_otp: {e}")
@@ -171,103 +184,65 @@ def resend_otp():
 def login():
     try:
         data = request.json or {}
-        identifier = data.get('email', '').strip().lower() # Can be email or phone
+        email = data.get('email', '').strip().lower()
         password = data.get('password', '')
 
-        if not identifier or not password:
-            return jsonify({'message': 'Email/Mobile and password are required'}), 400
+        if not email or not password:
+            return jsonify({'message': 'Email and password are required'}), 400
 
-        # Dual Login Lookup: Query by email or phone
-        user = users_col.find_one({'role': 'admin', '$or': [{'email': identifier}, {'phone': identifier}]})
-        role = None
-
-        if user:
-            role = 'admin'
-        else:
-            user = users_col.find_one({'$or': [{'email': identifier}, {'phone': identifier}]})
+        user = users_col.find_one({'email': email})
+        is_barber = False
+        if not user:
+            from app.db import barbers_col
+            user = barbers_col.find_one({'email': email})
             if user:
-                role = user.get('role', 'customer')
+                is_barber = True
             else:
-                from app.db import barbers_col
-                user = barbers_col.find_one({'$or': [{'email': identifier}, {'phone': identifier}]})
-                if user:
-                    role = 'barber'
+                return jsonify({'message': 'Invalid email or password'}), 401
 
-        pwd_match = check_password(password, user['password']) if user else False
-        if not user or not pwd_match:
-            return jsonify({'message': 'Invalid email/mobile or password'}), 401
+        if not check_password(password, user['password']):
+            return jsonify({'message': 'Invalid email or password'}), 401
 
-        user_email = user.get('email')
-
-        # Check if verified (barbers check for active, customers check for verified)
-        if role == 'customer' and not user.get('verified', False):
-            # Send verification OTP again
-            otp = generate_otp()
-            otps_col.delete_many({'email': user_email})
-            otps_col.insert_one({
-                'email': user_email,
-                'otp': otp,
-                'type': 'signup',
-                'created_at': datetime.datetime.utcnow()
-            })
-            send_verification_otp(user_email, user.get('name', 'Customer'), otp)
-            return jsonify({
-                'message': 'Account not verified. OTP sent to your email.',
-                'code': 'UNVERIFIED',
-                'email': user_email
-            }), 403
-
-        if role == 'barber':
-            # Barbers check verification status
-            ver_status = user.get('verification_status', 'PENDING_VERIFICATION')
-            if not user.get('verified', False) and ver_status != 'APPROVED':
-                return jsonify({
-                    'message': 'Your barber account registration is pending admin approval. You will receive an email once approved.',
-                    'code': 'PENDING_APPROVAL'
-                }), 403
-            if user.get('status') == 'inactive':
-                return jsonify({
-                    'message': 'Your account has been deactivated. Please contact administration.',
-                    'code': 'DEACTIVATED'
-                }), 403
-
-        # Create JWT Tokens
         user_id = str(user['_id'])
-        access_token = generate_access_token(user_id, user_email, role)
-        refresh_token = generate_refresh_token(user_id, user_email, role)
+        user_role = 'barber' if is_barber else user.get('role', 'customer')
 
-        # Save refresh token in DB
+        access_token = generate_access_token(user_id, user_role, user.get('email'))
+        refresh_token_val = generate_refresh_token(user_id, user_role)
+
         refresh_tokens_col.insert_one({
-            'token': refresh_token,
+            'token': refresh_token_val,
             'user_id': user_id,
-            'email': user_email,
-            'role': role,
             'created_at': datetime.datetime.utcnow()
         })
 
-        # Return Access Token in body and Refresh Token in HTTP-only Cookie
-        response = make_response(jsonify({
+        user_payload = {
+            'id': user_id,
+            'name': user.get('name') if not is_barber else user.get('owner_name'),
+            'email': user.get('email'),
+            'role': user_role,
+            'verified': user.get('verified', False),
+            'loyaltyPoints': user.get('loyalty_points', 0) if not is_barber else 0
+        }
+        if is_barber:
+            user_payload['shopName'] = user.get('shop_name')
+            user_payload['profilePic'] = user.get('profile_pic', '')
+
+        resp = make_response(jsonify({
+            'message': 'Login successful',
             'accessToken': access_token,
-            'user': {
-                'id': user_id,
-                'name': user.get('name') if role != 'barber' else user.get('owner_name'),
-                'email': user_email,
-                'role': role,
-                'shopName': user.get('shop_name') if role == 'barber' else None,
-                'profilePic': user.get('profile_pic', '')
-            }
+            'user': user_payload
         }), 200)
 
-        # 7 days cookie
-        response.set_cookie(
-            'refreshToken', 
-            refresh_token, 
-            httponly=True, 
-            secure=True,
-            samesite='None',
-            max_age=7*24*60*60
+        resp.set_cookie(
+            'refreshToken',
+            refresh_token_val,
+            httponly=True,
+            secure=False,
+            samesite='Lax',
+            max_age=7 * 24 * 3600
         )
-        return response
+
+        return resp
 
     except Exception as e:
         logger.error(f"Error in login: {e}")
@@ -275,65 +250,51 @@ def login():
 
 def refresh_token():
     try:
-        refresh_token_val = request.cookies.get('refreshToken') or (request.json or {}).get('refreshToken')
+        ref_token = request.cookies.get('refreshToken') or request.headers.get('X-Refresh-Token')
+        if not ref_token:
+            return jsonify({'message': 'Refresh token missing'}), 401
 
-        if not refresh_token_val:
-            return jsonify({'message': 'Refresh token is missing'}), 401
+        token_doc = refresh_tokens_col.find_one({'token': ref_token})
+        if not token_doc:
+            return jsonify({'message': 'Invalid refresh token'}), 401
 
-        payload = decode_token(refresh_token_val, Config.JWT_REFRESH_SECRET_KEY)
-        if payload == "EXPIRED" or not payload:
-            refresh_tokens_col.delete_one({'token': refresh_token_val})
-            return jsonify({'message': 'Refresh token expired or invalid', 'code': 'REFRESH_TOKEN_EXPIRED'}), 401
+        payload, err = decode_token(ref_token, is_refresh=True)
+        if err:
+            refresh_tokens_col.delete_one({'token': ref_token})
+            return jsonify({'message': f'Refresh token invalid: {err}'}), 401
 
-        email = payload.get('email')
         user_id = payload.get('sub')
         role = payload.get('role')
+        
+        user = users_col.find_one({'_id': ObjectId(user_id)})
+        if not user:
+            from app.db import barbers_col
+            user = barbers_col.find_one({'_id': ObjectId(user_id)})
 
-        token_doc = refresh_tokens_col.find_one({'token': refresh_token_val})
-        if not token_doc:
-            refresh_tokens_col.delete_many({'email': email})
-            return jsonify({'message': 'Token reuse detected. All sessions revoked.', 'code': 'TOKEN_REUSE'}), 401
+        if not user:
+            return jsonify({'message': 'User not found'}), 401
 
-        refresh_tokens_col.delete_one({'token': refresh_token_val})
+        new_access_token = generate_access_token(user_id, role, user.get('email'))
 
-        new_access_token = generate_access_token(user_id, email, role)
-        new_refresh_token = generate_refresh_token(user_id, email, role)
-
-        refresh_tokens_col.insert_one({
-            'token': new_refresh_token,
-            'user_id': user_id,
-            'email': email,
-            'role': role,
-            'created_at': datetime.datetime.utcnow()
-        })
-
-        response = make_response(jsonify({'accessToken': new_access_token}), 200)
-        response.set_cookie(
-            'refreshToken', 
-            new_refresh_token, 
-            httponly=True, 
-            secure=True, 
-            samesite='None',
-            max_age=7*24*60*60
-        )
-        return response
+        return jsonify({
+            'accessToken': new_access_token
+        }), 200
 
     except Exception as e:
-        logger.error(f"Error in refresh_token: {e}")
+        logger.error(f"Error refreshing token: {e}")
         return jsonify({'message': 'Internal Server Error'}), 500
 
 def logout():
     try:
-        refresh_token_val = request.cookies.get('refreshToken') or (request.json or {}).get('refreshToken')
-        
+        refresh_token_val = request.cookies.get('refreshToken')
         if refresh_token_val:
             refresh_tokens_col.delete_one({'token': refresh_token_val})
 
-        response = make_response(jsonify({'message': 'Logout successful'}), 200)
-        response.delete_cookie('refreshToken')
-        return response
+        resp = make_response(jsonify({'message': 'Logout successful'}), 200)
+        resp.set_cookie('refreshToken', '', expires=0)
+        return resp
     except Exception as e:
-        logger.error(f"Error in logout: {e}")
+        logger.error(f"Error during logout: {e}")
         return jsonify({'message': 'Internal Server Error'}), 500
 
 def forgot_password():
@@ -348,9 +309,9 @@ def forgot_password():
         if not user:
             from app.db import barbers_col
             user = barbers_col.find_one({'email': email})
-            
+
         if not user:
-            return jsonify({'message': 'If the email exists, an OTP has been sent.'}), 200
+            return jsonify({'message': 'No user account found with this email address.'}), 404
 
         otp = generate_otp()
         otps_col.delete_many({'email': email, 'type': 'reset'})
@@ -361,8 +322,15 @@ def forgot_password():
             'created_at': datetime.datetime.utcnow()
         })
 
-        send_reset_otp(email, otp)
-        return jsonify({'message': 'Reset OTP sent to your email.'}), 200
+        email_sent = send_reset_otp(email, otp)
+        res_body = {
+            'message': 'Password reset verification code sent to your email.',
+            'emailSent': email_sent
+        }
+        if not email_sent:
+            res_body['devOtp'] = otp
+
+        return jsonify(res_body), 200
 
     except Exception as e:
         logger.error(f"Error in forgot_password: {e}")
@@ -384,22 +352,23 @@ def reset_password():
 
         record = otps_col.find_one({'email': email, 'otp': otp, 'type': 'reset'})
         if not record:
-            return jsonify({'message': 'Invalid or expired reset code'}), 400
+            return jsonify({'message': 'Invalid or expired OTP code'}), 400
 
         now = datetime.datetime.utcnow()
         if (now - record['created_at']).total_seconds() > 600:
             otps_col.delete_one({'_id': record['_id']})
-            return jsonify({'message': 'OTP has expired'}), 400
+            return jsonify({'message': 'OTP has expired. Please request a new one.'}), 400
 
         hashed_pass = hash_password(new_password)
-
+        
         result = users_col.update_one({'email': email}, {'$set': {'password': hashed_pass}})
         if result.matched_count == 0:
             from app.db import barbers_col
             barbers_col.update_one({'email': email}, {'$set': {'password': hashed_pass}})
 
         otps_col.delete_one({'_id': record['_id']})
-        return jsonify({'message': 'Password has been reset successfully.'}), 200
+
+        return jsonify({'message': 'Password reset successful. You can now log in.'}), 200
 
     except Exception as e:
         logger.error(f"Error in reset_password: {e}")

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { KeyRound, Mail, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { KeyRound, Mail, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function VerifyOtp() {
@@ -16,6 +16,7 @@ export default function VerifyOtp() {
   const location = useLocation();
   const email = location.state?.email || '';
   const otpType = location.state?.type || 'signup';
+  const devOtp = location.state?.devOtp || null;
 
   useEffect(() => {
     if (!email) {
@@ -23,7 +24,6 @@ export default function VerifyOtp() {
     }
   }, [email, navigate]);
 
-  // Countdown timer for Resend code button
   useEffect(() => {
     let interval = null;
     if (timer > 0) {
@@ -31,7 +31,7 @@ export default function VerifyOtp() {
         setTimer(prev => prev - 1);
       }, 1000);
     }
-    return () => clearInterval(interval);
+    return () => clearInterval(timer);
   }, [timer]);
 
   const handleSubmit = async (e) => {
@@ -53,13 +53,11 @@ export default function VerifyOtp() {
       setSuccess('Account verified successfully! Redirecting...');
       setTimeout(() => {
         if (otpType === 'reset') {
-          // Reset password flow directs to Reset Password screen
           navigate('/reset-password', { state: { email, otp } });
         } else {
-          // Signup directs to Login screen
           navigate('/login');
         }
-      }, 2000);
+      }, 1500);
     } else {
       setError(res.message || 'Verification failed. Please check the code.');
     }
@@ -95,6 +93,19 @@ export default function VerifyOtp() {
             <span className="font-semibold text-brand-700 dark:text-brand-300">{email}</span>
           </p>
         </div>
+
+        {/* DEV OTP HELPER BOX */}
+        {devOtp && (
+          <div className="p-4 mb-6 bg-accent-50 dark:bg-brand-950 text-accent-800 dark:text-accent-300 text-xs rounded-xl border border-accent-200 dark:border-accent-800 space-y-1">
+            <div className="flex items-center gap-1.5 font-bold">
+              <Sparkles className="w-4 h-4 text-accent-600" />
+              <span>Dev / Test Mode Verification Code</span>
+            </div>
+            <p className="text-[11px] text-brand-600 dark:text-brand-400">
+              Your 6-digit OTP code is: <b className="font-mono text-sm tracking-widest text-brand-900 dark:text-brand-50">{devOtp}</b>
+            </p>
+          </div>
+        )}
 
         {error && (
           <div className="flex items-center gap-2 p-4 mb-6 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 text-sm rounded-xl border border-red-200 dark:border-red-800/40">

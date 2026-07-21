@@ -7,7 +7,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Initialize auth states from localstorage
   useEffect(() => {
     const initializeAuth = async () => {
       const savedUser = localStorage.getItem('trimtime_user');
@@ -17,14 +16,10 @@ export const AuthProvider = ({ children }) => {
         setUser(JSON.parse(savedUser));
         api.setToken(savedToken);
         
-        // Attempt a background token refresh to verify session
         const refreshed = await api.refreshToken();
         if (!refreshed) {
-          // If refresh fails, session is expired
           handleLogoutLocal();
         } else {
-          // Update details from server if needed
-          const currentToken = api.getToken();
           const currentUser = localStorage.getItem('trimtime_user');
           if (currentUser) {
             setUser(JSON.parse(currentUser));
@@ -36,7 +31,6 @@ export const AuthProvider = ({ children }) => {
 
     initializeAuth();
 
-    // Listen to session expired events from API client
     const handleSessionExpired = () => {
       handleLogoutLocal();
       alert("Your session has expired. Please log in again.");
@@ -82,7 +76,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.message || 'Registration failed');
       }
 
-      return { success: true, message: data.message };
+      return { success: true, message: data.message, devOtp: data.devOtp };
     } catch (error) {
       console.error("Registration Error:", error);
       return { success: false, message: error.message };
@@ -91,7 +85,6 @@ export const AuthProvider = ({ children }) => {
 
   const registerBarber = async (formData) => {
     try {
-      // Form Data upload
       const res = await api.post('/barber/register', formData);
       const data = await res.json();
 
@@ -112,11 +105,12 @@ export const AuthProvider = ({ children }) => {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || 'OTP verification failed');
+        throw new Error(data.message || 'Verification failed');
       }
 
       return { success: true, message: data.message };
     } catch (error) {
+      console.error("OTP Verification Error:", error);
       return { success: false, message: error.message };
     }
   };
@@ -127,43 +121,12 @@ export const AuthProvider = ({ children }) => {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || 'Failed to resend OTP');
+        throw new Error(data.message || 'Resend failed');
       }
 
-      return { success: true, message: data.message };
+      return { success: true, message: data.message, devOtp: data.devOtp };
     } catch (error) {
-      return { success: false, message: error.message };
-    }
-  };
-
-  const logout = async () => {
-    try {
-      await api.post('/auth/logout', {});
-    } catch (e) {
-      console.error("Server logout error:", e);
-    } finally {
-      handleLogoutLocal();
-    }
-  };
-
-  const forgotPassword = async (email) => {
-    try {
-      const res = await api.post('/auth/forgot-password', { email });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Request failed');
-      return { success: true, message: data.message };
-    } catch (error) {
-      return { success: false, message: error.message };
-    }
-  };
-
-  const resetPassword = async (email, otp, newPassword) => {
-    try {
-      const res = await api.post('/auth/reset-password', { email, otp, newPassword });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Reset failed');
-      return { success: true, message: data.message };
-    } catch (error) {
+      console.error("Resend OTP Error:", error);
       return { success: false, message: error.message };
     }
   };
@@ -174,34 +137,43 @@ export const AuthProvider = ({ children }) => {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || 'Profile update failed');
+        throw new Error(data.message || 'Update failed');
       }
 
-      // Update user details locally
-      localStorage.setItem('trimtime_user', JSON.stringify(data.user));
-      setUser(data.user);
+      if (data.user) {
+        const updated = { ...user, ...data.user };
+        localStorage.setItem('trimtime_user', JSON.stringify(updated));
+        setUser(updated);
+      }
       return { success: true, message: data.message };
     } catch (error) {
+      console.error("Update Profile Error:", error);
       return { success: false, message: error.message };
     }
   };
 
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (e) {
+      console.error("Logout API failed, cleaning local state:", e);
+    } finally {
+      handleLogoutLocal();
+    }
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        login,
-        registerCustomer,
-        registerBarber,
-        verifyOtp,
-        resendOtp,
-        logout,
-        forgotPassword,
-        resetPassword,
-        updateProfile
-      }}
-    >
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      login,
+      registerCustomer,
+      registerBarber,
+      verifyOtp,
+      resendOtp,
+      updateProfile,
+      logout
+    }}>
       {children}
     </AuthContext.Provider>
   );

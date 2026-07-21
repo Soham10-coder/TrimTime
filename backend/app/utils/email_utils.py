@@ -2,23 +2,35 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import logging
+import os
 from config import Config
 
 logger = logging.getLogger(__name__)
 
-def send_html_email(to_email, subject, html_content):
+def log_dev_email(to_email, subject, html_content, otp=None):
+    """
+    Fallback logger for local dev mode when SMTP is not configured.
+    """
+    dev_log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'dev_otp_emails.log')
+    log_msg = f"\n========================================\n[DEV EMAIL NOTIFICATION]\nTO: {to_email}\nSUBJECT: {subject}\nOTP CODE: {otp if otp else 'N/A'}\n========================================\n"
+    print(log_msg)
+    try:
+        with open(dev_log_path, 'a', encoding='utf-8') as f:
+            f.write(log_msg)
+    except Exception as e:
+        logger.error(f"Failed to write to dev email log: {e}")
+
+def send_html_email(to_email, subject, html_content, otp=None):
     """
     Sends an HTML email using SMTP configuration.
-    If it fails, it logs the content to console to avoid blocking app flow.
+    If credentials are missing or fail, logs the email for testing.
     """
     mail_user = Config.MAIL_USERNAME
     mail_pass = Config.MAIL_PASSWORD
     
     if not mail_user or not mail_pass:
-        logger.warning(f"--- EMAIL NOT SENT (SMTP credentials not configured) ---")
-        logger.warning(f"To: {to_email}")
-        logger.warning(f"Subject: {subject}")
-        logger.warning(f"HTML Body: {html_content[:500]}...")
+        logger.warning(f"--- SMTP credentials not configured. Logging email locally. ---")
+        log_dev_email(to_email, subject, html_content, otp)
         return False
 
     msg = MIMEMultipart()
@@ -28,12 +40,15 @@ def send_html_email(to_email, subject, html_content):
     msg.attach(MIMEText(html_content, 'html'))
 
     try:
-        if Config.MAIL_USE_SSL:
-            server = smtplib.SMTP_SSL(Config.MAIL_SERVER, Config.MAIL_PORT)
+        port = int(Config.MAIL_PORT)
+        if port == 465 or Config.MAIL_USE_SSL:
+            server = smtplib.SMTP_SSL(Config.MAIL_SERVER, port, timeout=10)
         else:
-            server = smtplib.SMTP(Config.MAIL_SERVER, Config.MAIL_PORT)
-            if Config.MAIL_USE_TLS:
+            server = smtplib.SMTP(Config.MAIL_SERVER, port, timeout=10)
+            server.ehlo()
+            if Config.MAIL_USE_TLS or port == 587:
                 server.starttls()
+                server.ehlo()
                 
         server.login(mail_user, mail_pass)
         server.sendmail(mail_user, to_email, msg.as_string())
@@ -41,9 +56,8 @@ def send_html_email(to_email, subject, html_content):
         logger.info(f"Email sent successfully to {to_email}")
         return True
     except Exception as e:
-        logger.error(f"Failed to send email to {to_email}: {e}")
-        # Log email fallback for easy local developer testing
-        print(f"\n========================================\n[DEV SMTP FALLBACK] EMAIL TO: {to_email}\nSUBJECT: {subject}\n========================================\n")
+        logger.error(f"Failed to send email via SMTP to {to_email}: {e}")
+        log_dev_email(to_email, subject, html_content, otp)
         return False
 
 def send_verification_otp(email, name, otp):
@@ -68,7 +82,7 @@ def send_verification_otp(email, name, otp):
         </div>
     </div>
     """
-    return send_html_email(email, subject, html)
+    return send_html_email(email, subject, html, otp=otp)
 
 def send_reset_otp(email, otp):
     subject = "Reset Your Password - TrimTime"
@@ -87,7 +101,7 @@ def send_reset_otp(email, otp):
         <p style="color: #94a3b8; font-size: 12px; text-align: center; margin: 0;">&copy; 2026 TrimTime. All rights reserved.</p>
     </div>
     """
-    return send_html_email(email, subject, html)
+    return send_html_email(email, subject, html, otp=otp)
 
 def send_booking_confirmation(email, customer_name, booking_details):
     subject = f"Booking Confirmed! - TrimTime ({booking_details['booking_id']})"
