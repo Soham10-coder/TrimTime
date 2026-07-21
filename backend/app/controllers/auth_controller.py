@@ -17,7 +17,9 @@ def hash_password(password):
 
 def check_password(password, hashed):
     try:
-        return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+        if not hashed:
+            return False
+        return bcrypt.checkpw(password.encode('utf-8'), str(hashed).encode('utf-8'))
     except Exception as e:
         logger.error(f"Error checking password: {e}")
         return False
@@ -200,14 +202,15 @@ def login():
             else:
                 return jsonify({'message': 'Invalid email or password'}), 401
 
-        if not check_password(password, user['password']):
+        if not check_password(password, user.get('password')):
             return jsonify({'message': 'Invalid email or password'}), 401
 
         user_id = str(user['_id'])
         user_role = 'barber' if is_barber else user.get('role', 'customer')
 
-        access_token = generate_access_token(user_id, user_role, user.get('email'))
-        refresh_token_val = generate_refresh_token(user_id, user_role)
+        # Correct parameter order: (user_id, email, role)
+        access_token = generate_access_token(user_id, user.get('email'), user_role)
+        refresh_token_val = generate_refresh_token(user_id, user.get('email'), user_role)
 
         refresh_tokens_col.insert_one({
             'token': refresh_token_val,
@@ -274,7 +277,7 @@ def refresh_token():
         if not user:
             return jsonify({'message': 'User not found'}), 401
 
-        new_access_token = generate_access_token(user_id, role, user.get('email'))
+        new_access_token = generate_access_token(user_id, user.get('email'), role)
 
         return jsonify({
             'accessToken': new_access_token
