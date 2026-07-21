@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { Mail, Lock, Scissors, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Scissors, Eye, EyeOff, AlertCircle, KeyRound } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Login() {
@@ -129,11 +129,19 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="mt-8 text-center text-sm text-brand-600 dark:text-brand-400">
-          New to TrimTime?{' '}
-          <Link to="/signup" className="font-semibold text-accent-600 dark:text-accent-400 hover:text-accent-500">
-            Create Customer Account
-          </Link>
+        <div className="mt-6 text-center text-sm text-brand-600 dark:text-brand-400 space-y-2">
+          <div>
+            Need to verify your email?{' '}
+            <Link to="/verify-otp" className="font-semibold text-accent-600 dark:text-accent-400 hover:underline inline-flex items-center gap-1">
+              <KeyRound className="w-3.5 h-3.5" /> Verify OTP Here
+            </Link>
+          </div>
+          <div>
+            New to TrimTime?{' '}
+            <Link to="/signup" className="font-semibold text-accent-600 dark:text-accent-400 hover:text-accent-500">
+              Create Customer Account
+            </Link>
+          </div>
         </div>
 
         <div className="mt-4 text-center text-xs text-brand-500 dark:text-brand-500">
