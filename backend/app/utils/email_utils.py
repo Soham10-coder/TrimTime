@@ -7,12 +7,13 @@ from config import Config
 
 logger = logging.getLogger(__name__)
 
-def log_dev_email(to_email, subject, html_content, otp=None):
+def log_dev_email(to_email, subject, html_content, otp=None, error_msg=None):
     """
-    Fallback logger for local dev mode when SMTP is not configured.
+    Fallback logger for local dev mode when SMTP fails or is not configured.
     """
     dev_log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'dev_otp_emails.log')
-    log_msg = f"\n========================================\n[DEV EMAIL NOTIFICATION]\nTO: {to_email}\nSUBJECT: {subject}\nOTP CODE: {otp if otp else 'N/A'}\n========================================\n"
+    reason = f" (SMTP Error: {error_msg})" if error_msg else " (SMTP credentials not configured)"
+    log_msg = f"\n========================================\n[EMAIL FALLBACK NOTICE]{reason}\nTO: {to_email}\nSUBJECT: {subject}\nOTP CODE: {otp if otp else 'N/A'}\n========================================\n"
     print(log_msg)
     try:
         with open(dev_log_path, 'a', encoding='utf-8') as f:
@@ -22,42 +23,49 @@ def log_dev_email(to_email, subject, html_content, otp=None):
 
 def send_html_email(to_email, subject, html_content, otp=None):
     """
-    Sends an HTML email using SMTP configuration.
-    If credentials are missing or fail, logs the email for testing.
+    Sends an HTML email using SMTP configuration with Gmail support.
     """
     mail_user = Config.MAIL_USERNAME
     mail_pass = Config.MAIL_PASSWORD
     
     if not mail_user or not mail_pass:
-        logger.warning(f"--- SMTP credentials not configured. Logging email locally. ---")
-        log_dev_email(to_email, subject, html_content, otp)
+        logger.warning("--- SMTP credentials (MAIL_USERNAME / MAIL_PASSWORD) missing in .env ---")
+        log_dev_email(to_email, subject, html_content, otp, "Missing MAIL_USERNAME or MAIL_PASSWORD in .env")
         return False
 
     msg = MIMEMultipart()
-    msg['From'] = mail_user
+    msg['From'] = f"TrimTime <{mail_user}>"
     msg['To'] = to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(html_content, 'html'))
 
+    clean_pass = str(mail_pass).strip().strip('"').strip("'").replace(" ", "")
+
     try:
         port = int(Config.MAIL_PORT)
+        server = None
+
         if port == 465 or Config.MAIL_USE_SSL:
-            server = smtplib.SMTP_SSL(Config.MAIL_SERVER, port, timeout=10)
+            server = smtplib.SMTP_SSL(Config.MAIL_SERVER, port, timeout=12)
         else:
-            server = smtplib.SMTP(Config.MAIL_SERVER, port, timeout=10)
+            server = smtplib.SMTP(Config.MAIL_SERVER, port, timeout=12)
             server.ehlo()
             if Config.MAIL_USE_TLS or port == 587:
                 server.starttls()
                 server.ehlo()
-                
-        server.login(mail_user, mail_pass)
+
+        server.login(mail_user, clean_pass)
         server.sendmail(mail_user, to_email, msg.as_string())
         server.quit()
-        logger.info(f"Email sent successfully to {to_email}")
+        logger.info(f"Email successfully delivered from {mail_user} to {to_email}")
+        print(f"[SUCCESS] EMAIL SENT SUCCESSFULLY via SMTP to {to_email}")
         return True
+
     except Exception as e:
-        logger.error(f"Failed to send email via SMTP to {to_email}: {e}")
-        log_dev_email(to_email, subject, html_content, otp)
+        err_str = str(e)
+        logger.error(f"Failed to send email via SMTP to {to_email}: {err_str}")
+        print(f"[FAILED] SMTP TRANSMISSION ERROR: {err_str}")
+        log_dev_email(to_email, subject, html_content, otp, err_str)
         return False
 
 def send_verification_otp(email, name, otp):
