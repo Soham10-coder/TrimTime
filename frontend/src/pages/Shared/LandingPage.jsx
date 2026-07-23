@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Search, MapPin, Star, Scissors, Clock, Calendar, CheckCircle2, ChevronDown, Award, ExternalLink, Map as MapIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,6 +19,7 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 export default function LandingPage() {
+  const { user } = useContext(AuthContext);
   const [barbers, setBarbers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchCity, setSearchCity] = useState('');
@@ -167,7 +169,7 @@ export default function LandingPage() {
       </section>
 
       {/* 3. INTERACTIVE SALONS MAP SECTION */}
-      {barbers.length > 0 && (
+      {user && barbers.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 pb-8">
           <div className="bg-white dark:bg-brand-900 rounded-3xl border border-brand-200 dark:border-brand-800 p-6 shadow-sm space-y-4">
             <div className="flex justify-between items-center">
