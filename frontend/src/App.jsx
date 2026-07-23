@@ -18,9 +18,11 @@ import CustomerDashboard from './pages/Customer/CustomerDashboard';
 // Barber Pages
 import BarberSignup from './pages/Barber/BarberSignup';
 import BarberDashboard from './pages/Barber/BarberDashboard';
+import BarberLogin from './pages/Barber/BarberLogin';
 
 // Admin Pages
 import AdminDashboard from './pages/Admin/AdminDashboard';
+import AdminLogin from './pages/Admin/AdminLogin';
 
 // Secure Route Guard
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -59,6 +61,8 @@ export default function App() {
             <Route path="forgot-password" element={<ForgotPassword />} />
             <Route path="reset-password" element={<ResetPassword />} />
             <Route path="barber/signup" element={<BarberSignup />} />
+            <Route path="barber/login" element={<BarberLogin />} />
+            <Route path="admin/login" element={<AdminLogin />} />
             
             {/* Booking Flow (Public browse/select, locks inside checkout) */}
             <Route path="book/:barberId" element={<BookAppointment />} />

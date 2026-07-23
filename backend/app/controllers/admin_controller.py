@@ -292,3 +292,46 @@ def get_all_barbers():
     except Exception as e:
         logger.error(f"Error fetching barbers: {e}")
         return jsonify({'message': 'Internal Server Error'}), 500
+
+def remove_barber(barber_id):
+    try:
+        if not ObjectId.is_valid(barber_id):
+            return jsonify({'message': 'Invalid barber ID'}), 400
+
+        result = barbers_col.delete_one({'_id': ObjectId(barber_id)})
+        if result.deleted_count == 0:
+            return jsonify({'message': 'Barber profile not found'}), 404
+
+        # Cleanup hairstyles and bookings
+        from app.db import hairstyles_col, bookings_col
+        hairstyles_col.delete_many({'barber_id': ObjectId(barber_id)})
+        bookings_col.delete_many({'barber_id': ObjectId(barber_id)})
+
+        return jsonify({'message': 'Barber salon removed successfully'}), 200
+    except Exception as e:
+        logger.error(f"Error removing barber: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500
+
+def remove_user(user_id):
+    try:
+        if not ObjectId.is_valid(user_id):
+            return jsonify({'message': 'Invalid user ID'}), 400
+
+        # Prevent deleting admin accounts
+        user_to_delete = users_col.find_one({'_id': ObjectId(user_id)})
+        if not user_to_delete:
+            return jsonify({'message': 'User account not found'}), 404
+            
+        if user_to_delete.get('role') == 'admin':
+            return jsonify({'message': 'Security Warning: Cannot delete administrator accounts.'}), 403
+
+        users_col.delete_one({'_id': ObjectId(user_id)})
+
+        # Cleanup bookings
+        from app.db import bookings_col
+        bookings_col.delete_many({'customer_id': ObjectId(user_id)})
+
+        return jsonify({'message': 'Customer account removed successfully'}), 200
+    except Exception as e:
+        logger.error(f"Error removing user: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500

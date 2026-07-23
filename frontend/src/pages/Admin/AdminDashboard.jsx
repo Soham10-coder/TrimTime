@@ -74,6 +74,40 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleRemoveBarber = async (id) => {
+    if (window.confirm("Are you sure you want to permanently remove this barber salon and all its associated bookings/services?")) {
+      try {
+        const res = await api.delete(`/admin/remove-barber/${id}`);
+        if (res.ok) {
+          alert("Barber salon removed successfully!");
+          fetchAdminData();
+        } else {
+          const data = await res.json();
+          alert(data.message || "Failed to remove barber salon.");
+        }
+      } catch (e) {
+        alert("Remove request failed.");
+      }
+    }
+  };
+
+  const handleRemoveUser = async (id) => {
+    if (window.confirm("Are you sure you want to permanently remove this customer account and all their booking history?")) {
+      try {
+        const res = await api.delete(`/admin/remove-user/${id}`);
+        if (res.ok) {
+          alert("Customer account removed successfully!");
+          fetchAdminData();
+        } else {
+          const data = await res.json();
+          alert(data.message || "Failed to remove customer account.");
+        }
+      } catch (e) {
+        alert("Remove request failed.");
+      }
+    }
+  };
+
   const handleCreateCoupon = async (e) => {
     e.preventDefault();
     setCouponSuccess('');
@@ -454,9 +488,17 @@ export default function AdminDashboard() {
                       <strong className="text-brand-800 dark:text-brand-200">{u.name}</strong>
                       <p className="text-xs text-brand-400">{u.email} &bull; {u.phone}</p>
                     </div>
-                    <span className="text-xs font-semibold bg-brand-100 text-brand-600 px-2 py-0.5 rounded">
-                      {u.loyaltyPoints} pts
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold bg-brand-100 dark:bg-brand-850 text-brand-600 dark:text-brand-300 px-2 py-0.5 rounded">
+                        {u.loyaltyPoints} pts
+                      </span>
+                      <button
+                        onClick={() => handleRemoveUser(u.id)}
+                        className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/30 dark:hover:bg-red-950/50 dark:text-red-400 rounded-lg text-xs font-bold transition-all border border-red-200/50 dark:border-red-800/30"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -472,16 +514,24 @@ export default function AdminDashboard() {
                       <strong className="text-brand-800 dark:text-brand-200">{b.shopName}</strong>
                       <p className="text-xs text-brand-400">{b.ownerName} &bull; {b.city}</p>
                     </div>
-                    <button
-                      onClick={() => handleToggleBarber(b.id)}
-                      className={`px-3 py-1 rounded text-xs font-semibold transition-all ${
-                        b.status === 'active' 
-                          ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100' 
-                          : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
-                      }`}
-                    >
-                      {b.status === 'active' ? "Deactivate" : "Activate"}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleToggleBarber(b.id)}
+                        className={`px-3 py-1 rounded text-xs font-semibold transition-all ${
+                          b.status === 'active' 
+                            ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100' 
+                            : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
+                        }`}
+                      >
+                        {b.status === 'active' ? "Deactivate" : "Activate"}
+                      </button>
+                      <button
+                        onClick={() => handleRemoveBarber(b.id)}
+                        className="px-3 py-1 rounded text-xs font-semibold bg-red-600 hover:bg-red-700 text-white transition-all animate-pulse hover:animate-none"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

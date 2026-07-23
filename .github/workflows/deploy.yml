@@ -45,18 +45,36 @@ jobs:
 
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.1.0
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
+          MAIL_SERVER: ${{ secrets.MAIL_SERVER }}
+          MAIL_PORT: ${{ secrets.MAIL_PORT }}
+          MAIL_USE_TLS: ${{ secrets.MAIL_USE_TLS }}
+          MAIL_USE_SSL: ${{ secrets.MAIL_USE_SSL }}
+          MONGO_URI: ${{ secrets.MONGO_URI }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: GMAIL_USER,GMAIL_PASS,MAIL_SERVER,MAIL_PORT,MAIL_USE_TLS,MAIL_USE_SSL,MONGO_URI,REGISTRY,IMAGE_TAG
           command_timeout: 3m
           script: |
             mkdir -p /home/${{ secrets.EC2_USER }}/trimtime
             cd /home/${{ secrets.EC2_USER }}/trimtime
-            touch .env
+            
+            # Auto-generate production .env file using Secrets passed from GitHub Actions
+            echo "GMAIL_USER=\"$GMAIL_USER\"" > .env
+            echo "GMAIL_PASS=\"$GMAIL_PASS\"" >> .env
+            echo "MAIL_SERVER=\"$MAIL_SERVER\"" >> .env
+            echo "MAIL_PORT=\"$MAIL_PORT\"" >> .env
+            echo "MAIL_USE_TLS=\"$MAIL_USE_TLS\"" >> .env
+            echo "MAIL_USE_SSL=\"$MAIL_USE_SSL\"" >> .env
+            echo "MONGO_URI=\"$MONGO_URI\"" >> .env
+            
             export PATH=$PATH:/usr/local/bin:/usr/bin
-            export REGISTRY=${{ env.REGISTRY }}
-            export IMAGE_TAG=${{ env.IMAGE_TAG }}
-            docker pull ${{ env.REGISTRY }}/trimtime-backend:${{ env.IMAGE_TAG }}
-            docker pull ${{ env.REGISTRY }}/trimtime-frontend:${{ env.IMAGE_TAG }}
+            export REGISTRY=$REGISTRY
+            export IMAGE_TAG=$IMAGE_TAG
+            docker pull $REGISTRY/trimtime-backend:$IMAGE_TAG
+            docker pull $REGISTRY/trimtime-frontend:$IMAGE_TAG
             /usr/local/bin/docker-compose up -d --remove-orphans

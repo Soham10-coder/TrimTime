@@ -8,6 +8,14 @@ from bson import ObjectId
 # Add backend folder to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Configure app to test environment BEFORE importing app modules
+os.environ['SECRET_KEY'] = 'test-secret-123'
+os.environ['JWT_SECRET_KEY'] = 'test-access-123'
+os.environ['JWT_REFRESH_SECRET_KEY'] = 'test-refresh-123'
+
+from config import Config
+Config.DB_NAME = 'trimtime_test'
+
 from app import create_app
 from app.db import users_col, barbers_col, hairstyles_col, bookings_col, otps_col, refresh_tokens_col, payments_col
 
@@ -15,15 +23,6 @@ class TrimTimeBackendTests(unittest.TestCase):
     
     @classmethod
     def setUpClass(cls):
-        # Configure app to test environment
-        os.environ['SECRET_KEY'] = 'test-secret-123'
-        os.environ['JWT_SECRET_KEY'] = 'test-access-123'
-        os.environ['JWT_REFRESH_SECRET_KEY'] = 'test-refresh-123'
-        
-        # Override DB Name to test database
-        from config import Config
-        Config.DB_NAME = 'trimtime_test'
-        
         cls.app = create_app()
         cls.client = cls.app.test_client()
 
@@ -43,11 +42,11 @@ class TrimTimeBackendTests(unittest.TestCase):
             "name": "Test Customer",
             "email": "customer@test.com",
             "phone": "9999999999",
-            "password": "customerpass123"
+            "password": "CustomerPass123!"
         }
         res = self.client.post('/api/auth/register', json=reg_payload)
         self.assertEqual(res.status_code, 201)
-        self.assertIn("verify email with OTP", res.json['message'])
+        self.assertIn("verify your email with the 6-digit OTP", res.json['message'])
 
         # Verify OTP record created
         otp_record = otps_col.find_one({"email": "customer@test.com"})
@@ -74,7 +73,7 @@ class TrimTimeBackendTests(unittest.TestCase):
             "name": "Verified User",
             "email": "user@test.com",
             "phone": "9999999999",
-            "password": hash_password("userpass123"),
+            "password": hash_password("UserPass123!"),
             "role": "customer",
             "verified": True
         })
@@ -82,7 +81,7 @@ class TrimTimeBackendTests(unittest.TestCase):
         # Try logging in
         login_payload = {
             "email": "user@test.com",
-            "password": "userpass123"
+            "password": "UserPass123!"
         }
         res = self.client.post('/api/auth/login', json=login_payload)
         self.assertEqual(res.status_code, 200)
@@ -98,7 +97,7 @@ class TrimTimeBackendTests(unittest.TestCase):
         from io import BytesIO
         data = {
             'email': 'barber@test.com',
-            'password': 'barberpass123',
+            'password': 'BarberPass123!',
             'ownerName': 'Test Owner',
             'shopName': 'Classic Shaves',
             'phone': '8888888888',
@@ -125,13 +124,13 @@ class TrimTimeBackendTests(unittest.TestCase):
         admin_id = users_col.insert_one({
             "name": "Super Admin",
             "email": "admin@test.com",
-            "password": hash_password("adminpass123"),
+            "password": hash_password("AdminPass123!"),
             "role": "admin",
             "verified": True
         }).inserted_id
 
         # Log in Admin
-        admin_login = self.client.post('/api/auth/login', json={"email": "admin@test.com", "password": "adminpass123"})
+        admin_login = self.client.post('/api/auth/login', json={"email": "admin@test.com", "password": "AdminPass123!"})
         admin_token = admin_login.json['accessToken']
 
         # 3. Approve Barber using Admin credentials
@@ -142,6 +141,32 @@ class TrimTimeBackendTests(unittest.TestCase):
         # Validate verified in database
         barber_updated = barbers_col.find_one({"_id": barber['_id']})
         self.assertTrue(barber_updated['verified'])
+
+        # 4. Remove Barber using Admin credentials
+        remove_res = self.client.delete(f"/api/admin/remove-barber/{str(barber['_id'])}", headers=headers)
+        self.assertEqual(remove_res.status_code, 200)
+
+        # Validate removed from database
+        self.assertIsNone(barbers_col.find_one({"_id": barber['_id']}))
+
+        # 5. Create a test customer to delete
+        test_user_id = users_col.insert_one({
+            "name": "Delete Me",
+            "email": "deleteme@test.com",
+            "phone": "7777777777",
+            "role": "customer"
+        }).inserted_id
+
+        # Delete customer user via admin
+        remove_user_res = self.client.delete(f"/api/admin/remove-user/{str(test_user_id)}", headers=headers)
+        self.assertEqual(remove_user_res.status_code, 200)
+
+        # Validate customer removed from database
+        self.assertIsNone(users_col.find_one({"_id": test_user_id}))
+
+        # 6. Try to delete admin itself (should fail with 403)
+        remove_admin_res = self.client.delete(f"/api/admin/remove-user/{str(admin_id)}", headers=headers)
+        self.assertEqual(remove_admin_res.status_code, 403)
 
     def test_dynamic_slots_allocation(self):
         # 1. Setup verified barber

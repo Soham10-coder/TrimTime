@@ -111,7 +111,7 @@ export default function BarberSignup() {
       // Scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
       setTimeout(() => {
-        navigate('/login');
+        navigate('/barber/login');
       }, 5000);
     } else {
       setError(res.message || 'Registration failed. Try again.');
@@ -451,7 +451,7 @@ export default function BarberSignup() {
 
         <div className="mt-8 text-center text-sm text-brand-600 dark:text-brand-400">
           Already registered?{' '}
-          <Link to="/login" className="font-semibold text-accent-600 dark:text-accent-400 hover:underline">
+          <Link to="/barber/login" className="font-semibold text-accent-600 dark:text-accent-400 hover:underline">
             Log In here
           </Link>
         </div>

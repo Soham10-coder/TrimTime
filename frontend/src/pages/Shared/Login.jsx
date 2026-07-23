@@ -5,7 +5,7 @@ import { Mail, Lock, Scissors, Eye, EyeOff, AlertCircle, KeyRound } from 'lucide
 import { motion } from 'framer-motion';
 
 export default function Login() {
-  const { login } = useContext(AuthContext);
+  const { login, logout } = useContext(AuthContext);
   const [email, setEmail] = useState(''); // Can be email or mobile phone
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -33,13 +33,12 @@ export default function Login() {
 
     if (res.success) {
       const role = res.user.role;
-      if (role === 'admin') {
-        navigate('/admin');
-      } else if (role === 'barber') {
-        navigate('/barber');
-      } else {
-        navigate(from, { replace: true });
+      if (role !== 'customer') {
+        setError(`This login portal is only for Customers. Please use the ${role === 'admin' ? 'Admin' : 'Barber'} Login page.`);
+        await logout();
+        return;
       }
+      navigate(from, { replace: true });
     } else {
       if (res.code === 'UNVERIFIED') {
         navigate('/verify-otp', { state: { email } });
@@ -61,8 +60,8 @@ export default function Login() {
           <div className="inline-flex p-3 bg-gradient-to-tr from-accent-600 to-accent-400 rounded-2xl text-white mb-4">
             <Scissors className="h-6 w-6" />
           </div>
-          <h2 className="font-display text-3xl font-bold text-brand-900 dark:text-brand-50">Welcome Back</h2>
-          <p className="text-sm text-brand-500 dark:text-brand-400 mt-2">Log in with Email or Mobile Number</p>
+          <h2 className="font-display text-3xl font-bold text-brand-900 dark:text-brand-50">Customer Login</h2>
+          <p className="text-sm text-brand-500 dark:text-brand-400 mt-2">Access your appointments & rewards</p>
         </div>
 
         {error && (
@@ -144,11 +143,19 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="mt-4 text-center text-xs text-brand-500 dark:text-brand-500">
-          Want to register a barber shop?{' '}
-          <Link to="/barber/signup" className="font-semibold text-accent-600 dark:text-accent-400 hover:underline">
-            Register Shop
-          </Link>
+        <div className="mt-6 pt-4 border-t border-brand-100 dark:border-brand-800 text-center text-xs text-brand-500 space-y-2">
+          <div>
+            Are you a Barber Partner?{' '}
+            <Link to="/barber/login" className="font-bold text-accent-600 dark:text-accent-400 hover:underline">
+              Barber Portal Login
+            </Link>
+          </div>
+          <div>
+            System Administrator?{' '}
+            <Link to="/admin/login" className="font-bold text-accent-600 dark:text-accent-400 hover:underline">
+              Admin Portal Login
+            </Link>
+          </div>
         </div>
       </motion.div>
     </div>

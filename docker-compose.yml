@@ -18,6 +18,12 @@ services:
       - SECRET_KEY=${SECRET_KEY:-trimtime-secret-key-production-123}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-trimtime-jwt-secret-key-123}
       - JWT_REFRESH_SECRET_KEY=${JWT_REFRESH_SECRET_KEY:-trimtime-jwt-refresh-secret-901234}
+      - GMAIL_USER=${GMAIL_USER}
+      - GMAIL_PASS=${GMAIL_PASS}
+      - MAIL_SERVER=${MAIL_SERVER}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USE_TLS=${MAIL_USE_TLS}
+      - MAIL_USE_SSL=${MAIL_USE_SSL}
     ports:
       - "5000:5000"
     volumes:

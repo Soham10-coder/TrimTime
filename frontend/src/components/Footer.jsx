@@ -58,7 +58,7 @@ export default function Footer() {
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">For Partners</h3>
             <ul className="space-y-2 text-sm">
               <li><Link to="/barber/signup" className="hover:text-accent-400 transition-colors">Register as Barber Shop</Link></li>
-              <li><Link to="/login" className="hover:text-accent-400 transition-colors">Barber Dashboard Access</Link></li>
+              <li><Link to="/barber/login" className="hover:text-accent-400 transition-colors">Barber Dashboard Access</Link></li>
               <li><Link to="/" className="hover:text-accent-400 transition-colors">Merchant Guidelines</Link></li>
               <li><Link to="/" className="hover:text-accent-400 transition-colors">Partner FAQ</Link></li>
             </ul>
