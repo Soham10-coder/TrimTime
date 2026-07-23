@@ -53,11 +53,15 @@ jobs:
           MAIL_USE_TLS: ${{ secrets.MAIL_USE_TLS }}
           MAIL_USE_SSL: ${{ secrets.MAIL_USE_SSL }}
           MONGO_URI: ${{ secrets.MONGO_URI }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: GMAIL_USER,GMAIL_PASS,MAIL_SERVER,MAIL_PORT,MAIL_USE_TLS,MAIL_USE_SSL,MONGO_URI,REGISTRY,IMAGE_TAG
+          envs: GMAIL_USER,GMAIL_PASS,MAIL_SERVER,MAIL_PORT,MAIL_USE_TLS,MAIL_USE_SSL,MONGO_URI,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_S3_BUCKET_NAME,AWS_REGION,REGISTRY,IMAGE_TAG
           command_timeout: 3m
           script: |
             mkdir -p /home/${{ secrets.EC2_USER }}/trimtime
@@ -71,6 +75,10 @@ jobs:
             echo "MAIL_USE_TLS=\"$MAIL_USE_TLS\"" >> .env
             echo "MAIL_USE_SSL=\"$MAIL_USE_SSL\"" >> .env
             echo "MONGO_URI=\"$MONGO_URI\"" >> .env
+            echo "AWS_ACCESS_KEY_ID=\"$AWS_ACCESS_KEY_ID\"" >> .env
+            echo "AWS_SECRET_ACCESS_KEY=\"$AWS_SECRET_ACCESS_KEY\"" >> .env
+            echo "AWS_S3_BUCKET_NAME=\"$AWS_S3_BUCKET_NAME\"" >> .env
+            echo "AWS_REGION=\"$AWS_REGION\"" >> .env
             
             export PATH=$PATH:/usr/local/bin:/usr/bin
             export REGISTRY=$REGISTRY
