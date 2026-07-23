@@ -2,7 +2,7 @@ from flask import Blueprint
 from app.controllers.admin_controller import (
     get_pending_barbers, approve_barber, toggle_barber_status,
     get_admin_analytics, create_coupon, get_coupons, toggle_coupon_status,
-    get_all_users, get_all_barbers, remove_barber, remove_user
+    get_all_users, get_all_barbers, remove_barber, remove_user, send_reminders
 )
 from app.middlewares.auth import token_required, require_role
 
@@ -23,6 +23,9 @@ admin_bp.route('/remove-barber/<barber_id>', methods=['DELETE'])(
 )
 admin_bp.route('/remove-user/<user_id>', methods=['DELETE'])(
     token_required(require_role('admin')(remove_user))
+)
+admin_bp.route('/send-reminders', methods=['POST'])(
+    token_required(require_role('admin')(send_reminders))
 )
 admin_bp.route('/analytics', methods=['GET'])(
     token_required(require_role('admin')(get_admin_analytics))

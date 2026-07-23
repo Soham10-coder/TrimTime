@@ -220,5 +220,50 @@ class TrimTimeBackendTests(unittest.TestCase):
         self.assertNotIn('10:30', available_slots)
         self.assertIn('11:00', available_slots)
 
+    def test_send_reminders(self):
+        # 1. Setup admin and login
+        from app.controllers.auth_controller import hash_password
+        admin_id = users_col.insert_one({
+            "name": "Admin Tester",
+            "email": "admintestrem@test.com",
+            "phone": "8888888888",
+            "password": hash_password("AdminPass123!"),
+            "role": "admin",
+            "verified": True
+        }).inserted_id
+
+        login_res = self.client.post('/api/auth/login', json={
+            "email": "admintestrem@test.com",
+            "password": "AdminPass123!"
+        })
+        self.assertEqual(login_res.status_code, 200)
+        admin_token = login_res.json['accessToken']
+        headers = {"Authorization": f"Bearer {admin_token}"}
+
+        # 2. Setup a customer and a booking that was 25 days ago
+        import datetime
+        today = datetime.date.today()
+        booking_date_str = (today - datetime.timedelta(days=25)).strftime("%Y-%m-%d")
+
+        customer_id = users_col.insert_one({
+            "name": "Male Customer",
+            "email": "malecust@test.com",
+            "phone": "8777777777",
+            "gender": "Male",
+            "role": "customer",
+            "verified": True
+        }).inserted_id
+
+        bookings_col.insert_one({
+            'customer_id': customer_id,
+            'date': booking_date_str,
+            'status': 'confirmed'
+        })
+
+        # 3. Post to send-reminders
+        remind_res = self.client.post('/api/admin/send-reminders', headers=headers)
+        self.assertEqual(remind_res.status_code, 200)
+        self.assertEqual(remind_res.json['reminders_sent'], 1)
+
 if __name__ == '__main__':
     unittest.main()

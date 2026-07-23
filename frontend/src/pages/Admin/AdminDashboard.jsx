@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../utils/api';
-import { ShieldCheck, Users, Store, DollarSign, ClipboardList, Check, X, Plus, AlertCircle, TrendingUp, Percent, FileText } from 'lucide-react';
+import { ShieldCheck, Users, Store, DollarSign, ClipboardList, Check, X, Plus, AlertCircle, TrendingUp, Percent, FileText, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
@@ -105,6 +105,25 @@ export default function AdminDashboard() {
       } catch (e) {
         alert("Remove request failed.");
       }
+    }
+  };
+
+  const [remindLoading, setRemindLoading] = useState(false);
+
+  const handleSendReminders = async () => {
+    setRemindLoading(true);
+    try {
+      const res = await api.post('/admin/send-reminders', {});
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || "Haircut reminders processed successfully!");
+      } else {
+        alert(data.message || "Failed to process reminders.");
+      }
+    } catch (e) {
+      alert("Request to send reminders failed.");
+    } finally {
+      setRemindLoading(false);
     }
   };
 
@@ -535,6 +554,22 @@ export default function AdminDashboard() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Engagement Tools Section */}
+            <div className="bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 rounded-3xl p-6 shadow-sm col-span-1 md:col-span-2">
+              <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 mb-2">Automated Client Reminders</h3>
+              <p className="text-xs text-brand-500 dark:text-brand-400 mb-6">
+                Scan all customer appointment histories and send email haircut alerts (after 25 days for men, 40 days for women).
+              </p>
+              <button
+                onClick={handleSendReminders}
+                disabled={remindLoading}
+                className="px-6 py-3 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/10 hover:shadow-amber-500/20 transition-all flex items-center gap-2"
+              >
+                <Bell className={`w-4 h-4 ${remindLoading ? 'animate-bounce' : ''}`} />
+                {remindLoading ? "Scanning Database..." : "Scan & Send Haircut Reminders"}
+              </button>
             </div>
 
           </div>

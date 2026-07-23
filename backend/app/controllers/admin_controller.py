@@ -335,3 +335,65 @@ def remove_user(user_id):
     except Exception as e:
         logger.error(f"Error removing user: {e}")
         return jsonify({'message': 'Internal Server Error'}), 500
+
+def send_reminders():
+    try:
+        from app.db import users_col, bookings_col, barbers_col
+        from app.utils.email_utils import send_haircut_reminder
+        import datetime
+
+        customers = list(users_col.find({'role': 'customer'}))
+        reminders_sent = 0
+        today = datetime.date.today()
+
+        for customer in customers:
+            # Find latest booking for this customer (confirmed or completed)
+            latest_booking = bookings_col.find_one(
+                {'customer_id': customer['_id']},
+                sort=[('date', -1)]
+            )
+
+            if not latest_booking:
+                continue
+
+            booking_date_str = latest_booking.get('date')
+            if not booking_date_str:
+                continue
+
+            try:
+                booking_date = datetime.datetime.strptime(booking_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                continue
+
+            days_since = (today - booking_date).days
+            gender = customer.get('gender', 'Male') or 'Male'
+
+            # Interval rule: 25 days for Male, 40 days for Female (Girls)
+            target_interval = 25 if gender.lower() == 'male' else 40
+
+            # If user wants a reminder after every 25 / 40 days, we check if days_since >= target_interval and is a multiple or simply exactly target_interval.
+            # Checking exactly target_interval is standard to avoid sending it every day after.
+            if days_since == target_interval:
+                barber = barbers_col.find_one({'_id': latest_booking.get('barber_id')})
+                shop_name = barber.get('shop_name', 'TrimTime') if barber else 'TrimTime'
+
+                email = customer.get('email')
+                name = customer.get('name', 'Valued Customer')
+
+                success = send_haircut_reminder(
+                    to_email=email,
+                    name=name,
+                    gender=gender,
+                    days_since_last_cut=days_since,
+                    shop_name=shop_name
+                )
+                if success:
+                    reminders_sent += 1
+
+        return jsonify({
+            'message': f'Engagement scan complete. Sent {reminders_sent} haircut reminders.',
+            'reminders_sent': reminders_sent
+        }), 200
+    except Exception as e:
+        logger.error(f"Error sending reminders: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500

@@ -181,3 +181,33 @@ def send_booking_cancellation(email, customer_name, booking_id, refund_processed
     </div>
     """
     return send_html_email(email, subject, html)
+
+def send_haircut_reminder(to_email, name, gender, days_since_last_cut, shop_name):
+    subject = "Time for a Fresh Trim! ✂️ - TrimTime"
+    gender_label = "gentlemen" if gender.lower() == 'male' else "ladies"
+    interval_text = "25 days" if gender.lower() == 'male' else "40 days"
+    
+    html = f"""
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <h1 style="color: #1e293b; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Trim<span style="color: #d97706;">Time</span></h1>
+            <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Grooming on your schedule</p>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #f1f5f9; margin-bottom: 24px;"/>
+        <h2 style="color: #0f172a; margin-top: 0; font-size: 20px; text-align: center;">Keep Your Hair Looking Sharp!</h2>
+        <p style="color: #334155; font-size: 16px; line-height: 24px;">Hi {name},</p>
+        <p style="color: #334155; font-size: 16px; line-height: 24px;">It has been <b>{days_since_last_cut} days</b> since your last styling session at <b>{shop_name}</b>.</p>
+        <p style="color: #334155; font-size: 16px; line-height: 24px;">For {gender_label}, we recommend getting a professional trim every <b>{interval_text}</b> to maintain healthy hair growth and keep your cut looking clean.</p>
+        
+        <div style="text-align: center; margin: 32px 0;">
+            <a href="http://localhost:5173/" style="background-color: #d97706; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(217, 119, 6, 0.2);">Book Your Next Trim</a>
+        </div>
+        
+        <p style="color: #64748b; font-size: 14px; line-height: 20px; text-align: center;">Choose your favorite stylist and reserve your slot before it gets fully booked!</p>
+        <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 24px 0;"/>
+        <div style="text-align: center;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">&copy; 2026 TrimTime. All rights reserved.</p>
+        </div>
+    </div>
+    """
+    return send_html_email(to_email, subject, html)
