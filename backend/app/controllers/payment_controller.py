@@ -45,7 +45,7 @@ def verify_and_confirm_payment():
                 'razorpay_order_id': razorpay_order_id,
                 'razorpay_payment_id': razorpay_payment_id,
                 'razorpay_signature': razorpay_signature,
-                'amount': booking.get('final_price'),
+                'amount': booking.get('total_amount', booking.get('price')),
                 'status': 'failed',
                 'method': payment_method,
                 'created_at': datetime.datetime.utcnow()
@@ -59,7 +59,7 @@ def verify_and_confirm_payment():
             'razorpay_order_id': razorpay_order_id,
             'razorpay_payment_id': razorpay_payment_id,
             'razorpay_signature': razorpay_signature,
-            'amount': booking.get('final_price'),
+            'amount': booking.get('total_amount', booking.get('price')),
             'status': 'captured',
             'method': payment_method,
             'created_at': datetime.datetime.utcnow()
@@ -78,8 +78,8 @@ def verify_and_confirm_payment():
             }
         )
 
-        # 3. Add loyalty points (10% of final price as points)
-        points_earned = int(booking.get('final_price', 0) * 0.1)
+        # 3. Add loyalty points (10% of service final price as points)
+        points_earned = int(booking.get('service_final_price', booking.get('price', 0)) * 0.1)
         users_col.update_one(
             {'_id': booking['customer_id']},
             {'$inc': {'loyalty_points': points_earned}}
@@ -98,7 +98,7 @@ def verify_and_confirm_payment():
                 'date': booking.get('date'),
                 'time': booking.get('time_slot'),
                 'duration': hairstyle.get('duration', 30),
-                'price': booking.get('final_price')
+                'price': booking.get('service_final_price', booking.get('price'))
             }
             send_booking_confirmation(customer.get('email'), customer.get('name'), booking_details)
 
@@ -146,7 +146,7 @@ def razorpay_webhook():
                     'razorpay_order_id': order_id,
                     'razorpay_payment_id': payment_id,
                     'razorpay_signature': 'webhook_verified',
-                    'amount': booking.get('final_price'),
+                    'amount': booking.get('total_amount', booking.get('price')),
                     'status': 'captured',
                     'method': method,
                     'created_at': datetime.datetime.utcnow()
@@ -164,8 +164,8 @@ def razorpay_webhook():
                     }
                 )
                 
-                # Award loyalty points
-                points_earned = int(booking.get('final_price', 0) * 0.1)
+                # Award loyalty points (10% of service final price as points)
+                points_earned = int(booking.get('service_final_price', booking.get('price', 0)) * 0.1)
                 users_col.update_one({'_id': booking['customer_id']}, {'$inc': {'loyalty_points': points_earned}})
                 
                 # Send email
@@ -181,7 +181,7 @@ def razorpay_webhook():
                         'date': booking.get('date'),
                         'time': booking.get('time_slot'),
                         'duration': hairstyle.get('duration', 30),
-                        'price': booking.get('final_price')
+                        'price': booking.get('service_final_price', booking.get('price'))
                     }
                     send_booking_confirmation(customer.get('email'), customer.get('name'), booking_details)
                     

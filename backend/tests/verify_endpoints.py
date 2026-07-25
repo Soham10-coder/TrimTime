@@ -265,5 +265,89 @@ class TrimTimeBackendTests(unittest.TestCase):
         self.assertEqual(remind_res.status_code, 200)
         self.assertEqual(remind_res.json['reminders_sent'], 1)
 
+    def test_booking_creation_loyalty_points_and_refund_flow(self):
+        # 1. Setup customer and login
+        from app.controllers.auth_controller import hash_password
+        customer_id = users_col.insert_one({
+            "name": "Booking Customer",
+            "email": "bookingcust@test.com",
+            "phone": "9999999999",
+            "password": hash_password("CustPass123!"),
+            "role": "customer",
+            "verified": True,
+            "loyalty_points": 0
+        }).inserted_id
+
+        login_res = self.client.post('/api/auth/login', json={
+            "email": "bookingcust@test.com",
+            "password": "CustPass123!"
+        })
+        self.assertEqual(login_res.status_code, 200)
+        cust_token = login_res.json['accessToken']
+        headers = {"Authorization": f"Bearer {cust_token}"}
+
+        # 2. Setup verified barber
+        barber_id = barbers_col.insert_one({
+            'owner_name': 'Ramesh',
+            'shop_name': 'Ramesh Salon',
+            'email': 'ramesh@salon.com',
+            'opening_time': '09:00',
+            'closing_time': '20:00',
+            'verified': True,
+            'status': 'active',
+            'platform_fee_percent': 10.0
+        }).inserted_id
+
+        # 3. Setup hairstyle service
+        hairstyle_id = hairstyles_col.insert_one({
+            'barber_id': barber_id,
+            'name': 'Gold Facial',
+            'price': 500,
+            'duration': 30
+        }).inserted_id
+
+        # 4. Book the service (date is tomorrow to guarantee >= 24h cancellation window)
+        tomorrow_str = (datetime.date.today() + datetime.timedelta(days=2)).strftime("%Y-%m-%d")
+        
+        booking_res = self.client.post('/api/booking/create', json={
+            "barberId": str(barber_id),
+            "hairstyleId": str(hairstyle_id),
+            "staffId": "1",
+            "staffName": "Master Ramesh",
+            "date": tomorrow_str,
+            "timeSlot": "11:00",
+            "paymentMethod": "UPI",
+            "transactionId": "TXN_MOCK_12345"
+        }, headers=headers)
+        self.assertEqual(booking_res.status_code, 201)
+        booking_data = booking_res.json['booking']
+        mongo_booking_id = booking_data['id']
+
+        # 5. Verify loyalty points (10% of 500 = 50 points)
+        updated_cust = users_col.find_one({'_id': customer_id})
+        self.assertEqual(updated_cust.get('loyalty_points'), 50)
+
+        # 6. Verify payment record was logged in payments_col
+        payment_doc = payments_col.find_one({'booking_id': ObjectId(mongo_booking_id)})
+        self.assertIsNotNone(payment_doc)
+        self.assertEqual(payment_doc.get('status'), 'captured')
+        self.assertEqual(payment_doc.get('amount'), 550.0) # 500 + 10% fee = 550
+
+        # 7. Cancel booking and check for refund trigger (since tomorrow > 24 hours away)
+        cancel_res = self.client.post('/api/booking/cancel', json={
+            "bookingId": mongo_booking_id
+        }, headers=headers)
+        self.assertEqual(cancel_res.status_code, 200)
+        self.assertTrue(cancel_res.json['refundProcessed'])
+        self.assertEqual(cancel_res.json['paymentStatus'], 'refunded')
+
+        # 8. Verify statuses in DB
+        updated_booking = bookings_col.find_one({'_id': ObjectId(mongo_booking_id)})
+        self.assertEqual(updated_booking.get('status'), 'cancelled')
+        self.assertEqual(updated_booking.get('payment_status'), 'refunded')
+
+        updated_payment = payments_col.find_one({'_id': payment_doc['_id']})
+        self.assertEqual(updated_payment.get('status'), 'refunded')
+
 if __name__ == '__main__':
     unittest.main()

@@ -249,6 +249,47 @@ def create_booking():
         
         result = bookings_col.insert_one(booking_doc)
 
+        # Create a payment log inside payments_col so that refunds/history work properly
+        payment_doc = {
+            'booking_id': result.inserted_id,
+            'razorpay_order_id': booking_doc.get('razorpay_order_id'),
+            'razorpay_payment_id': f"pay_mock_{str(uuid.uuid4().int)[:10]}",
+            'razorpay_signature': 'simulated_payment_on_booking_creation',
+            'amount': total_amount,
+            'status': 'captured',
+            'method': data.get('paymentMethod', 'online'),
+            'created_at': datetime.datetime.utcnow()
+        }
+        payment_insert = payments_col.insert_one(payment_doc)
+
+        # Link payment log to booking
+        bookings_col.update_one(
+            {'_id': result.inserted_id},
+            {'$set': {'payment_id': payment_insert.inserted_id}}
+        )
+
+        # Award loyalty points (10% of service final price as points)
+        points_earned = int(service_final_price * 0.1)
+        users_col.update_one(
+            {'_id': ObjectId(customer_id)},
+            {'$inc': {'loyalty_points': points_earned}}
+        )
+
+        # Send booking confirmation email
+        try:
+            booking_details = {
+                'booking_id': booking_short_id,
+                'shop_name': barber.get('shop_name', 'TrimTime'),
+                'hairstyle_name': hairstyle.get('name', 'Service'),
+                'date': date_str,
+                'time': time_slot,
+                'duration': hairstyle.get('duration', 30),
+                'price': service_final_price
+            }
+            send_booking_confirmation(customer_email, customer_name, booking_details)
+        except Exception as mail_err:
+            logger.error(f"Failed to send booking confirmation email: {mail_err}")
+
         return jsonify({
             'message': 'Booking confirmed successfully. Tell your 6-digit Check-In OTP to the salon upon arrival.',
             'booking': {
