@@ -199,6 +199,8 @@ def login():
             user = barbers_col.find_one({'email': email})
             if user:
                 is_barber = True
+                if user.get('verification_status') != 'APPROVED':
+                    return jsonify({'message': 'Your shop registration is pending administrator approval.'}), 403
             else:
                 return jsonify({'message': 'Invalid email or password'}), 401
 

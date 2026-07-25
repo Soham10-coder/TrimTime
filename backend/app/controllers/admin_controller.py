@@ -39,7 +39,7 @@ def approve_barber(barber_id):
 
         result = barbers_col.update_one(
             {'_id': ObjectId(barber_id)},
-            {'$set': {'verified': True, 'status': 'active'}}
+            {'$set': {'verified': True, 'status': 'active', 'verification_status': 'APPROVED'}}
         )
 
         if result.matched_count == 0:
