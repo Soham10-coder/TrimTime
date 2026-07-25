@@ -1,12 +1,17 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { Mail, Lock, Scissors, Eye, EyeOff, AlertCircle, KeyRound } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Mail, Lock, Scissors, Eye, EyeOff, AlertCircle, KeyRound, Store, ShieldCheck, Sparkles, Key } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-export default function Login() {
+export default function Login({ defaultRole = 'customer' }) {
   const { login, logout } = useContext(AuthContext);
-  const [email, setEmail] = useState(''); // Can be email or mobile phone
+  
+  // Tab/Role control state
+  const [activeRole, setActiveRole] = useState(defaultRole);
+  
+  // Inputs states
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -16,6 +21,14 @@ export default function Login() {
   const location = useLocation();
 
   const from = location.state?.from?.pathname || '/';
+
+  // Automatically reset inputs and errors when switching tabs
+  const handleRoleChange = (role) => {
+    setActiveRole(role);
+    setEmail('');
+    setPassword('');
+    setError('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,12 +46,30 @@ export default function Login() {
 
     if (res.success) {
       const role = res.user.role;
-      if (role !== 'customer') {
-        setError(`This login portal is only for Customers. Please use the ${role === 'admin' ? 'Admin' : 'Barber'} Login page.`);
-        await logout();
-        return;
+      
+      // Perform validation check to ensure user logged into the correct dashboard context
+      if (activeRole === 'customer') {
+        if (role !== 'customer') {
+          setError(`This tab is only for Customers. Please switch to the ${role === 'admin' ? 'System Admin' : 'Barber Partner'} tab.`);
+          await logout();
+          return;
+        }
+        navigate(from, { replace: true });
+      } else if (activeRole === 'barber') {
+        if (role !== 'barber') {
+          setError(`Access Denied: This tab is restricted to Barber Partners. Please switch to the ${role === 'admin' ? 'System Admin' : 'Customer'} tab.`);
+          await logout();
+          return;
+        }
+        navigate('/barber');
+      } else if (activeRole === 'admin') {
+        if (role !== 'admin') {
+          setError(`Access Denied: This tab is restricted to Platform Administrators. Please switch to the ${role === 'barber' ? 'Barber Partner' : 'Customer'} tab.`);
+          await logout();
+          return;
+        }
+        navigate('/admin');
       }
-      navigate(from, { replace: true });
     } else {
       if (res.code === 'UNVERIFIED') {
         navigate('/verify-otp', { state: { email } });
@@ -48,40 +79,124 @@ export default function Login() {
     }
   };
 
+  // Define themes dynamically based on active tab
+  const getTheme = () => {
+    switch (activeRole) {
+      case 'barber':
+        return {
+          accentColor: 'from-amber-600 to-amber-500',
+          focusRing: 'focus:ring-amber-500',
+          btnShadow: 'shadow-amber-500/10 hover:shadow-amber-500/25',
+          bgGradient: 'from-brand-900 to-brand-950 dark:from-brand-950 dark:to-brand-900 text-brand-100',
+          cardBg: 'bg-brand-900/90 dark:bg-brand-900 border-brand-800',
+          headerIcon: <Store className="h-6 w-6 text-white" />,
+          title: "Barber Partner Login",
+          subtitle: "Manage your shop catalog, hours, and bookings",
+          emailLabel: "Barber Email or Phone",
+          passwordLabel: "Password",
+          submitLabel: "Partner Sign In",
+          submitIcon: <Sparkles className="w-4 h-4" />
+        };
+      case 'admin':
+        return {
+          accentColor: 'from-red-600 to-red-500',
+          focusRing: 'focus:ring-red-500',
+          btnShadow: 'shadow-red-500/10 hover:shadow-red-500/25',
+          bgGradient: 'from-slate-900 to-slate-950 dark:from-slate-950 dark:to-slate-900 text-slate-100',
+          cardBg: 'bg-slate-900/90 dark:bg-slate-900 border-slate-800',
+          headerIcon: <ShieldCheck className="h-6 w-6 text-red-400" />,
+          title: "Admin Console",
+          subtitle: "Operator sign-in for platform moderation & controls",
+          emailLabel: "Administrator Email",
+          passwordLabel: "Secure Pin Code / Password",
+          submitLabel: "Access Console",
+          submitIcon: <Key className="w-4 h-4" />
+        };
+      case 'customer':
+      default:
+        return {
+          accentColor: 'from-accent-600 to-accent-500',
+          focusRing: 'focus:ring-accent-500',
+          btnShadow: 'shadow-accent-500/10 hover:shadow-accent-500/25',
+          bgGradient: 'from-brand-50 to-brand-100 dark:from-brand-900 dark:to-brand-950 text-brand-900 dark:text-brand-50',
+          cardBg: 'bg-white dark:bg-brand-900 border-brand-200 dark:border-brand-800',
+          headerIcon: <Scissors className="h-6 w-6 text-white" />,
+          title: "Customer Login",
+          subtitle: "Access your appointments & rewards",
+          emailLabel: "Email Address or Mobile Number",
+          passwordLabel: "Password",
+          submitLabel: "Log In",
+          submitIcon: null
+        };
+    }
+  };
+
+  const theme = getTheme();
+
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-gradient-to-b from-brand-50 to-brand-100 dark:from-brand-900 dark:to-brand-950 transition-colors">
+    <div className={`min-h-[85vh] flex flex-col items-center justify-center px-4 py-12 bg-gradient-to-b transition-all duration-500 ${theme.bgGradient}`}>
+      
+      {/* SEGMENTED TAB SWITCHER */}
+      <div className="w-full max-w-md mb-6 p-1.5 bg-brand-200/50 dark:bg-brand-950/40 backdrop-blur-sm rounded-2xl flex gap-1 shadow-inner relative z-10 border border-brand-200/20">
+        {[
+          { key: 'customer', label: 'Customer', icon: Scissors },
+          { key: 'barber', label: 'Barber Partner', icon: Store },
+          { key: 'admin', label: 'Admin', icon: ShieldCheck }
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeRole === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => handleRoleChange(tab.key)}
+              className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all relative ${
+                isActive 
+                  ? 'bg-white dark:bg-brand-900 text-accent-600 dark:text-accent-400 shadow-md scale-[1.02]' 
+                  : 'text-brand-600 dark:text-brand-400 hover:text-brand-900 dark:hover:text-white'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* LOGIN CARD */}
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
+        key={activeRole} // re-animate card on tab shift
+        initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md bg-white dark:bg-brand-900 p-8 rounded-2xl shadow-xl border border-brand-200 dark:border-brand-800"
+        transition={{ duration: 0.4 }}
+        className={`w-full max-w-md p-8 rounded-3xl shadow-2xl border transition-all duration-500 ${theme.cardBg}`}
       >
         <div className="text-center mb-8">
-          <div className="inline-flex p-3 bg-gradient-to-tr from-accent-600 to-accent-400 rounded-2xl text-white mb-4">
-            <Scissors className="h-6 w-6" />
+          <div className={`inline-flex p-3 bg-gradient-to-tr ${theme.accentColor} rounded-2xl mb-4 shadow-lg shadow-accent-500/10`}>
+            {theme.headerIcon}
           </div>
-          <h2 className="font-display text-3xl font-bold text-brand-900 dark:text-brand-50">Customer Login</h2>
-          <p className="text-sm text-brand-500 dark:text-brand-400 mt-2">Access your appointments & rewards</p>
+          <h2 className="font-display text-3xl font-extrabold tracking-tight">{theme.title}</h2>
+          <p className="text-xs text-brand-500 dark:text-brand-455 mt-2">{theme.subtitle}</p>
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 p-4 mb-6 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 text-sm rounded-xl border border-red-200 dark:border-red-800/40">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <div className="flex items-center gap-2 p-4 mb-6 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 text-xs rounded-xl border border-red-200 dark:border-red-800/40 font-semibold">
+            <AlertCircle className="w-4.5 h-4.5 flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold text-brand-700 dark:text-brand-300 mb-1.5">Email Address or Mobile Number</label>
+            <label className="block text-xs font-bold uppercase text-brand-500 dark:text-brand-400 mb-1.5">{theme.emailLabel}</label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-3.5 h-5 w-5 text-brand-400" />
+              <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-brand-400" />
               <input
                 type="text"
-                placeholder="you@example.com or 9876543210"
+                placeholder={activeRole === 'customer' ? "you@example.com or 9876543210" : activeRole === 'barber' ? "partner@trimtime.com" : "admin@trimtime.com"}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 text-brand-900 dark:text-brand-50"
+                className={`w-full pl-11 pr-4 py-3 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none focus:ring-2 ${theme.focusRing} text-brand-900 dark:text-brand-50`}
                 required
               />
             </div>
@@ -89,22 +204,24 @@ export default function Login() {
 
           <div>
             <div className="flex justify-between items-center mb-1.5">
-              <label className="text-sm font-semibold text-brand-700 dark:text-brand-300">Password</label>
-              <Link 
-                to="/forgot-password" 
-                className="text-xs font-semibold text-accent-600 dark:text-accent-400 hover:text-accent-500"
-              >
-                Forgot Password?
-              </Link>
+              <label className="block text-xs font-bold uppercase text-brand-500 dark:text-brand-400">{theme.passwordLabel}</label>
+              {activeRole !== 'admin' && (
+                <Link 
+                  to="/forgot-password" 
+                  className={`text-xs font-bold hover:underline ${activeRole === 'barber' ? 'text-amber-500' : 'text-accent-600 dark:text-accent-400'}`}
+                >
+                  Forgot Password?
+                </Link>
+              )}
             </div>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-3.5 h-5 w-5 text-brand-400" />
+              <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-brand-400" />
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-11 pr-11 py-3 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 text-brand-900 dark:text-brand-50"
+                className={`w-full pl-11 pr-11 py-3 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none focus:ring-2 ${theme.focusRing} text-brand-900 dark:text-brand-50`}
                 required
               />
               <button
@@ -112,7 +229,7 @@ export default function Login() {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3.5 top-3.5 text-brand-400 hover:text-brand-600 dark:hover:text-brand-200"
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
               </button>
             </div>
           </div>
@@ -120,40 +237,56 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-accent-500/10 hover:shadow-accent-500/25 flex justify-center items-center gap-2"
+            className={`w-full py-3.5 bg-gradient-to-r ${theme.accentColor} text-white font-bold rounded-xl text-xs transition-all shadow-md ${theme.btnShadow} flex justify-center items-center gap-2`}
           >
             {loading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            ) : "Log In"}
+              <div className="w-4.5 h-4.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <>
+                {theme.submitIcon}
+                <span>{theme.submitLabel}</span>
+              </>
+            )}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-brand-600 dark:text-brand-400 space-y-2">
-          <div>
-            Need to verify your email?{' '}
-            <Link to="/verify-otp" className="font-semibold text-accent-600 dark:text-accent-400 hover:underline inline-flex items-center gap-1">
-              <KeyRound className="w-3.5 h-3.5" /> Verify OTP Here
-            </Link>
-          </div>
-          <div>
-            New to TrimTime?{' '}
-            <Link to="/signup" className="font-semibold text-accent-600 dark:text-accent-400 hover:text-accent-500">
-              Create Customer Account
-            </Link>
-          </div>
-        </div>
+        {/* CUSTOM DE-CLUTTERED FOOTERS PER ROLE */}
+        <div className="mt-6 pt-4 border-t border-brand-200/50 dark:border-brand-800 text-center text-xs space-y-2">
+          {activeRole === 'customer' && (
+            <>
+              <div className="text-brand-500 dark:text-brand-400">
+                Need to verify your email?{' '}
+                <Link to="/verify-otp" className="font-bold text-accent-600 dark:text-accent-400 hover:underline inline-flex items-center gap-1">
+                  <KeyRound className="w-3.5 h-3.5" /> Verify OTP Here
+                </Link>
+              </div>
+              <div className="text-brand-500 dark:text-brand-400">
+                New to TrimTime?{' '}
+                <Link to="/signup" className="font-bold text-accent-600 dark:text-accent-400 hover:underline">
+                  Create Customer Account
+                </Link>
+              </div>
+            </>
+          )}
 
-        <div className="mt-6 pt-4 border-t border-brand-100 dark:border-brand-800 text-center text-xs text-brand-500 space-y-2">
-          <div>
-            Are you a Barber Partner?{' '}
-            <Link to="/barber/login" className="font-bold text-accent-600 dark:text-accent-400 hover:underline">
-              Barber Portal Login
-            </Link>
-          </div>
-          <div>
-            System Administrator?{' '}
-            <Link to="/admin/login" className="font-bold text-accent-600 dark:text-accent-400 hover:underline">
-              Admin Portal Login
+          {activeRole === 'barber' && (
+            <div className="text-brand-500 dark:text-brand-400">
+              Need to register your shop?{' '}
+              <Link to="/barber/signup" className="font-bold text-amber-500 hover:underline">
+                Join TrimTime Network
+              </Link>
+            </div>
+          )}
+
+          {activeRole === 'admin' && (
+            <div className="text-slate-500 text-[10px]">
+              TrimTime Platform Console &bull; Operator Mode Only
+            </div>
+          )}
+          
+          <div className="pt-2">
+            <Link to="/" className="text-brand-400 hover:text-brand-600 dark:hover:text-white hover:underline text-[10px] font-bold">
+              &larr; Back to Homepage
             </Link>
           </div>
         </div>

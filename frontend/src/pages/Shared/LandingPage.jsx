@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, MapPin, Star, Scissors, Clock, Calendar, CheckCircle2, ChevronDown, Award, ExternalLink, Map as MapIcon } from 'lucide-react';
+import { Search, MapPin, Star, Scissors, Clock, Calendar, CheckCircle2, ChevronDown, Award, ExternalLink, Map as MapIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../utils/api';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -17,6 +17,122 @@ let DefaultIcon = L.icon({
   iconAnchor: [12, 41]
 });
 L.Marker.prototype.options.icon = DefaultIcon;
+
+function BarberCard({ b, navigate }) {
+  const [activeImgIndex, setActiveImgIndex] = useState(0);
+
+  const images = b.shopImages && b.shopImages.length > 0
+    ? b.shopImages
+    : (b.profilePic ? [b.profilePic] : ['https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=600&auto=format&fit=crop']);
+
+  const handleNext = (e) => {
+    e.stopPropagation();
+    setActiveImgIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const handlePrev = (e) => {
+    e.stopPropagation();
+    setActiveImgIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  return (
+    <motion.div
+      variants={{
+        hidden: { opacity: 0, y: 20 },
+        show: { opacity: 1, y: 0 }
+      }}
+      className="glass-card overflow-hidden rounded-2xl border border-brand-200 dark:border-brand-800 hover:shadow-lg dark:hover:shadow-brand-950/20 transition-all flex flex-col group relative"
+    >
+      <div className="relative h-48 bg-brand-200 dark:bg-brand-800 overflow-hidden select-none">
+        <img
+          src={images[activeImgIndex]}
+          alt={b.shopName}
+          className="w-full h-full object-cover transition-all duration-300"
+        />
+        
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={handlePrev}
+              type="button"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 p-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleNext}
+              type="button"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </>
+        )}
+
+        {images.length > 1 && (
+          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
+            {images.map((_, idx) => (
+              <span
+                key={idx}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  idx === activeImgIndex 
+                    ? 'w-4.5 bg-white' 
+                    : 'w-1.5 bg-white/50'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+
+        <div className="absolute top-4 right-4 px-2.5 py-1 bg-white/95 dark:bg-brand-900/95 rounded-lg text-xs font-bold text-brand-900 dark:text-brand-50 shadow-md flex items-center gap-1 z-10">
+          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+          <span>{b.ratingAvg ? b.ratingAvg.toFixed(1) : "New"}</span>
+          {b.ratingCount > 0 && <span className="text-brand-400 font-normal">({b.ratingCount})</span>}
+        </div>
+      </div>
+
+      <div className="p-5 flex-grow flex flex-col justify-between space-y-3">
+        <div>
+          <h3 className="text-xl font-bold font-display text-brand-900 dark:text-brand-50 group-hover:text-accent-500 transition-colors">
+            {b.shopName}
+          </h3>
+          <p className="text-xs text-brand-500 dark:text-brand-400 mt-1 flex items-start gap-1">
+            <MapPin className="w-4 h-4 text-accent-500 flex-shrink-0 mt-0.5" />
+            <span>{b.address || b.city}</span>
+          </p>
+        </div>
+
+        <a
+          href={b.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${b.lat || 18.5204},${b.lng || 73.8567}`}
+          target="_blank"
+          rel="noreferrer"
+          className="px-3 py-1.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-xs font-bold text-accent-600 flex items-center justify-between hover:bg-accent-50"
+        >
+          <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-accent-500" /> View Shop Map Location</span>
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
+        
+        <div className="flex items-center justify-between text-xs text-brand-600 dark:text-brand-400 border-t border-brand-100 dark:border-brand-800/60 pt-3">
+          <span className="flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5 text-accent-500" />
+            {b.openingTime} - {b.closingTime}
+          </span>
+          <span className="flex items-center gap-1 font-medium bg-brand-100 dark:bg-brand-800 text-brand-800 dark:text-brand-300 px-2 py-0.5 rounded">
+            <Award className="w-3 h-3 text-accent-500" />
+            {b.experience} Yrs Exp
+          </span>
+        </div>
+
+        <button
+          onClick={() => navigate(`/book/${b.id}`)}
+          className="w-full py-2.5 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white font-semibold rounded-xl text-sm transition-all shadow-md mt-2"
+        >
+          Book Appointment
+        </button>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function LandingPage() {
   const { user } = useContext(AuthContext);
@@ -264,68 +380,7 @@ export default function LandingPage() {
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
           >
             {barbers.map((b) => (
-              <motion.div
-                key={b.id}
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  show: { opacity: 1, y: 0 }
-                }}
-                className="glass-card overflow-hidden rounded-2xl border border-brand-200 dark:border-brand-800 hover:shadow-lg dark:hover:shadow-brand-950/20 transition-all flex flex-col group"
-              >
-                <div className="relative h-48 bg-brand-200 dark:bg-brand-800 overflow-hidden">
-                  <img
-                    src={b.shopImages[0] || b.profilePic || 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=600&auto=format&fit=crop'}
-                    alt={b.shopName}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 right-4 px-2.5 py-1 bg-white/95 dark:bg-brand-900/95 rounded-lg text-xs font-bold text-brand-900 dark:text-brand-50 shadow-md flex items-center gap-1">
-                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    <span>{b.ratingAvg ? b.ratingAvg.toFixed(1) : "New"}</span>
-                    {b.ratingCount > 0 && <span className="text-brand-400 font-normal">({b.ratingCount})</span>}
-                  </div>
-                </div>
-
-                <div className="p-5 flex-grow flex flex-col justify-between space-y-3">
-                  <div>
-                    <h3 className="text-xl font-bold font-display text-brand-900 dark:text-brand-50 group-hover:text-accent-500 transition-colors">
-                      {b.shopName}
-                    </h3>
-                    <p className="text-xs text-brand-500 dark:text-brand-400 mt-1 flex items-start gap-1">
-                      <MapPin className="w-4 h-4 text-accent-500 flex-shrink-0 mt-0.5" />
-                      <span>{b.address || b.city}</span>
-                    </p>
-                  </div>
-
-                  {/* DIRECT GOOGLE MAPS NAVIGATION BUTTON ON SALON CARD */}
-                  <a
-                    href={b.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${b.lat || 18.5204},${b.lng || 73.8567}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-3 py-1.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-xs font-bold text-accent-600 flex items-center justify-between hover:bg-accent-50"
-                  >
-                    <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-accent-500" /> View Shop Map Location</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                  
-                  <div className="flex items-center justify-between text-xs text-brand-600 dark:text-brand-400 border-t border-brand-100 dark:border-brand-800/60 pt-3">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-accent-500" />
-                      {b.openingTime} - {b.closingTime}
-                    </span>
-                    <span className="flex items-center gap-1 font-medium bg-brand-100 dark:bg-brand-800 text-brand-800 dark:text-brand-300 px-2 py-0.5 rounded">
-                      <Award className="w-3 h-3 text-accent-500" />
-                      {b.experience} Yrs Exp
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={() => navigate(`/book/${b.id}`)}
-                    className="w-full py-2.5 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white font-semibold rounded-xl text-sm transition-all shadow-md mt-2"
-                  >
-                    Book Appointment
-                  </button>
-                </div>
-              </motion.div>
+              <BarberCard key={b.id} b={b} navigate={navigate} />
             ))}
           </motion.div>
         )}

@@ -253,6 +253,89 @@ def add_staff_member():
         logger.error(f"Error adding staff member: {e}")
         return jsonify({'message': 'Internal Server Error'}), 500
 
+def update_staff_member(staff_id):
+    try:
+        barber_id = g.current_user_id
+        data = request.form if request.form else request.json or {}
+
+        name = data.get('name', '').strip()
+        role = data.get('role', 'Barber & Stylist').strip()
+        shift = data.get('shift', '09:00 AM - 08:00 PM').strip()
+        phone = data.get('phone', '').strip()
+        holiday = data.get('holiday', 'Sunday').strip()
+
+        if not name:
+            return jsonify({'message': 'Staff name is required'}), 400
+
+        image_file = request.files.get('photo')
+        photo_url = upload_to_s3(image_file, 'staff_photos') if image_file else None
+
+        barber = barbers_col.find_one({'_id': ObjectId(barber_id)})
+        if not barber:
+            return jsonify({'message': 'Barber shop not found'}), 404
+
+        current_staff = next((s for s in barber.get('staff', []) if s.get('id') == staff_id), None)
+        if not current_staff:
+            return jsonify({'message': 'Staff member not found'}), 404
+
+        final_photo_url = photo_url if photo_url is not None else current_staff.get('photoUrl', '')
+
+        barbers_col.update_one(
+            {'_id': ObjectId(barber_id), 'staff.id': staff_id},
+            {
+                '$set': {
+                    'staff.$.name': name,
+                    'staff.$.role': role,
+                    'staff.$.shift': shift,
+                    'staff.$.phone': phone,
+                    'staff.$.holiday': holiday,
+                    'staff.$.photoUrl': final_photo_url
+                }
+            }
+        )
+
+        return jsonify({
+            'message': 'Staff member updated successfully',
+            'staff': {
+                'id': staff_id,
+                'name': name,
+                'role': role,
+                'shift': shift,
+                'phone': phone,
+                'holiday': holiday,
+                'photoUrl': final_photo_url,
+                'status': current_staff.get('status', 'ACTIVE')
+            }
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error updating staff member: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500
+
+def delete_staff_member(staff_id):
+    try:
+        barber_id = g.current_user_id
+        
+        # Check if staff member exists
+        barber = barbers_col.find_one({'_id': ObjectId(barber_id)})
+        if not barber:
+            return jsonify({'message': 'Barber shop not found'}), 404
+
+        exists = any(s.get('id') == staff_id for s in barber.get('staff', []))
+        if not exists:
+            return jsonify({'message': 'Staff member not found'}), 404
+
+        barbers_col.update_one(
+            {'_id': ObjectId(barber_id)},
+            {'$pull': {'staff': {'id': staff_id}}}
+        )
+
+        return jsonify({'message': 'Staff member removed successfully'}), 200
+
+    except Exception as e:
+        logger.error(f"Error deleting staff member: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500
+
 def get_barbers():
     try:
         city = request.args.get('city', '').strip()
@@ -425,6 +508,17 @@ def update_barber_profile():
             file = request.files['profilePic']
             if file and file.filename != '':
                 update_fields['profile_pic'] = upload_to_s3(file, 'profile_pics')
+
+        if 'shopImages' in request.files:
+            files = request.files.getlist('shopImages')
+            shop_image_urls = []
+            for f in files:
+                if f and f.filename != '':
+                    url = upload_to_s3(f, 'shop_images')
+                    if url:
+                        shop_image_urls.append(url)
+            if shop_image_urls:
+                update_fields['shop_images'] = shop_image_urls
 
         if not update_fields:
             return jsonify({'message': 'No changes submitted'}), 400

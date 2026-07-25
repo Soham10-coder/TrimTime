@@ -39,6 +39,8 @@ export default function BarberDashboard() {
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [geoLocating, setGeoLocating] = useState(false);
+  const [profilePicFile, setProfilePicFile] = useState(null);
+  const [shopImagesFiles, setShopImagesFiles] = useState([]);
   
   // Service CRUD form states
   const [serviceModal, setServiceModal] = useState(false);
@@ -167,10 +169,21 @@ export default function BarberDashboard() {
     formData.append('address', address);
     formData.append('city', city);
 
+    if (profilePicFile) {
+      formData.append('profilePic', profilePicFile);
+    }
+    if (shopImagesFiles.length > 0) {
+      for (let i = 0; i < shopImagesFiles.length; i++) {
+        formData.append('shopImages', shopImagesFiles[i]);
+      }
+    }
+
     const res = await updateProfile(formData);
     if (res.success) {
-      setSettingsSuccess('Shop hours & interactive map location updated successfully!');
+      setSettingsSuccess('Shop settings, location pin, and gallery pictures updated successfully!');
       setTimeout(() => setSettingsSuccess(''), 3000);
+      setProfilePicFile(null);
+      setShopImagesFiles([]);
       fetchBarberDashboardData();
     } else {
       alert("Failed to update settings.");
@@ -210,15 +223,38 @@ export default function BarberDashboard() {
     if (staffPhoto) formData.append('photo', staffPhoto);
 
     try {
-      const res = await api.post('/barber/staff', formData);
+      let res;
+      if (editingStaff) {
+        res = await api.put(`/barber/staff/${editingStaff.id}`, formData);
+      } else {
+        res = await api.post('/barber/staff', formData);
+      }
+      
       if (res.ok) {
         setStaffModal(false);
+        setEditingStaff(null);
         fetchBarberDashboardData();
       } else {
-        alert("Failed to save staff member.");
+        alert(editingStaff ? "Failed to update staff member." : "Failed to save staff member.");
       }
     } catch (err) {
-      alert("Error saving staff member.");
+      alert(editingStaff ? "Error updating staff member." : "Error saving staff member.");
+    }
+  };
+
+  const handleDeleteStaff = async (staffId) => {
+    if (!window.confirm("Are you sure you want to remove this staff member? This will remove them from your roster permanently.")) {
+      return;
+    }
+    try {
+      const res = await api.delete(`/barber/staff/${staffId}`);
+      if (res.ok) {
+        fetchBarberDashboardData();
+      } else {
+        alert("Failed to delete staff member.");
+      }
+    } catch (e) {
+      alert("Error deleting staff member.");
     }
   };
 
@@ -510,9 +546,14 @@ export default function BarberDashboard() {
                         <p className="text-xs text-accent-600 font-semibold">{s.role}</p>
                       </div>
                     </div>
-                    <button onClick={() => handleOpenEditStaff(s)} className="p-1.5 text-brand-500 hover:text-accent-500">
-                      <Edit className="w-4 h-4" />
-                    </button>
+                    <div className="flex gap-1">
+                      <button onClick={() => handleOpenEditStaff(s)} className="p-1.5 text-brand-500 hover:text-accent-500" title="Edit Staff">
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDeleteStaff(s.id)} className="p-1.5 text-red-500 hover:text-red-750" title="Delete Staff">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="pt-2 border-t text-xs space-y-1">
@@ -571,6 +612,54 @@ export default function BarberDashboard() {
                       <button onClick={() => handleDeleteService(s.id)} className="p-1.5 text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 6: CUSTOMER REVIEWS */}
+      {activeTab === 'reviews' && (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border">
+            <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
+              <Star className="w-5 h-5 text-amber-500 fill-amber-500" /> Customer Reviews & Ratings
+            </h3>
+            <p className="text-xs text-brand-500">Read what clients have to say about their haircut and service experiences.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {reviews.length === 0 ? (
+              <div className="col-span-2 p-12 text-center text-xs text-brand-400 bg-white dark:bg-brand-900 rounded-3xl border">
+                No customer reviews submitted yet.
+              </div>
+            ) : (
+              reviews.map((r, idx) => (
+                <div key={idx} className="bg-white dark:bg-brand-900 p-5 rounded-3xl border shadow-sm space-y-3">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="font-bold text-sm text-brand-900 dark:text-brand-50">{r.customer_name || 'Anonymous Customer'}</h4>
+                      <span className="text-[10px] text-brand-400 font-mono">
+                        {r.created_at ? new Date(r.created_at).toLocaleDateString() : 'Recent'}
+                      </span>
+                    </div>
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-3.5 h-3.5 ${
+                            star <= (r.rating || 5)
+                              ? 'fill-amber-400 text-amber-400'
+                              : 'text-brand-200 dark:text-brand-800'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-xs text-brand-600 dark:text-brand-450 bg-brand-50/50 dark:bg-brand-950/40 p-3 rounded-xl italic">
+                    "{r.comment || 'No comment provided.'}"
+                  </p>
                 </div>
               ))
             )}
@@ -642,6 +731,28 @@ export default function BarberDashboard() {
                 <option value="5">Saturday</option>
               </select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-brand-500 mb-1">Years of Experience *</label>
+              <input type="number" value={experience} onChange={(e) => setExperience(e.target.value)} placeholder="5" className="w-full p-2.5 bg-brand-50 border rounded-xl text-xs font-bold" required />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-brand-500 mb-1">Shop Profile Avatar Photo</label>
+              <input type="file" accept="image/*" onChange={(e) => setProfilePicFile(e.target.files[0])} className="w-full p-2 bg-brand-50 border rounded-xl text-xs" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-brand-500 mb-1">Description / Salon Tagline</label>
+            <textarea rows="2" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Specialized grooming, haircuts, and hot towel shaves..." className="w-full p-2.5 bg-brand-50 border rounded-xl text-xs" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-brand-500 mb-1">Shop Gallery Pictures (Upload up to 3 images)</label>
+            <input type="file" multiple accept="image/*" onChange={(e) => setShopImagesFiles(Array.from(e.target.files))} className="w-full p-2 bg-brand-50 border rounded-xl text-xs" />
+            <p className="text-[10px] text-brand-400 mt-1">This will update the hover carousel images on the home page listing.</p>
           </div>
 
           <button type="submit" className="px-6 py-2.5 bg-accent-500 text-white font-bold rounded-xl text-xs shadow-md">

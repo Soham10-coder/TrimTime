@@ -18,11 +18,9 @@ import CustomerDashboard from './pages/Customer/CustomerDashboard';
 // Barber Pages
 import BarberSignup from './pages/Barber/BarberSignup';
 import BarberDashboard from './pages/Barber/BarberDashboard';
-import BarberLogin from './pages/Barber/BarberLogin';
 
 // Admin Pages
 import AdminDashboard from './pages/Admin/AdminDashboard';
-import AdminLogin from './pages/Admin/AdminLogin';
 
 // Secure Route Guard
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -55,14 +53,14 @@ export default function App() {
           <Route path="/" element={<Layout />}>
             {/* Public routes */}
             <Route index element={<LandingPage />} />
-            <Route path="login" element={<Login />} />
+            <Route path="login" element={<Login defaultRole="customer" />} />
             <Route path="signup" element={<Signup />} />
             <Route path="verify-otp" element={<VerifyOtp />} />
             <Route path="forgot-password" element={<ForgotPassword />} />
             <Route path="reset-password" element={<ResetPassword />} />
             <Route path="barber/signup" element={<BarberSignup />} />
-            <Route path="barber/login" element={<BarberLogin />} />
-            <Route path="admin/login" element={<AdminLogin />} />
+            <Route path="barber/login" element={<Login defaultRole="barber" />} />
+            <Route path="admin/login" element={<Login defaultRole="admin" />} />
             
             {/* Booking Flow (Public browse/select, locks inside checkout) */}
             <Route path="book/:barberId" element={<BookAppointment />} />

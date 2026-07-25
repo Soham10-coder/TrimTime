@@ -1,6 +1,7 @@
 from flask import Blueprint
 from app.controllers.barber_controller import (
     register_barber, resubmit_salon_documents, validate_customer_otp, add_staff_member,
+    update_staff_member, delete_staff_member,
     get_barbers, get_barber_profile, update_barber_profile,
     add_hairstyle, get_barber_hairstyles, update_hairstyle, delete_hairstyle,
     rate_barber
@@ -21,6 +22,12 @@ barber_bp.route('/validate-otp', methods=['POST'])(
 )
 barber_bp.route('/staff', methods=['POST'])(
     token_required(require_role('barber')(add_staff_member))
+)
+barber_bp.route('/staff/<staff_id>', methods=['PUT'])(
+    token_required(require_role('barber')(update_staff_member))
+)
+barber_bp.route('/staff/<staff_id>', methods=['DELETE'])(
+    token_required(require_role('barber')(delete_staff_member))
 )
 barber_bp.route('/resubmit-documents', methods=['POST'])(
     token_required(require_role('barber')(resubmit_salon_documents))
