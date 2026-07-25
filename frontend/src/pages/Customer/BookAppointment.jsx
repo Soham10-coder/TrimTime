@@ -31,6 +31,7 @@ export default function BookAppointment() {
   
   // Payment Gateway Modal State
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedCategoryTab, setSelectedCategoryTab] = useState('All');
   
   // States
   const [loading, setLoading] = useState(true);
@@ -390,7 +391,7 @@ export default function BookAppointment() {
 
       {/* STEP 2: SELECT SERVICE */}
       {step === 2 && (
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
               <Scissors className="w-5 h-5 text-accent-500" /> Choose Grooming Service / Facial
@@ -398,10 +399,30 @@ export default function BookAppointment() {
             <button onClick={() => setStep(1)} className="text-xs text-accent-500 font-bold">Change Stylist</button>
           </div>
 
+          {/* SERVICE CATEGORY SECTIONS TABS */}
+          <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-none border-b">
+            {['All', 'Haircut', 'Beard', 'Facial', 'Hair Treatment', 'Hair Color', 'Others'].map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategoryTab(cat)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                  selectedCategoryTab === cat
+                    ? 'bg-accent-500 text-white shadow-sm scale-105'
+                    : 'bg-brand-100 hover:bg-brand-200 dark:bg-brand-800 dark:hover:bg-brand-700 text-brand-700 dark:text-brand-300'
+                }`}
+              >
+                {cat === 'All' ? '🌟 All Services' : cat}
+              </button>
+            ))}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {hairstyles.map((hs) => (
-              <div 
-                key={hs.id}
+            {hairstyles
+              .filter((hs) => selectedCategoryTab === 'All' || hs.category === selectedCategoryTab)
+              .map((hs) => (
+                <div 
+                  key={hs.id}
                 onClick={() => handleHairstyleSelect(hs)}
                 className={`p-5 bg-white dark:bg-brand-900 border-2 rounded-3xl cursor-pointer transition-all space-y-2 ${
                   selectedHairstyle?.id === hs.id ? 'border-accent-500 ring-2 ring-accent-500/20' : 'hover:border-brand-300'

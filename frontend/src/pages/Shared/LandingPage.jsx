@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, MapPin, Star, Scissors, Clock, Calendar, CheckCircle2, ChevronDown, Award, ExternalLink, Map as MapIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, MapPin, Star, Scissors, Clock, Calendar, CheckCircle2, ChevronDown, Award, ExternalLink, Map as MapIcon, ChevronLeft, ChevronRight, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../utils/api';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -141,19 +141,35 @@ export default function LandingPage() {
   const [searchCity, setSearchCity] = useState('');
   const [searchShop, setSearchShop] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [filterSalonType, setFilterSalonType] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [sortBy, setSortBy] = useState('');
   const [activeFaq, setActiveFaq] = useState(null);
   const [showMapView, setShowMapView] = useState(true);
+  const [userCoords, setUserCoords] = useState(null);
   
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchBarbers();
+    
+    // Automatically prompt browser geolocation permission
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserCoords([position.coords.latitude, position.coords.longitude]);
+        },
+        (error) => {
+          console.log("User geolocation denied or unavailable:", error);
+        }
+      );
+    }
   }, []);
 
-  const fetchBarbers = async (city = '', shop = '', category = '') => {
+  const fetchBarbers = async (city = '', shop = '', category = '', salonType = '', maxPriceVal = '') => {
     setLoading(true);
     try {
-      let query = `?city=${city}&search=${shop}&category=${category}`;
+      let query = `?city=${city}&search=${shop}&category=${category}&salonType=${salonType}&maxPrice=${maxPriceVal}`;
       const res = await api.get(`/barber/browse${query}`);
       if (res.ok) {
         const data = await res.json();
@@ -168,7 +184,19 @@ export default function LandingPage() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    fetchBarbers(searchCity, searchShop, filterCategory);
+    fetchBarbers(searchCity, searchShop, filterCategory, filterSalonType, maxPrice);
+  };
+
+  const getSortedBarbers = () => {
+    let list = [...barbers];
+    if (sortBy === 'rating') {
+      list.sort((a, b) => (b.ratingAvg || 0) - (a.ratingAvg || 0));
+    } else if (sortBy === 'experience') {
+      list.sort((a, b) => (b.experience || 0) - (a.experience || 0));
+    } else if (sortBy === 'name') {
+      list.sort((a, b) => a.shopName.localeCompare(b.shopName));
+    }
+    return list;
   };
 
   const faqs = [
@@ -179,7 +207,9 @@ export default function LandingPage() {
   ];
 
   // Default map center
-  const defaultCenter = barbers.length > 0 && barbers[0].lat ? [barbers[0].lat, barbers[0].lng] : [18.5204, 73.8567];
+  const defaultCenter = userCoords
+    ? userCoords
+    : (barbers.length > 0 && barbers[0].lat ? [barbers[0].lat, barbers[0].lng] : [18.5204, 73.8567]);
 
   return (
     <div className="relative overflow-hidden">
@@ -233,53 +263,113 @@ export default function LandingPage() {
         >
           <h2 className="text-xl font-bold text-brand-900 dark:text-brand-50 mb-6 font-display">Find Your Ideal Barber Shop</h2>
           
-          <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <MapPin className="absolute left-3 top-3.5 h-5 w-5 text-brand-400" />
-              <input
-                type="text"
-                placeholder="Search City (e.g. Pune)"
-                value={searchCity}
-                onChange={(e) => setSearchCity(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-white/70 dark:bg-brand-900/70 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 text-brand-900 dark:text-brand-50"
-              />
-            </div>
+          <form onSubmit={handleSearch} className="space-y-4">
+            {/* ROW 1: PRIMARY INPUTS */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+              <div className="relative md:col-span-5">
+                <MapPin className="absolute left-3 top-3.5 h-5 w-5 text-brand-400" />
+                <input
+                  type="text"
+                  placeholder="Search City (e.g. Pune)"
+                  value={searchCity}
+                  onChange={(e) => setSearchCity(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-white/70 dark:bg-brand-900/70 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 text-brand-900 dark:text-brand-50 font-semibold"
+                />
+              </div>
 
-            <div className="relative">
-              <Search className="absolute left-3 top-3.5 h-5 w-5 text-brand-400" />
-              <input
-                type="text"
-                placeholder="Shop Name (e.g. Luxe Cut)"
-                value={searchShop}
-                onChange={(e) => setSearchShop(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-white/70 dark:bg-brand-900/70 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 text-brand-900 dark:text-brand-50"
-              />
-            </div>
+              <div className="relative md:col-span-5">
+                <Search className="absolute left-3 top-3.5 h-5 w-5 text-brand-400" />
+                <input
+                  type="text"
+                  placeholder="Shop Name (e.g. Luxe Cut)"
+                  value={searchShop}
+                  onChange={(e) => setSearchShop(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-white/70 dark:bg-brand-900/70 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 text-brand-900 dark:text-brand-50 font-semibold"
+                />
+              </div>
 
-            <div className="relative">
-              <Scissors className="absolute left-3 top-3.5 h-5 w-5 text-brand-400" />
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-white/70 dark:bg-brand-900/70 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 text-brand-700 dark:text-brand-300 appearance-none"
+              <button
+                type="submit"
+                className="w-full md:col-span-2 py-3 bg-brand-900 dark:bg-accent-600 hover:bg-accent-600 dark:hover:bg-accent-500 text-white rounded-xl font-bold transition-all text-sm shadow-md"
               >
-                <option value="">All Services</option>
-                <option value="Haircut">Male/Female Haircuts</option>
-                <option value="Beard">Beard Trimming</option>
-                <option value="Facial">Facials & Cleanup</option>
-                <option value="Hair Treatment">Hair Spa & Treatments</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
-                <ChevronDown className="w-4 h-4" />
+                Search Salons
+              </button>
+            </div>
+
+            {/* ROW 2: FILTERS & SORT */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-brand-100 dark:border-brand-800/60">
+              <div className="relative">
+                <Scissors className="absolute left-3 top-3.5 h-5 w-5 text-brand-400" />
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-white/70 dark:bg-brand-900/70 border border-brand-200 dark:border-brand-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-accent-500 text-brand-700 dark:text-brand-300 appearance-none font-bold"
+                >
+                  <option value="">All Services</option>
+                  <option value="Haircut">Male/Female Haircuts</option>
+                  <option value="Beard">Beard Trimming</option>
+                  <option value="Facial">Facials & Cleanup</option>
+                  <option value="Hair Treatment">Hair Spa & Treatments</option>
+                  <option value="Hair Color">Hair Coloring & Highlights</option>
+                  <option value="Others">Other Grooming</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+
+              <div className="relative">
+                <Store className="absolute left-3 top-3.5 h-5 w-5 text-brand-400" />
+                <select
+                  value={filterSalonType}
+                  onChange={(e) => setFilterSalonType(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-white/70 dark:bg-brand-900/70 border border-brand-200 dark:border-brand-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-accent-500 text-brand-700 dark:text-brand-300 appearance-none font-bold"
+                >
+                  <option value="">All Salon Types</option>
+                  <option value="Men's Salon">Men's Salons</option>
+                  <option value="Women's Salon">Women's Salons</option>
+                  <option value="Unisex Salon">Unisex Salons</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+
+              <div className="relative">
+                <span className="absolute left-3 top-3 text-[10px] text-brand-450 font-bold uppercase">Max ₹</span>
+                <select
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  className="w-full pl-16 pr-4 py-3 bg-white/70 dark:bg-brand-900/70 border border-brand-200 dark:border-brand-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-accent-500 text-brand-700 dark:text-brand-300 appearance-none font-bold"
+                >
+                  <option value="">Any Price</option>
+                  <option value="150">Max: ₹150</option>
+                  <option value="250">Max: ₹250</option>
+                  <option value="400">Max: ₹400</option>
+                  <option value="600">Max: ₹600</option>
+                  <option value="1000">Max: ₹1000</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/70 dark:bg-brand-900/70 border border-brand-200 dark:border-brand-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-accent-500 text-accent-700 dark:text-accent-400 appearance-none font-extrabold"
+                >
+                  <option value="">Sort By: Default</option>
+                  <option value="rating">Sort By: Top Rated</option>
+                  <option value="experience">Sort By: Experience</option>
+                  <option value="name">Sort By: Name (A-Z)</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+                  <ChevronDown className="w-4 h-4 text-accent-500" />
+                </div>
               </div>
             </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 bg-brand-900 dark:bg-accent-600 hover:bg-accent-600 dark:hover:bg-accent-500 text-white rounded-xl font-bold transition-all text-sm shadow-md"
-            >
-              Apply Search Filters
-            </button>
           </form>
         </motion.div>
       </section>
@@ -379,7 +469,7 @@ export default function LandingPage() {
             }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {barbers.map((b) => (
+            {getSortedBarbers().map((b) => (
               <BarberCard key={b.id} b={b} navigate={navigate} />
             ))}
           </motion.div>

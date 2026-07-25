@@ -22,6 +22,7 @@ export default function BarberSignup() {
   const [experience, setExperience] = useState('');
   const [description, setDescription] = useState('');
   const [gst, setGst] = useState('');
+  const [salonType, setSalonType] = useState("Men's Salon");
 
   // File states
   const [profilePic, setProfilePic] = useState(null);
@@ -95,6 +96,7 @@ export default function BarberSignup() {
     formData.append('experience', '5');
     formData.append('description', 'TrimTime Partner Salon');
     formData.append('gst', '');
+    formData.append('salonType', salonType);
     formData.append('aadhaarPan', aadhaarPan);
 
     const res = await registerBarber(formData);
@@ -269,6 +271,20 @@ export default function BarberSignup() {
                     required
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-brand-500 mb-1">Salon Type (Gender Target) *</label>
+                <select
+                  value={salonType}
+                  onChange={(e) => setSalonType(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent-500 text-brand-700 dark:text-brand-300 font-semibold"
+                  required
+                >
+                  <option value="Men's Salon">Men's Salon</option>
+                  <option value="Women's Salon">Women's Salon</option>
+                  <option value="Unisex Salon">Unisex Salon</option>
+                </select>
               </div>
 
               {/* Aadhaar/PAN Document Upload for verification */}
