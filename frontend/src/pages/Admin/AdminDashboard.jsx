@@ -304,6 +304,7 @@ export default function AdminDashboard() {
                         <p className="text-sm text-brand-600 dark:text-brand-400">Owner: {b.ownerName} &bull; Exp: {b.experience} yrs</p>
                         <p className="text-xs text-brand-500 mt-1">{b.address}, {b.city}</p>
                         <p className="text-xs text-brand-400 mt-0.5">Contacts: {b.email} | {b.phone}</p>
+                        <p className="text-[10px] text-brand-400 dark:text-brand-500 font-mono mt-1 bg-brand-50 dark:bg-brand-950 px-2 py-0.5 rounded w-fit select-all">Salon ID: {b.id}</p>
                       </div>
                     </div>
 
@@ -532,6 +533,7 @@ export default function AdminDashboard() {
                     <div>
                       <strong className="text-brand-800 dark:text-brand-200">{b.shopName}</strong>
                       <p className="text-xs text-brand-400">{b.ownerName} &bull; {b.city}</p>
+                      <p className="text-[9px] text-brand-400 dark:text-brand-500 font-mono mt-0.5 bg-brand-50 dark:bg-brand-950 px-1.5 py-0.5 rounded w-fit select-all">Salon ID: {b.id}</p>
                     </div>
                     <div className="flex gap-2">
                       <button
