@@ -443,12 +443,23 @@ def get_master_services():
 def create_master_service():
     try:
         from app.db import master_services_col
-        data = request.json or {}
+        from app.utils.s3_utils import upload_to_s3
+        
+        if request.content_type and 'multipart/form-data' in request.content_type:
+            data = request.form
+        else:
+            data = request.json or {}
+
         name = data.get('name', '').strip()
         category = data.get('category', '').strip()
         default_duration = int(data.get('default_duration', 30))
         icon = data.get('icon', 'Scissors').strip()
+        
+        image_file = request.files.get('image')
         cover_image = data.get('cover_image', '').strip()
+        
+        if image_file and image_file.filename != '':
+            cover_image = upload_to_s3(image_file, 'master_services')
 
         if not name or not category:
             return jsonify({'message': 'Name and category are required'}), 400
@@ -469,15 +480,25 @@ def create_master_service():
 def update_master_service(service_id):
     try:
         from app.db import master_services_col
+        from app.utils.s3_utils import upload_to_s3
         from bson import ObjectId
-        data = request.json or {}
+        
+        if request.content_type and 'multipart/form-data' in request.content_type:
+            data = request.form
+        else:
+            data = request.json or {}
         
         update_fields = {}
         if 'name' in data: update_fields['name'] = data.get('name').strip()
         if 'category' in data: update_fields['category'] = data.get('category').strip()
         if 'default_duration' in data: update_fields['default_duration'] = int(data.get('default_duration'))
         if 'icon' in data: update_fields['icon'] = data.get('icon').strip()
-        if 'cover_image' in data: update_fields['cover_image'] = data.get('cover_image').strip()
+        
+        image_file = request.files.get('image')
+        if image_file and image_file.filename != '':
+            update_fields['cover_image'] = upload_to_s3(image_file, 'master_services')
+        elif 'cover_image' in data:
+            update_fields['cover_image'] = data.get('cover_image').strip()
 
         if not update_fields:
             return jsonify({'message': 'No changes submitted'}), 400

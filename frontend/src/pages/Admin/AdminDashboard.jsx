@@ -29,10 +29,11 @@ export default function AdminDashboard() {
   const [serviceModal, setServiceModal] = useState(false);
   const [editingService, setEditingService] = useState(null);
   const [serviceName, setServiceName] = useState('');
-  const [serviceCategory, setServiceCategory] = useState('Hair Services');
+  const [serviceCategory, setServiceCategory] = useState("Men's Hair Services");
   const [serviceDuration, setServiceDuration] = useState('30');
   const [serviceIcon, setServiceIcon] = useState('Scissors');
   const [serviceCover, setServiceCover] = useState('');
+  const [serviceImageFile, setServiceImageFile] = useState(null);
 
   useEffect(() => {
     fetchAdminData();
@@ -99,10 +100,11 @@ export default function AdminDashboard() {
   const handleOpenAddMasterService = () => {
     setEditingService(null);
     setServiceName('');
-    setServiceCategory('Hair Services');
+    setServiceCategory("Men's Hair Services");
     setServiceDuration('30');
     setServiceIcon('Scissors');
     setServiceCover('');
+    setServiceImageFile(null);
     setServiceModal(true);
   };
 
@@ -113,24 +115,27 @@ export default function AdminDashboard() {
     setServiceDuration(String(s.default_duration || 30));
     setServiceIcon(s.icon || 'Scissors');
     setServiceCover(s.cover_image || '');
+    setServiceImageFile(null);
     setServiceModal(true);
   };
 
   const handleSaveMasterService = async (e) => {
     e.preventDefault();
-    const payload = {
-      name: serviceName,
-      category: serviceCategory,
-      default_duration: parseInt(serviceDuration),
-      icon: serviceIcon,
-      cover_image: serviceCover
-    };
+    const formData = new FormData();
+    formData.append('name', serviceName);
+    formData.append('category', serviceCategory);
+    formData.append('default_duration', serviceDuration);
+    formData.append('icon', serviceIcon);
+    formData.append('cover_image', serviceCover);
+    if (serviceImageFile) {
+      formData.append('image', serviceImageFile);
+    }
     try {
       let res;
       if (editingService) {
-        res = await api.put(`/admin/master-services/${editingService.id}`, payload);
+        res = await api.put(`/admin/master-services/${editingService.id}`, formData);
       } else {
-        res = await api.post('/admin/master-services', payload);
+        res = await api.post('/admin/master-services', formData);
       }
       if (res.ok) {
         fetchMasterServices();
@@ -772,12 +777,14 @@ export default function AdminDashboard() {
                       onChange={(e) => setServiceCategory(e.target.value)}
                       className="w-full p-2.5 bg-brand-50 border rounded-xl font-bold"
                     >
-                      <option value="Hair Services">Hair Services</option>
+                      <option value="Men's Hair Services">Men's Hair Services</option>
+                      <option value="Women's Hair Services">Women's Hair Services</option>
+                      <option value="Kids Hair Services">Kids Hair Services</option>
+                      <option value="Men Grooming">Men's Grooming</option>
                       <option value="Skin & Facial">Skin & Facial</option>
                       <option value="Makeup">Makeup</option>
                       <option value="Nails">Nails</option>
                       <option value="Hair Removal">Hair Removal</option>
-                      <option value="Men Grooming">Men Grooming</option>
                       <option value="Spa">Spa</option>
                       <option value="Eyebrows & Eyelashes">Eyebrows & Eyelashes</option>
                       <option value="Bridal">Bridal</option>
@@ -808,15 +815,24 @@ export default function AdminDashboard() {
                     />
                   </div>
                   <div>
-                    <label className="block font-semibold mb-1">Cover Image URL</label>
+                    <label className="block font-semibold mb-1">Upload Cover Image</label>
                     <input
-                      type="text"
-                      value={serviceCover}
-                      onChange={(e) => setServiceCover(e.target.value)}
-                      placeholder="https://images.unsplash.com/..."
-                      className="w-full p-2.5 bg-brand-50 border rounded-xl"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setServiceImageFile(e.target.files[0])}
+                      className="w-full p-2 bg-brand-50 border rounded-xl file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:bg-accent-500 file:text-white"
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Or Cover Image URL</label>
+                  <input
+                    type="text"
+                    value={serviceCover}
+                    onChange={(e) => setServiceCover(e.target.value)}
+                    placeholder="https://images.unsplash.com/..."
+                    className="w-full p-2.5 bg-brand-50 border rounded-xl"
+                  />
                 </div>
 
                 <button type="submit" className="w-full py-3 bg-accent-500 text-white font-bold rounded-xl shadow mt-2">
