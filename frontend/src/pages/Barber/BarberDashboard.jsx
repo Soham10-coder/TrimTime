@@ -823,10 +823,27 @@ export default function BarberDashboard() {
             <textarea rows="2" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Specialized grooming, haircuts, and hot towel shaves..." className="w-full p-2.5 bg-brand-50 border rounded-xl text-xs" />
           </div>
 
+          {/* CURRENT SHOP GALLERY IMAGES */}
+          {profile?.shopImages && profile.shopImages.length > 0 && (
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-brand-500">Current Shop Gallery Pictures (on Homepage Card):</label>
+              <div className="grid grid-cols-3 gap-3">
+                {profile.shopImages.map((img, idx) => (
+                  <div key={idx} className="relative aspect-video rounded-xl overflow-hidden border bg-brand-50 shadow-sm">
+                    <img src={img} className="w-full h-full object-cover" alt={`Shop gallery ${idx + 1}`} />
+                    <div className="absolute top-1 left-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                      #{idx + 1}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
-            <label className="block text-xs font-semibold text-brand-500 mb-1">Shop Gallery Pictures (Upload up to 3 images)</label>
+            <label className="block text-xs font-semibold text-brand-500 mb-1">Upload New Shop Gallery Pictures (Up to 3 images)</label>
             <input type="file" multiple accept="image/*" onChange={(e) => setShopImagesFiles(Array.from(e.target.files))} className="w-full p-2 bg-brand-50 border rounded-xl text-xs" />
-            <p className="text-[10px] text-brand-400 mt-1">This will update the hover carousel images on the home page listing.</p>
+            <p className="text-[10px] text-brand-400 mt-1">This will overwrite the current hover carousel images on the home page salon card.</p>
           </div>
 
           <button type="submit" className="px-6 py-2.5 bg-accent-500 text-white font-bold rounded-xl text-xs shadow-md">
