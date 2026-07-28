@@ -8,6 +8,33 @@ import {
   MapPin, ExternalLink, CheckCircle2, AlertCircle, Image as ImageIcon, UserCheck, Locate 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+const categoryDefaultImages = {
+  Haircut: [
+    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/haircut1.jpg',
+    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/haircut2.jpg',
+    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/haircut3.jpg'
+  ],
+  Beard: [
+    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/beard1.jpg',
+    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/beard2.jpg'
+  ],
+  Facial: [
+    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/facial1.jpg',
+    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/facial2.jpg'
+  ],
+  'Hair Treatment': [
+    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/treatment1.jpg',
+    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/treatment2.jpg'
+  ],
+  'Hair Color': [
+    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/color1.jpg',
+    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/color2.jpg'
+  ],
+  Others: [
+    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/other1.jpg',
+    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/other2.jpg'
+  ]
+};
 
 export default function BarberDashboard() {
   const { user, updateProfile } = useContext(AuthContext);
@@ -51,6 +78,8 @@ export default function BarberDashboard() {
   const [serviceDuration, setServiceDuration] = useState('30');
   const [serviceDesc, setServiceDesc] = useState('');
   const [serviceFile, setServiceFile] = useState(null);
+  const [selectedDefaultImage, setSelectedDefaultImage] = useState('');
+  const [selectedDashboardCategory, setSelectedDashboardCategory] = useState('All');
 
   // Barber Staff CRUD form states
   const [staffModal, setStaffModal] = useState(false);
@@ -266,6 +295,7 @@ export default function BarberDashboard() {
     setServiceDuration('30');
     setServiceDesc('');
     setServiceFile(null);
+    setSelectedDefaultImage('');
     setServiceModal(true);
   };
 
@@ -277,6 +307,7 @@ export default function BarberDashboard() {
     setServiceDuration(String(s.duration));
     setServiceDesc(s.description || '');
     setServiceFile(null);
+    setSelectedDefaultImage(s.imageUrl && s.imageUrl.includes('trimtimebucket') ? s.imageUrl : '');
     setServiceModal(true);
   };
 
@@ -292,6 +323,8 @@ export default function BarberDashboard() {
     formData.append('description', serviceDesc);
     if (serviceFile) {
       formData.append('image', serviceFile);
+    } else if (selectedDefaultImage) {
+      formData.append('defaultImageUrl', selectedDefaultImage);
     }
 
     try {
@@ -584,36 +617,56 @@ export default function BarberDashboard() {
             </button>
           </div>
 
+          {/* SERVICES CATEGORY SWEEP SWITCHER */}
+          <div className="flex overflow-x-auto gap-2 pb-4 scrollbar-none border-b">
+            {['All', 'Haircut', 'Beard', 'Facial', 'Hair Treatment', 'Hair Color', 'Others'].map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedDashboardCategory(cat)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                  selectedDashboardCategory === cat
+                    ? 'bg-accent-500 text-white shadow-sm scale-105'
+                    : 'bg-brand-100 hover:bg-brand-200 dark:bg-brand-800 dark:hover:bg-brand-700 text-brand-700 dark:text-brand-300'
+                }`}
+              >
+                {cat === 'All' ? '🌟 All Services' : cat}
+              </button>
+            ))}
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {hairstyles.length === 0 ? (
+            {hairstyles.filter((s) => selectedDashboardCategory === 'All' || s.category === selectedDashboardCategory).length === 0 ? (
               <div className="col-span-3 p-12 text-center text-xs text-brand-400 bg-white dark:bg-brand-900 rounded-3xl border">
-                No services added yet. Click "+ Add Service" to add male/female haircuts, facials, or hair treatments.
+                No services found in this category. Click "+ Add Service" to define new packages.
               </div>
             ) : (
-              hairstyles.map((s) => (
-                <div key={s.id} className="bg-white dark:bg-brand-900 p-5 rounded-3xl border shadow-sm space-y-3">
-                  {s.imageUrl && (
-                    <div className="w-full h-36 rounded-2xl overflow-hidden bg-brand-100">
-                      <img src={s.imageUrl} alt={s.name} className="w-full h-full object-cover" />
+              hairstyles
+                .filter((s) => selectedDashboardCategory === 'All' || s.category === selectedDashboardCategory)
+                .map((s) => (
+                  <div key={s.id} className="bg-white dark:bg-brand-900 p-5 rounded-3xl border shadow-sm space-y-3">
+                    {s.imageUrl && (
+                      <div className="w-full h-36 rounded-2xl overflow-hidden bg-brand-100">
+                        <img src={s.imageUrl} alt={s.name} className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <div className="flex justify-between items-start">
+                      <span className="px-2.5 py-0.5 bg-accent-100 text-accent-700 text-[10px] font-bold rounded-full uppercase">{s.category || 'Grooming'}</span>
+                      <span className="text-lg font-extrabold text-brand-900 dark:text-brand-50">₹{s.price}</span>
                     </div>
-                  )}
-                  <div className="flex justify-between items-start">
-                    <span className="px-2.5 py-0.5 bg-accent-100 text-accent-700 text-[10px] font-bold rounded-full uppercase">{s.category || 'Grooming'}</span>
-                    <span className="text-lg font-extrabold text-brand-900 dark:text-brand-50">₹{s.price}</span>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-brand-900 dark:text-brand-50">{s.name}</h4>
-                    <p className="text-xs text-brand-500 mt-0.5">{s.description}</p>
-                  </div>
-                  <div className="pt-2 border-t flex justify-between items-center text-xs">
-                    <span className="text-brand-400 font-semibold">{s.duration || 30} mins</span>
-                    <div className="flex gap-2">
-                      <button onClick={() => handleOpenEditService(s)} className="p-1.5 text-brand-600 hover:text-accent-500"><Edit className="w-4 h-4" /></button>
-                      <button onClick={() => handleDeleteService(s.id)} className="p-1.5 text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" /></button>
+                    <div>
+                      <h4 className="font-bold text-sm text-brand-900 dark:text-brand-50">{s.name}</h4>
+                      <p className="text-xs text-brand-500 mt-0.5">{s.description}</p>
+                    </div>
+                    <div className="pt-2 border-t flex justify-between items-center text-xs">
+                      <span className="text-brand-400 font-semibold">{s.duration || 30} mins</span>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleOpenEditService(s)} className="p-1.5 text-brand-600 hover:text-accent-500"><Edit className="w-4 h-4" /></button>
+                        <button onClick={() => handleDeleteService(s.id)} className="p-1.5 text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" /></button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                ))
             )}
           </div>
         </div>
@@ -832,11 +885,13 @@ export default function BarberDashboard() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block font-semibold mb-1">Category</label>
-                    <select value={serviceCategory} onChange={(e) => setServiceCategory(e.target.value)} className="w-full p-2.5 bg-brand-50 border rounded-xl">
+                    <select value={serviceCategory} onChange={(e) => setServiceCategory(e.target.value)} className="w-full p-2.5 bg-brand-50 border rounded-xl font-semibold">
                       <option value="Haircut">Male/Female Haircut</option>
                       <option value="Beard">Beard Styling</option>
                       <option value="Facial">Facial Treatment</option>
                       <option value="Hair Treatment">Hair Spa & Treatment</option>
+                      <option value="Hair Color">Hair Coloring & Highlights</option>
+                      <option value="Others">Other Grooming</option>
                     </select>
                   </div>
                   <div>
@@ -850,7 +905,45 @@ export default function BarberDashboard() {
                 </div>
                 <div>
                   <label className="block font-semibold mb-1">Service Photo (S3 Bucket Upload)</label>
-                  <input type="file" accept="image/*" onChange={(e) => setServiceFile(e.target.files[0])} className="w-full p-2 bg-brand-50 border rounded-xl" />
+                  <input type="file" accept="image/*" onChange={(e) => {
+                    setServiceFile(e.target.files[0]);
+                    setSelectedDefaultImage(''); // Clear predefined image on custom upload
+                  }} className="w-full p-2 bg-brand-50 border rounded-xl" />
+                </div>
+
+                {/* GALLERY SELECTION */}
+                <div className="space-y-1.5">
+                  <label className="block font-semibold">Or Select Pre-defined Gallery Photo:</label>
+                  <div className="grid grid-cols-4 gap-2 bg-brand-50 dark:bg-brand-950 p-2.5 rounded-2xl border">
+                    {(categoryDefaultImages[serviceCategory] || []).map((img, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setSelectedDefaultImage(img);
+                          setServiceFile(null); // Clear custom upload if picking pre-defined
+                        }}
+                        className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all ${
+                          selectedDefaultImage === img && !serviceFile
+                            ? 'border-accent-500 scale-105 shadow-sm'
+                            : 'border-transparent hover:scale-102 opacity-70 hover:opacity-100'
+                        }`}
+                      >
+                        <img src={img} alt={`${serviceCategory} default ${idx + 1}`} className="w-full h-full object-cover" />
+                        {selectedDefaultImage === img && !serviceFile && (
+                          <div className="absolute inset-0 bg-accent-500/10 flex items-center justify-center">
+                            <span className="bg-accent-500 text-white rounded-full p-0.5 text-[8px] font-bold">✓</span>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  {selectedDefaultImage && !serviceFile && (
+                    <p className="text-[10px] text-accent-500 font-bold">Selected gallery photo will be cloned on save.</p>
+                  )}
+                  {serviceFile && (
+                    <p className="text-[10px] text-amber-600 font-bold">Uploaded custom photo will take precedence.</p>
+                  )}
                 </div>
 
                 <button type="submit" className="w-full py-3 bg-accent-500 text-white font-bold rounded-xl shadow mt-2">

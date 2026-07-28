@@ -562,7 +562,11 @@ def add_hairstyle():
             return jsonify({'message': 'Name and price must be specified'}), 400
 
         image_file = request.files.get('image')
-        image_url = upload_to_s3(image_file, 'hairstyles') if image_file else ""
+        image_url = ""
+        if image_file:
+            image_url = upload_to_s3(image_file, 'hairstyles')
+        elif 'defaultImageUrl' in data:
+            image_url = data.get('defaultImageUrl', '')
 
         hairstyle_doc = {
             'barber_id': ObjectId(barber_id),
@@ -640,6 +644,8 @@ def update_hairstyle(hairstyle_id):
             image_file = request.files['image']
             if image_file and image_file.filename != '':
                 update_fields['image_url'] = upload_to_s3(image_file, 'hairstyles')
+        elif 'defaultImageUrl' in data:
+            update_fields['image_url'] = data.get('defaultImageUrl')
 
         if not update_fields:
             return jsonify({'message': 'No modifications received'}), 400
