@@ -306,12 +306,17 @@ export default function LandingPage() {
                   className="w-full pl-10 pr-4 py-3 bg-white/70 dark:bg-brand-900/70 border border-brand-200 dark:border-brand-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-accent-500 text-brand-700 dark:text-brand-300 appearance-none font-bold"
                 >
                   <option value="">All Services</option>
-                  <option value="Haircut">Male/Female Haircuts</option>
-                  <option value="Beard">Beard Trimming</option>
-                  <option value="Facial">Facials & Cleanup</option>
-                  <option value="Hair Treatment">Hair Spa & Treatments</option>
-                  <option value="Hair Color">Hair Coloring & Highlights</option>
-                  <option value="Others">Other Grooming</option>
+                  <option value="Men's Hair Services">Men's Hair Services</option>
+                  <option value="Women's Hair Services">Women's Hair Services</option>
+                  <option value="Kids Hair Services">Kids Hair Services</option>
+                  <option value="Men Grooming">Men's Grooming & Shaving</option>
+                  <option value="Skin & Facial">Skin & Facials</option>
+                  <option value="Makeup">Makeup & Styling</option>
+                  <option value="Nails">Nails & Manicure</option>
+                  <option value="Hair Removal">Waxing & Hair Removal</option>
+                  <option value="Spa">Spa & Head Massages</option>
+                  <option value="Eyebrows & Eyelashes">Eyebrows & Eyelashes</option>
+                  <option value="Bridal">Bridal Packages</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
                   <ChevronDown className="w-4 h-4" />
