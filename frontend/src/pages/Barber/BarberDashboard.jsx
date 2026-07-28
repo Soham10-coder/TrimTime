@@ -5,7 +5,7 @@ import MapLocationPicker from '../../components/MapLocationPicker';
 import { 
   Calendar, Clock, DollarSign, Users, Scissors, Star, ToggleLeft, ToggleRight, 
   Edit, Trash2, Plus, Settings, Sparkles, Check, X, ClipboardList, ShieldCheck, 
-  MapPin, ExternalLink, CheckCircle2, AlertCircle, Image as ImageIcon, UserCheck, Locate 
+  MapPin, ExternalLink, CheckCircle2, AlertCircle, Image as ImageIcon, UserCheck, Locate, Save, RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 const categoryDefaultImages = {
@@ -69,6 +69,28 @@ export default function BarberDashboard() {
   const [staffList, setStaffList] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Master Catalog Configuration states
+  const [catalogSettings, setCatalogSettings] = useState([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [cardEdits, setCardEdits] = useState({});
+
+  const handleFieldChange = (masterServiceId, field, value) => {
+    setCardEdits(prev => ({
+      ...prev,
+      [masterServiceId]: {
+        ...prev[masterServiceId],
+        [field]: value
+      }
+    }));
+  };
+
+  const getCardValue = (s, field) => {
+    if (cardEdits[s.masterServiceId] && cardEdits[s.masterServiceId][field] !== undefined) {
+      return cardEdits[s.masterServiceId][field];
+    }
+    return s[field];
+  };
+
   // In-Person OTP Validation states
   const [otpInput, setOtpInput] = useState('');
   const [otpSuccessMsg, setOtpSuccessMsg] = useState('');
@@ -117,7 +139,22 @@ export default function BarberDashboard() {
 
   useEffect(() => {
     fetchBarberDashboardData();
+    fetchCatalogSettings();
   }, []);
+
+  const fetchCatalogSettings = async () => {
+    setCatalogLoading(true);
+    try {
+      const res = await api.get('/barber/catalog-settings');
+      if (res.ok) {
+        setCatalogSettings(await res.json());
+      }
+    } catch (e) {
+      console.error("Failed to load catalog settings:", e);
+    } finally {
+      setCatalogLoading(false);
+    }
+  };
 
   const fetchBarberDashboardData = async () => {
     setLoading(true);
@@ -306,7 +343,33 @@ export default function BarberDashboard() {
     } catch (e) {
       alert("Error deleting staff member.");
     }
+  };  const handleToggleCatalogService = async (masterServiceId, enabled, price, duration, description, imageFile = null, clearCustomImage = false) => {
+    try {
+      const formData = new FormData();
+      formData.append('masterServiceId', masterServiceId);
+      formData.append('enabled', enabled ? 'true' : 'false');
+      if (price !== undefined && price !== null) formData.append('price', String(price));
+      if (duration !== undefined && duration !== null) formData.append('duration', String(duration));
+      if (description !== undefined && description !== null) formData.append('description', description);
+      if (imageFile) formData.append('image', imageFile);
+      if (clearCustomImage) formData.append('clearCustomImage', 'true');
+
+      const res = await api.post('/barber/hairstyles/toggle', formData);
+      if (res.ok) {
+        fetchCatalogSettings();
+        const hRes = await api.get(`/barber/hairstyles/${user.id}`);
+        if (hRes.ok) {
+          setHairstyles(await hRes.json());
+        }
+      } else {
+        const data = await res.json();
+        alert(data.message || "Failed to update service status");
+      }
+    } catch (e) {
+      console.error("Error toggling catalog service:", e);
+    }
   };
+
 
   const handleOpenAddService = () => {
     setEditingService(null);
@@ -628,19 +691,16 @@ export default function BarberDashboard() {
       {/* TAB 5: SERVICES CATALOG */}
       {activeTab === 'services' && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center bg-white dark:bg-brand-900 p-6 rounded-3xl border">
-            <div>
-              <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50">Services, Hairstyles & Facials Catalog</h3>
-              <p className="text-xs text-brand-500">Service photos are stored securely in AWS S3 buckets.</p>
-            </div>
-            <button onClick={handleOpenAddService} className="px-4 py-2 bg-accent-500 hover:bg-accent-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm">
-              <Plus className="w-4 h-4" /> Add Service
-            </button>
+          <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm">
+            <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50">Salon Services Catalog Settings</h3>
+            <p className="text-xs text-brand-500 mt-1">
+              Select which services your salon offers from the Master Catalog. Configure your custom pricing, optional durations, and description notes.
+            </p>
           </div>
 
           {/* SERVICES CATEGORY SWEEP SWITCHER */}
-          <div className="flex overflow-x-auto gap-2 pb-4 scrollbar-none border-b">
-            {['All', 'Haircut', 'Beard', 'Facial', 'Hair Treatment', 'Hair Color', 'Others'].map((cat) => (
+          <div className="flex overflow-x-auto gap-2 pb-4 scrollbar-none border-b border-brand-100">
+            {['All', ...new Set(catalogSettings.map(s => s.category).filter(Boolean))].map((cat) => (
               <button
                 key={cat}
                 type="button"
@@ -651,45 +711,185 @@ export default function BarberDashboard() {
                     : 'bg-brand-100 hover:bg-brand-200 dark:bg-brand-800 dark:hover:bg-brand-700 text-brand-700 dark:text-brand-300'
                 }`}
               >
-                {cat === 'All' ? '🌟 All Services' : cat}
+                {cat === 'All' ? '🌟 All Categories' : cat}
               </button>
             ))}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {hairstyles.filter((s) => selectedDashboardCategory === 'All' || s.category === selectedDashboardCategory).length === 0 ? (
-              <div className="col-span-3 p-12 text-center text-xs text-brand-400 bg-white dark:bg-brand-900 rounded-3xl border">
-                No services found in this category. Click "+ Add Service" to define new packages.
-              </div>
-            ) : (
-              hairstyles
+          {catalogLoading ? (
+            <div className="p-12 text-center text-xs text-brand-400">Loading catalog settings...</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {catalogSettings
                 .filter((s) => selectedDashboardCategory === 'All' || s.category === selectedDashboardCategory)
-                .map((s) => (
-                  <div key={s.id} className="bg-white dark:bg-brand-900 p-5 rounded-3xl border shadow-sm space-y-3">
-                    {s.imageUrl && (
-                      <div className="w-full h-36 rounded-2xl overflow-hidden bg-brand-100">
-                        <img src={s.imageUrl} alt={s.name} className="w-full h-full object-cover" />
+                .map((s) => {
+                  const localEnabled = getCardValue(s, 'enabled');
+                  const localPrice = getCardValue(s, 'price') ?? '';
+                  const localDuration = getCardValue(s, 'duration') ?? s.defaultDuration;
+                  const localDescription = getCardValue(s, 'description') ?? '';
+                  const localFile = cardEdits[s.masterServiceId]?.file;
+                  const localClearImg = cardEdits[s.masterServiceId]?.clearImg;
+                  const currentImage = localClearImg ? s.coverImage : (localFile ? URL.createObjectURL(localFile) : (s.customImageUrl || s.coverImage));
+                  
+                  const isModified = 
+                    localEnabled !== s.enabled ||
+                    String(localPrice) !== String(s.price ?? '') ||
+                    String(localDuration) !== String(s.duration ?? s.defaultDuration) ||
+                    localDescription !== (s.description ?? '') ||
+                    localFile !== undefined ||
+                    localClearImg !== undefined;
+
+                  return (
+                    <div
+                      key={s.masterServiceId}
+                      className={`bg-white dark:bg-brand-900 rounded-3xl border shadow-sm transition-all overflow-hidden flex flex-col justify-between ${
+                        localEnabled 
+                          ? 'border-accent-400 dark:border-accent-800 ring-1 ring-accent-400/20' 
+                          : 'opacity-75 grayscale border-brand-200 dark:border-brand-800'
+                      }`}
+                    >
+                      <div>
+                        {/* Service Card Image */}
+                        <div className="w-full h-40 relative bg-brand-100">
+                          <img src={currentImage} alt={s.name} className="w-full h-full object-cover" />
+                          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white uppercase tracking-wider">
+                            {s.category}
+                          </div>
+                          
+                          {/* Enable/Disable Toggle overlay */}
+                          <div className="absolute top-3 right-3 bg-white dark:bg-brand-950 px-2 py-1 rounded-xl shadow-lg border flex items-center gap-1.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={localEnabled}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                handleFieldChange(s.masterServiceId, 'enabled', checked);
+                                if (!checked && s.salonServiceId) {
+                                  handleToggleCatalogService(s.masterServiceId, false);
+                                }
+                              }}
+                              className="w-3.5 h-3.5 accent-accent-500 cursor-pointer"
+                            />
+                            <span className="text-[10px] font-extrabold text-brand-800 dark:text-brand-200 cursor-pointer">
+                              {localEnabled ? 'OFFERED' : 'DISABLED'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Title & Info */}
+                        <div className="p-5 space-y-4">
+                          <div>
+                            <h4 className="font-extrabold text-sm text-brand-900 dark:text-brand-50">{s.name}</h4>
+                            <p className="text-[11px] text-brand-400 font-medium">Standard Duration: {s.defaultDuration} mins</p>
+                          </div>
+
+                          {/* Configuration inputs - only active if enabled */}
+                          <div className={`space-y-3 transition-opacity ${localEnabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+                            {/* Price field */}
+                            <div>
+                              <label className="block text-[10px] font-bold text-brand-500 mb-1">YOUR PRICE (₹) *</label>
+                              <input
+                                type="number"
+                                required={localEnabled}
+                                placeholder="Enter custom price"
+                                value={localPrice}
+                                onChange={(e) => handleFieldChange(s.masterServiceId, 'price', e.target.value)}
+                                className="w-full px-3 py-2 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-xs font-bold text-brand-900 dark:text-brand-50 focus:ring-1 focus:ring-accent-500 outline-none"
+                              />
+                            </div>
+
+                            {/* Duration override */}
+                            <div>
+                              <label className="block text-[10px] font-bold text-brand-500 mb-1">DURATION OVERRIDE (MINUTES)</label>
+                              <input
+                                type="number"
+                                placeholder={`Default: ${s.defaultDuration} mins`}
+                                value={localDuration}
+                                onChange={(e) => handleFieldChange(s.masterServiceId, 'duration', e.target.value)}
+                                className="w-full px-3 py-2 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-xs font-semibold text-brand-900 dark:text-brand-50 focus:ring-1 focus:ring-accent-500 outline-none"
+                              />
+                            </div>
+
+                            {/* Description override */}
+                            <div>
+                              <label className="block text-[10px] font-bold text-brand-500 mb-1">CUSTOM DESCRIPTION NOTE</label>
+                              <textarea
+                                placeholder="Describe specific styling details or restrictions"
+                                rows={2}
+                                value={localDescription}
+                                onChange={(e) => handleFieldChange(s.masterServiceId, 'description', e.target.value)}
+                                className="w-full px-3 py-2 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-xs font-medium text-brand-900 dark:text-brand-50 focus:ring-1 focus:ring-accent-500 outline-none"
+                              />
+                            </div>
+
+                            {/* Custom Image Upload field */}
+                            <div>
+                              <label className="block text-[10px] font-bold text-brand-500 mb-1">CUSTOM PHOTO (OPTIONAL OVERRIDE)</label>
+                              <div className="flex gap-2 items-center">
+                                <label className="flex-1 px-3 py-2 border border-brand-200 dark:border-brand-800 rounded-xl text-center text-xs font-bold bg-brand-50 hover:bg-brand-100 cursor-pointer transition-all">
+                                  <ImageIcon className="w-3.5 h-3.5 inline mr-1 text-brand-500" />
+                                  {localFile ? localFile.name.substring(0, 15) + '...' : 'Upload Work Image'}
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      if (e.target.files?.[0]) {
+                                        handleFieldChange(s.masterServiceId, 'file', e.target.files[0]);
+                                        handleFieldChange(s.masterServiceId, 'clearImg', undefined);
+                                      }
+                                    }}
+                                  />
+                                </label>
+                                {(s.customImageUrl || localFile) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleFieldChange(s.masterServiceId, 'file', null);
+                                      handleFieldChange(s.masterServiceId, 'clearImg', true);
+                                    }}
+                                    className="px-2.5 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl border border-red-200/50"
+                                  >
+                                    Reset
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    )}
-                    <div className="flex justify-between items-start">
-                      <span className="px-2.5 py-0.5 bg-accent-100 text-accent-700 text-[10px] font-bold rounded-full uppercase">{s.category || 'Grooming'}</span>
-                      <span className="text-lg font-extrabold text-brand-900 dark:text-brand-50">₹{s.price}</span>
+
+                      {/* Card Action Footer */}
+                      {localEnabled && isModified && (
+                        <div className="p-4 border-t border-brand-100 bg-brand-50/50 dark:bg-brand-950/20">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!localPrice) {
+                                alert("Price is required to enable and configure this service!");
+                                return;
+                              }
+                              handleToggleCatalogService(
+                                s.masterServiceId,
+                                true,
+                                localPrice,
+                                localDuration,
+                                localDescription,
+                                localFile,
+                                localClearImg
+                              );
+                            }}
+                            className="w-full py-2.5 bg-accent-500 hover:bg-accent-600 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md shadow-accent-500/10 transition-all"
+                          >
+                            <Save className="w-3.5 h-3.5" /> Save Configuration
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <h4 className="font-bold text-sm text-brand-900 dark:text-brand-50">{s.name}</h4>
-                      <p className="text-xs text-brand-500 mt-0.5">{s.description}</p>
-                    </div>
-                    <div className="pt-2 border-t flex justify-between items-center text-xs">
-                      <span className="text-brand-400 font-semibold">{s.duration || 30} mins</span>
-                      <div className="flex gap-2">
-                        <button onClick={() => handleOpenEditService(s)} className="p-1.5 text-brand-600 hover:text-accent-500"><Edit className="w-4 h-4" /></button>
-                        <button onClick={() => handleDeleteService(s.id)} className="p-1.5 text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" /></button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-            )}
-          </div>
+                  );
+                })}
+            </div>
+          )}
         </div>
       )}
 

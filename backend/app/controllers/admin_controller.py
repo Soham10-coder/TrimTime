@@ -427,3 +427,73 @@ def send_reminders():
     except Exception as e:
         logger.error(f"Error sending reminders: {e}")
         return jsonify({'message': 'Internal Server Error'}), 500
+
+def get_master_services():
+    try:
+        from app.db import master_services_col
+        services = list(master_services_col.find({}))
+        for s in services:
+            s['id'] = str(s['_id'])
+            del s['_id']
+        return jsonify(services), 200
+    except Exception as e:
+        logger.error(f"Error getting master services: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500
+
+def create_master_service():
+    try:
+        from app.db import master_services_col
+        data = request.json or {}
+        name = data.get('name', '').strip()
+        category = data.get('category', '').strip()
+        default_duration = int(data.get('default_duration', 30))
+        icon = data.get('icon', 'Scissors').strip()
+        cover_image = data.get('cover_image', '').strip()
+
+        if not name or not category:
+            return jsonify({'message': 'Name and category are required'}), 400
+
+        doc = {
+            'name': name,
+            'category': category,
+            'default_duration': default_duration,
+            'icon': icon,
+            'cover_image': cover_image
+        }
+        master_services_col.insert_one(doc)
+        return jsonify({'message': 'Master service created successfully'}), 201
+    except Exception as e:
+        logger.error(f"Error creating master service: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500
+
+def update_master_service(service_id):
+    try:
+        from app.db import master_services_col
+        from bson import ObjectId
+        data = request.json or {}
+        
+        update_fields = {}
+        if 'name' in data: update_fields['name'] = data.get('name').strip()
+        if 'category' in data: update_fields['category'] = data.get('category').strip()
+        if 'default_duration' in data: update_fields['default_duration'] = int(data.get('default_duration'))
+        if 'icon' in data: update_fields['icon'] = data.get('icon').strip()
+        if 'cover_image' in data: update_fields['cover_image'] = data.get('cover_image').strip()
+
+        if not update_fields:
+            return jsonify({'message': 'No changes submitted'}), 400
+
+        master_services_col.update_one({'_id': ObjectId(service_id)}, {'$set': update_fields})
+        return jsonify({'message': 'Master service updated successfully'}), 200
+    except Exception as e:
+        logger.error(f"Error updating master service: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500
+
+def delete_master_service(service_id):
+    try:
+        from app.db import master_services_col
+        from bson import ObjectId
+        master_services_col.delete_one({'_id': ObjectId(service_id)})
+        return jsonify({'message': 'Master service deleted successfully'}), 200
+    except Exception as e:
+        logger.error(f"Error deleting master service: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500

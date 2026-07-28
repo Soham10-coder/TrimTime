@@ -31,6 +31,7 @@ export default function BookAppointment() {
   
   // Payment Gateway Modal State
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [createdBooking, setCreatedBooking] = useState(null);
   const [selectedCategoryTab, setSelectedCategoryTab] = useState('All');
   
   // States
@@ -118,7 +119,7 @@ export default function BookAppointment() {
     navigate('/login', { state: { from: { pathname: `/book/${barberId}` } } });
   };
 
-  const handleOpenPaymentModal = () => {
+  const handleOpenPaymentModal = async () => {
     if (!user) {
       navigate('/login', { state: { from: { pathname: `/book/${barberId}` } } });
       return;
@@ -127,10 +128,7 @@ export default function BookAppointment() {
       setError('Barber accounts cannot book appointments. Please log in with a Customer account.');
       return;
     }
-    setIsPaymentModalOpen(true);
-  };
 
-  const handleFinalizeBookingAfterPayment = async (paymentDetails) => {
     setCheckoutLoading(true);
     setError('');
 
@@ -142,9 +140,7 @@ export default function BookAppointment() {
         staffName: selectedStaff?.name || 'Senior Stylist',
         date: selectedDate,
         timeSlot: selectedSlot.time,
-        couponCode: appliedCoupon ? appliedCoupon.code : '',
-        paymentMethod: paymentDetails?.method || 'UPI',
-        transactionId: paymentDetails?.transactionId || `TXN_${Date.now()}`
+        couponCode: appliedCoupon ? appliedCoupon.code : ''
       };
       
       const res = await api.post('/booking/create', payload);
@@ -154,31 +150,36 @@ export default function BookAppointment() {
         throw new Error(data.message || 'Failed to initialize booking');
       }
 
-      const bookingData = data.booking;
-      
-      setBookingResult({
-        id: bookingData.bookingId,
-        checkInOtp: bookingData.checkInOtp,
-        staffName: bookingData.staffName,
-        price: bookingData.price,
-        platformFee: bookingData.platformFee,
-        totalAmount: bookingData.totalAmount,
-        date: bookingData.date,
-        timeSlot: bookingData.timeSlot,
-        qrCode: bookingData.qrCode || "",
-        transactionId: payload.transactionId,
-        paymentMethod: payload.paymentMethod
-      });
-      
-      setIsPaymentModalOpen(false);
-      confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+      setCreatedBooking(data);
+      setIsPaymentModalOpen(true);
       setCheckoutLoading(false);
 
     } catch (err) {
       setError(err.message);
-      setIsPaymentModalOpen(false);
       setCheckoutLoading(false);
     }
+  };
+
+  const handleFinalizeBookingAfterPayment = (paymentDetails) => {
+    if (!createdBooking) return;
+    const bookingData = createdBooking.booking;
+    
+    setBookingResult({
+      id: bookingData.bookingId,
+      checkInOtp: bookingData.checkInOtp,
+      staffName: bookingData.staffName,
+      price: bookingData.price,
+      platformFee: bookingData.platformFee,
+      totalAmount: bookingData.totalAmount,
+      date: bookingData.date,
+      timeSlot: bookingData.timeSlot,
+      qrCode: bookingData.qrCode || "",
+      transactionId: paymentDetails?.transactionId || `TXN_${Date.now()}`,
+      paymentMethod: paymentDetails?.method || 'ONLINE'
+    });
+    
+    setIsPaymentModalOpen(false);
+    confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
   };
 
   const getNextDays = () => {
@@ -401,7 +402,7 @@ export default function BookAppointment() {
 
           {/* SERVICE CATEGORY SECTIONS TABS */}
           <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-none border-b">
-            {['All', 'Haircut', 'Beard', 'Facial', 'Hair Treatment', 'Hair Color', 'Others'].map((cat) => (
+            {['All', ...new Set(hairstyles.map(hs => hs.category).filter(Boolean))].map((cat) => (
               <button
                 key={cat}
                 type="button"
@@ -579,12 +580,18 @@ export default function BookAppointment() {
       <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
-        bookingData={{
+        bookingData={createdBooking ? {
+          id: createdBooking.booking?.id,
           shopName: barber?.shopName,
           hairstyleName: selectedHairstyle?.name,
           date: selectedDate,
-          totalAmount: getTotalPayable()
-        }}
+          totalAmount: createdBooking.booking?.totalAmount,
+          isLivePayment: createdBooking.isLivePayment,
+          razorpayKeyId: createdBooking.razorpayKeyId,
+          razorpayOrderId: createdBooking.razorpayOrderId,
+          customerName: user?.name,
+          customerEmail: user?.email
+        } : null}
         onPaymentSuccess={handleFinalizeBookingAfterPayment}
       />
 

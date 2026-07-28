@@ -25,6 +25,7 @@ reviews_col = db['reviews']
 coupons_col = db['coupons']
 otps_col = db['otps']
 refresh_tokens_col = db['refresh_tokens']
+master_services_col = db['master_services']
 
 def hash_password(password):
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')

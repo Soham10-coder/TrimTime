@@ -4,7 +4,7 @@ from app.controllers.barber_controller import (
     update_staff_member, delete_staff_member,
     get_barbers, get_barber_profile, update_barber_profile,
     add_hairstyle, get_barber_hairstyles, update_hairstyle, delete_hairstyle,
-    rate_barber
+    rate_barber, get_barber_catalog_settings, toggle_barber_service
 )
 from app.middlewares.auth import token_required, require_role, auth_required
 
@@ -43,6 +43,13 @@ barber_bp.route('/hairstyles/<hairstyle_id>', methods=['PUT'])(
 )
 barber_bp.route('/hairstyles/<hairstyle_id>', methods=['DELETE'])(
     token_required(require_role('barber')(delete_hairstyle))
+)
+
+barber_bp.route('/catalog-settings', methods=['GET'])(
+    token_required(require_role('barber')(get_barber_catalog_settings))
+)
+barber_bp.route('/hairstyles/toggle', methods=['POST'])(
+    token_required(require_role('barber')(toggle_barber_service))
 )
 
 # Secured routes (Customer only)

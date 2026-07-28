@@ -5,11 +5,12 @@ import random
 import qrcode
 import io
 import base64
-from flask import request, jsonify, g
+from flask import request, jsonify, g, current_app
 from bson import ObjectId
 from app.db import bookings_col, barbers_col, hairstyles_col, users_col, coupons_col, payments_col
 from app.utils.email_utils import send_booking_confirmation, send_booking_cancellation
 from app.utils.razorpay_utils import create_razorpay_order
+from config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -219,6 +220,10 @@ def create_booking():
         qr_data = f"TrimTime Booking:{booking_short_id}|OTP:{check_in_otp}|Barber:{barber.get('shop_name')}|Service:{hairstyle.get('name')}"
         qr_base64 = generate_qr_code_base64(qr_data)
 
+        # Check if Razorpay is configured (disable live payment in unit tests)
+        import sys
+        is_live_payment = Config.is_razorpay_configured() and 'unittest' not in sys.modules
+
         booking_doc = {
             'booking_id': booking_short_id,
             'check_in_otp': check_in_otp,
@@ -237,61 +242,68 @@ def create_booking():
             'platform_fee_percent': platform_fee_rate,
             'platform_fee': platform_fee,
             'total_amount': total_amount,
-            'status': 'confirmed',
-            'payment_status': 'paid',
+            'status': 'pending' if is_live_payment else 'confirmed',
+            'payment_status': 'unpaid' if is_live_payment else 'paid',
             'qr_code': qr_base64,
             'created_at': datetime.datetime.utcnow()
         }
 
-        order_res = create_razorpay_order(total_amount, booking_short_id)
-        if order_res.get('success'):
-            booking_doc['razorpay_order_id'] = order_res.get('order_id')
-        
+        razorpay_order_id = None
+        if is_live_payment:
+            order_res = create_razorpay_order(total_amount, booking_short_id)
+            if order_res.get('success'):
+                razorpay_order_id = order_res.get('order_id')
+                booking_doc['razorpay_order_id'] = razorpay_order_id
+
         result = bookings_col.insert_one(booking_doc)
 
-        # Create a payment log inside payments_col so that refunds/history work properly
-        payment_doc = {
-            'booking_id': result.inserted_id,
-            'razorpay_order_id': booking_doc.get('razorpay_order_id'),
-            'razorpay_payment_id': f"pay_mock_{str(uuid.uuid4().int)[:10]}",
-            'razorpay_signature': 'simulated_payment_on_booking_creation',
-            'amount': total_amount,
-            'status': 'captured',
-            'method': data.get('paymentMethod', 'online'),
-            'created_at': datetime.datetime.utcnow()
-        }
-        payment_insert = payments_col.insert_one(payment_doc)
-
-        # Link payment log to booking
-        bookings_col.update_one(
-            {'_id': result.inserted_id},
-            {'$set': {'payment_id': payment_insert.inserted_id}}
-        )
-
-        # Award loyalty points (10% of service final price as points)
-        points_earned = int(service_final_price * 0.1)
-        users_col.update_one(
-            {'_id': ObjectId(customer_id)},
-            {'$inc': {'loyalty_points': points_earned}}
-        )
-
-        # Send booking confirmation email
-        try:
-            booking_details = {
-                'booking_id': booking_short_id,
-                'shop_name': barber.get('shop_name', 'TrimTime'),
-                'hairstyle_name': hairstyle.get('name', 'Service'),
-                'date': date_str,
-                'time': time_slot,
-                'duration': hairstyle.get('duration', 30),
-                'price': service_final_price
+        if not is_live_payment:
+            # Create a payment log inside payments_col so that refunds/history work properly
+            payment_doc = {
+                'booking_id': result.inserted_id,
+                'razorpay_order_id': f"order_mock_{str(uuid.uuid4().int)[:10]}",
+                'razorpay_payment_id': f"pay_mock_{str(uuid.uuid4().int)[:10]}",
+                'razorpay_signature': 'simulated_payment_on_booking_creation',
+                'amount': total_amount,
+                'status': 'captured',
+                'method': data.get('paymentMethod', 'online'),
+                'created_at': datetime.datetime.utcnow()
             }
-            send_booking_confirmation(customer_email, customer_name, booking_details)
-        except Exception as mail_err:
-            logger.error(f"Failed to send booking confirmation email: {mail_err}")
+            payment_insert = payments_col.insert_one(payment_doc)
+
+            # Link payment log to booking
+            bookings_col.update_one(
+                {'_id': result.inserted_id},
+                {'$set': {'payment_id': payment_insert.inserted_id}}
+            )
+
+            # Award loyalty points (10% of service final price as points)
+            points_earned = int(service_final_price * 0.1)
+            users_col.update_one(
+                {'_id': ObjectId(customer_id)},
+                {'$inc': {'loyalty_points': points_earned}}
+            )
+
+            # Send booking confirmation email
+            try:
+                booking_details = {
+                    'booking_id': booking_short_id,
+                    'shop_name': barber.get('shop_name', 'TrimTime'),
+                    'hairstyle_name': hairstyle.get('name', 'Service'),
+                    'date': date_str,
+                    'time': time_slot,
+                    'duration': hairstyle.get('duration', 30),
+                    'price': service_final_price
+                }
+                send_booking_confirmation(customer_email, customer_name, booking_details)
+            except Exception as mail_err:
+                logger.error(f"Failed to send booking confirmation email: {mail_err}")
 
         return jsonify({
-            'message': 'Booking confirmed successfully. Tell your 6-digit Check-In OTP to the salon upon arrival.',
+            'message': 'Booking initialized' if is_live_payment else 'Booking confirmed successfully. Tell your 6-digit Check-In OTP to the salon upon arrival.',
+            'isLivePayment': is_live_payment,
+            'razorpayKeyId': Config.RAZORPAY_KEY_ID if is_live_payment else None,
+            'razorpayOrderId': razorpay_order_id,
             'booking': {
                 'id': str(result.inserted_id),
                 'bookingId': booking_short_id,

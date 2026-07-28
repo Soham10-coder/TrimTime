@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../utils/api';
-import { ShieldCheck, Users, Store, DollarSign, ClipboardList, Check, X, Plus, AlertCircle, TrendingUp, Percent, FileText, Bell } from 'lucide-react';
+import { ShieldCheck, Users, Store, DollarSign, ClipboardList, Check, X, Plus, AlertCircle, TrendingUp, Percent, FileText, Bell, Scissors, Edit, Trash } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
@@ -24,8 +24,19 @@ export default function AdminDashboard() {
   const [couponSuccess, setCouponSuccess] = useState('');
   const [couponError, setCouponError] = useState('');
 
+  // Master Catalog States
+  const [masterServices, setMasterServices] = useState([]);
+  const [serviceModal, setServiceModal] = useState(false);
+  const [editingService, setEditingService] = useState(null);
+  const [serviceName, setServiceName] = useState('');
+  const [serviceCategory, setServiceCategory] = useState('Hair Services');
+  const [serviceDuration, setServiceDuration] = useState('30');
+  const [serviceIcon, setServiceIcon] = useState('Scissors');
+  const [serviceCover, setServiceCover] = useState('');
+
   useEffect(() => {
     fetchAdminData();
+    fetchMasterServices();
   }, []);
 
   const fetchAdminData = async () => {
@@ -71,6 +82,77 @@ export default function AdminDashboard() {
       }
     } catch (e) {
       alert("Toggle status failed.");
+    }
+  };
+
+  const fetchMasterServices = async () => {
+    try {
+      const res = await api.get('/admin/master-services');
+      if (res.ok) {
+        setMasterServices(await res.json());
+      }
+    } catch (e) {
+      console.error("Failed to fetch master services:", e);
+    }
+  };
+
+  const handleOpenAddMasterService = () => {
+    setEditingService(null);
+    setServiceName('');
+    setServiceCategory('Hair Services');
+    setServiceDuration('30');
+    setServiceIcon('Scissors');
+    setServiceCover('');
+    setServiceModal(true);
+  };
+
+  const handleOpenEditMasterService = (s) => {
+    setEditingService(s);
+    setServiceName(s.name);
+    setServiceCategory(s.category);
+    setServiceDuration(String(s.default_duration || 30));
+    setServiceIcon(s.icon || 'Scissors');
+    setServiceCover(s.cover_image || '');
+    setServiceModal(true);
+  };
+
+  const handleSaveMasterService = async (e) => {
+    e.preventDefault();
+    const payload = {
+      name: serviceName,
+      category: serviceCategory,
+      default_duration: parseInt(serviceDuration),
+      icon: serviceIcon,
+      cover_image: serviceCover
+    };
+    try {
+      let res;
+      if (editingService) {
+        res = await api.put(`/admin/master-services/${editingService.id}`, payload);
+      } else {
+        res = await api.post('/admin/master-services', payload);
+      }
+      if (res.ok) {
+        fetchMasterServices();
+        setServiceModal(false);
+      } else {
+        const data = await res.json();
+        alert(data.message || "Failed to save master service");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteMasterService = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this service from the master catalog?")) return;
+    try {
+      const res = await api.delete(`/admin/master-services/${id}`);
+      if (res.ok) {
+        fetchMasterServices();
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -274,6 +356,17 @@ export default function AdminDashboard() {
         >
           <Users className="w-4 h-4" />
           Users Moderation
+        </button>
+        <button
+          onClick={() => setActiveTab('catalog')}
+          className={`py-3.5 px-4 font-semibold text-sm border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'catalog' 
+              ? 'border-accent-500 text-accent-500 font-bold' 
+              : 'border-transparent text-brand-600 dark:text-brand-400 hover:text-accent-500'
+          }`}
+        >
+          <Scissors className="w-4 h-4" />
+          Master Catalog ({masterServices.length})
         </button>
       </div>
 
@@ -577,7 +670,163 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* PANEL 5: MASTER SERVICES CATALOG */}
+        {activeTab === 'catalog' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm">
+              <div>
+                <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50">Master Services Catalog</h3>
+                <p className="text-xs text-brand-500">Configure global services, categories, standard durations, and cover images.</p>
+              </div>
+              <button
+                onClick={handleOpenAddMasterService}
+                className="px-4 py-2.5 bg-accent-500 hover:bg-accent-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-accent-500/10 transition-all"
+              >
+                <Plus className="w-4 h-4" /> Add Master Service
+              </button>
+            </div>
+
+            <div className="bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 rounded-3xl p-6 shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-brand-100 dark:border-brand-800/60 text-xs font-bold uppercase text-brand-400">
+                      <th className="pb-3 pr-4">Image</th>
+                      <th className="pb-3 pr-4">Service Name</th>
+                      <th className="pb-3 pr-4">Category</th>
+                      <th className="pb-3 pr-4">Duration</th>
+                      <th className="pb-3 pr-4">Icon</th>
+                      <th className="pb-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-brand-100/50 dark:divide-brand-800/40 text-sm">
+                    {masterServices.map((s) => (
+                      <tr key={s.id} className="hover:bg-brand-50/30 dark:hover:bg-brand-800/10">
+                        <td className="py-3.5 pr-4">
+                          <img
+                            src={s.cover_image || s.coverImage || 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=60'}
+                            alt={s.name}
+                            className="w-12 h-8 rounded-lg object-cover border"
+                          />
+                        </td>
+                        <td className="py-3.5 pr-4 font-bold text-brand-900 dark:text-brand-50">{s.name}</td>
+                        <td className="py-3.5 pr-4">
+                          <span className="px-2 py-0.5 bg-brand-100 dark:bg-brand-800 text-brand-700 dark:text-brand-300 text-xs font-bold rounded-md">
+                            {s.category}
+                          </span>
+                        </td>
+                        <td className="py-3.5 pr-4 font-mono font-semibold text-brand-700 dark:text-brand-300">{s.default_duration || s.defaultDuration || 30} mins</td>
+                        <td className="py-3.5 pr-4 text-xs font-mono text-brand-400">{s.icon || 'Scissors'}</td>
+                        <td className="py-3.5 text-right space-x-2">
+                          <button
+                            onClick={() => handleOpenEditMasterService(s)}
+                            className="px-2.5 py-1 bg-brand-50 hover:bg-brand-100 dark:bg-brand-800 dark:hover:bg-brand-700 text-brand-700 dark:text-brand-200 rounded-lg text-xs font-semibold border transition-all inline-flex items-center gap-1"
+                          >
+                            <Edit className="w-3.5 h-3.5" /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMasterService(s.id)}
+                            className="px-2.5 py-1 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg text-xs font-semibold border border-red-200/30 transition-all inline-flex items-center gap-1"
+                          >
+                            <Trash className="w-3.5 h-3.5" /> Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
+
+      {/* MASTER SERVICE CATALOG MODAL */}
+      <AnimatePresence>
+        {serviceModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-brand-900 max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4">
+              <div className="flex justify-between items-center border-b pb-3">
+                <h3 className="font-bold text-base font-display">{editingService ? 'Edit Master Service' : 'Add Master Service'}</h3>
+                <button onClick={() => setServiceModal(false)}><X className="w-5 h-5 text-brand-400" /></button>
+              </div>
+
+              <form onSubmit={handleSaveMasterService} className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-semibold mb-1">Service Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={serviceName}
+                    onChange={(e) => setServiceName(e.target.value)}
+                    placeholder="e.g. Balayage / Gold Facial / Acrylic Nails"
+                    className="w-full p-2.5 bg-brand-50 border rounded-xl"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold mb-1">Category *</label>
+                    <select
+                      value={serviceCategory}
+                      onChange={(e) => setServiceCategory(e.target.value)}
+                      className="w-full p-2.5 bg-brand-50 border rounded-xl font-bold"
+                    >
+                      <option value="Hair Services">Hair Services</option>
+                      <option value="Skin & Facial">Skin & Facial</option>
+                      <option value="Makeup">Makeup</option>
+                      <option value="Nails">Nails</option>
+                      <option value="Hair Removal">Hair Removal</option>
+                      <option value="Men Grooming">Men Grooming</option>
+                      <option value="Spa">Spa</option>
+                      <option value="Eyebrows & Eyelashes">Eyebrows & Eyelashes</option>
+                      <option value="Bridal">Bridal</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-semibold mb-1">Default Duration (mins) *</label>
+                    <input
+                      type="number"
+                      required
+                      value={serviceDuration}
+                      onChange={(e) => setServiceDuration(e.target.value)}
+                      placeholder="30"
+                      className="w-full p-2.5 bg-brand-50 border rounded-xl"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold mb-1">Lucide Icon Name</label>
+                    <input
+                      type="text"
+                      value={serviceIcon}
+                      onChange={(e) => setServiceIcon(e.target.value)}
+                      placeholder="Scissors / Smile / Heart / Sparkles"
+                      className="w-full p-2.5 bg-brand-50 border rounded-xl font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold mb-1">Cover Image URL</label>
+                    <input
+                      type="text"
+                      value={serviceCover}
+                      onChange={(e) => setServiceCover(e.target.value)}
+                      placeholder="https://images.unsplash.com/..."
+                      className="w-full p-2.5 bg-brand-50 border rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className="w-full py-3 bg-accent-500 text-white font-bold rounded-xl shadow mt-2">
+                  {editingService ? 'Update Master Service' : 'Save Master Service'}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

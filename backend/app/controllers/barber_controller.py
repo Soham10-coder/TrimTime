@@ -449,6 +449,35 @@ def get_barber_profile(barber_id):
         platform_commission = round(gross_revenue * (platform_fee_percent / 100.0), 2)
         net_revenue = round(gross_revenue - platform_commission, 2)
 
+        # Fetch active hairstyles joined with master services details
+        salon_hairstyles = list(hairstyles_col.find({'barber_id': ObjectId(barber_id), 'enabled': {'$ne': False}}))
+        master_ids = [hs.get('master_service_id') for hs in salon_hairstyles if hs.get('master_service_id')]
+        from app.db import master_services_col
+        master_services = {str(ms['_id']): ms for ms in master_services_col.find({'_id': {'$in': master_ids}})}
+        
+        active_services = []
+        for hs in salon_hairstyles:
+            ms_id = hs.get('master_service_id')
+            ms = master_services.get(str(ms_id)) if ms_id else None
+            
+            name = ms.get('name') if ms else hs.get('name', 'Service')
+            category = ms.get('category') if ms else hs.get('category', 'Others')
+            default_duration = ms.get('default_duration', 30) if ms else 30
+            icon = ms.get('icon', 'Scissors') if ms else 'Scissors'
+            cover_image = ms.get('cover_image', '') if ms else ''
+            
+            active_services.append({
+                'id': str(hs['_id']),
+                'name': name,
+                'category': category,
+                'description': hs.get('description', ''),
+                'price': hs.get('price', 0),
+                'duration': hs.get('duration') if hs.get('duration') is not None else default_duration,
+                'imageUrl': hs.get('image_url') or cover_image,
+                'icon': icon,
+                'enabled': True
+            })
+
         profile = {
             'id': str(barber['_id']),
             'shopName': barber.get('shop_name', 'TrimTime Salon'),
@@ -477,7 +506,7 @@ def get_barber_profile(barber_id):
             'platformFeePercent': platform_fee_percent,
             'platformCommission': platform_commission,
             'netRevenue': net_revenue,
-            'services': barber.get('services_list') or barber.get('services') or default_services,
+            'services': active_services,
             'staff': barber.get('staff') if barber.get('staff') is not None else [],
             'reviews': formatted_reviews
         }
@@ -603,17 +632,33 @@ def get_barber_hairstyles(barber_id):
         if not ObjectId.is_valid(barber_id):
             return jsonify({'message': 'Invalid barber ID'}), 400
 
-        hairstyles = list(hairstyles_col.find({'barber_id': ObjectId(barber_id)}))
+        hairstyles = list(hairstyles_col.find({'barber_id': ObjectId(barber_id), 'enabled': {'$ne': False}}))
+        
+        master_ids = [hs.get('master_service_id') for hs in hairstyles if hs.get('master_service_id')]
+        from app.db import master_services_col
+        master_services = {str(ms['_id']): ms for ms in master_services_col.find({'_id': {'$in': master_ids}})}
+        
         results = []
         for hs in hairstyles:
+            ms_id = hs.get('master_service_id')
+            ms = master_services.get(str(ms_id)) if ms_id else None
+            
+            name = ms.get('name') if ms else hs.get('name', 'Service')
+            category = ms.get('category') if ms else hs.get('category', 'Others')
+            default_duration = ms.get('default_duration', 30) if ms else 30
+            icon = ms.get('icon', 'Scissors') if ms else 'Scissors'
+            cover_image = ms.get('cover_image', '') if ms else ''
+            
             results.append({
                 'id': str(hs['_id']),
-                'name': hs.get('name'),
-                'category': hs.get('category'),
-                'description': hs.get('description'),
-                'price': hs.get('price'),
-                'duration': hs.get('duration'),
-                'imageUrl': hs.get('image_url')
+                'name': name,
+                'category': category,
+                'description': hs.get('description', ''),
+                'price': hs.get('price', 0),
+                'duration': hs.get('duration') if hs.get('duration') is not None else default_duration,
+                'imageUrl': hs.get('image_url') or cover_image,
+                'icon': icon,
+                'enabled': True
             })
 
         return jsonify(results), 200
@@ -751,4 +796,140 @@ def rate_barber():
 
     except Exception as e:
         logger.error(f"Error rating barber: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500
+
+def get_barber_catalog_settings():
+    try:
+        barber_id = g.current_user_id
+        from app.db import master_services_col
+        from bson import ObjectId
+        
+        # 1. Fetch all master services
+        master_services = list(master_services_col.find({}))
+        
+        # 2. Fetch salon's current hairstyles/services config
+        salon_hairstyles = list(hairstyles_col.find({'barber_id': ObjectId(barber_id)}))
+        salon_config = {str(hs.get('master_service_id')): hs for hs in salon_hairstyles if hs.get('master_service_id')}
+        
+        results = []
+        for ms in master_services:
+            ms_id_str = str(ms['_id'])
+            config = salon_config.get(ms_id_str)
+            
+            results.append({
+                'masterServiceId': ms_id_str,
+                'name': ms.get('name'),
+                'category': ms.get('category'),
+                'defaultDuration': ms.get('default_duration', 30),
+                'coverImage': ms.get('cover_image', ''),
+                'icon': ms.get('icon', 'Scissors'),
+                'enabled': config.get('enabled', False) if config else False,
+                'price': config.get('price') if config else None,
+                'duration': config.get('duration') if config else None,
+                'description': config.get('description', '') if config else '',
+                'customImageUrl': config.get('image_url', '') if config else '',
+                'salonServiceId': str(config['_id']) if config else None
+            })
+            
+        return jsonify(results), 200
+    except Exception as e:
+        logger.error(f"Error getting catalog settings: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500
+
+def toggle_barber_service():
+    try:
+        barber_id = g.current_user_id
+        from app.db import master_services_col
+        from bson import ObjectId
+        import datetime
+        from app.utils.s3_utils import upload_to_s3
+        
+        # Support multipart form for file upload
+        data = request.form if request.form else request.json or {}
+        
+        master_service_id = data.get('masterServiceId')
+        enabled_val = data.get('enabled')
+        enabled = enabled_val in (True, 'true', '1')
+        
+        if not master_service_id:
+            return jsonify({'message': 'masterServiceId is required'}), 400
+            
+        master_service = master_services_col.find_one({'_id': ObjectId(master_service_id)})
+        if not master_service:
+            return jsonify({'message': 'Master service not found'}), 404
+            
+        # Find existing salon service document
+        existing = hairstyles_col.find_one({
+            'barber_id': ObjectId(barber_id),
+            'master_service_id': ObjectId(master_service_id)
+        })
+        
+        if not enabled:
+            if existing:
+                hairstyles_col.update_one(
+                    {'_id': existing['_id']},
+                    {'$set': {'enabled': False}}
+                )
+            return jsonify({'message': 'Service disabled successfully'}), 200
+            
+        price_val = data.get('price')
+        if price_val is None or price_val == '':
+            return jsonify({'message': 'Price is required to enable service'}), 400
+        price = float(price_val)
+        
+        duration = None
+        if data.get('duration'):
+            duration = int(data.get('duration'))
+            
+        description = data.get('description', '').strip()
+        
+        # Handle optional custom image upload override
+        image_file = request.files.get('image')
+        image_url = existing.get('image_url', '') if existing else ''
+        
+        if image_file and image_file.filename != '':
+            image_url = upload_to_s3(image_file, 'hairstyles')
+        elif data.get('clearCustomImage') in (True, 'true', '1'):
+            if image_url:
+                from app.utils.s3_utils import delete_from_s3
+                try:
+                    delete_from_s3(image_url)
+                except Exception as ex:
+                    logger.error(f"Failed to delete custom image from S3: {ex}")
+            image_url = ''
+            
+        service_fields = {
+            'enabled': True,
+            'price': price,
+            'duration': duration if duration is not None else master_service.get('default_duration', 30),
+            'description': description,
+            'image_url': image_url,
+            'name': master_service.get('name'),
+            'category': master_service.get('category')
+        }
+        
+        if existing:
+            hairstyles_col.update_one(
+                {'_id': existing['_id']},
+                {'$set': service_fields}
+            )
+            service_id = str(existing['_id'])
+        else:
+            new_doc = {
+                'barber_id': ObjectId(barber_id),
+                'master_service_id': ObjectId(master_service_id),
+                'created_at': datetime.datetime.utcnow(),
+                **service_fields
+            }
+            res = hairstyles_col.insert_one(new_doc)
+            service_id = str(res.inserted_id)
+            
+        return jsonify({
+            'message': 'Service enabled and saved successfully',
+            'salonServiceId': service_id,
+            'imageUrl': image_url or master_service.get('cover_image', '')
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error toggling barber service: {e}")
         return jsonify({'message': 'Internal Server Error'}), 500
