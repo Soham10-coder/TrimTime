@@ -31,6 +31,8 @@ export default function PaymentModal({ isOpen, onClose, bookingData, onPaymentSu
 
   if (!isOpen || !bookingData) return null;
 
+  console.log("PaymentModal bookingData:", bookingData);
+
   const handleRazorpayCheckout = async () => {
     setError('');
     setProcessing(true);
