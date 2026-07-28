@@ -67,3 +67,46 @@ def upload_to_s3(file_obj, folder='general'):
     except Exception as e:
         logger.error(f"Local file save error: {e}")
         return None
+
+def delete_from_s3(url):
+    """
+    Deletes the object at the given URL from AWS S3 or the local file system fallback.
+    """
+    if not url:
+        return False
+
+    # Check if S3 URL
+    if HAS_BOTO3 and AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and ".amazonaws.com/" in url:
+        try:
+            # Hostname format: https://bucket-name.s3.region.amazonaws.com/s3_key
+            parts = url.split('.amazonaws.com/')
+            if len(parts) > 1:
+                s3_key = parts[1]
+                s3_client = boto3.client(
+                    's3',
+                    aws_access_key_id=AWS_ACCESS_KEY_ID,
+                    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                    region_name=AWS_REGION
+                )
+                s3_client.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=s3_key)
+                logger.info(f"Successfully deleted {s3_key} from S3 bucket: {AWS_S3_BUCKET_NAME}")
+                return True
+        except Exception as e:
+            logger.error(f"Failed to delete S3 object: {e}")
+            return False
+
+    # Check if local fallback URL
+    elif url.startswith('/uploads/'):
+        try:
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            # Remove leading slash and construct file path
+            local_path = os.path.join(base_dir, url.lstrip('/'))
+            if os.path.exists(local_path):
+                os.remove(local_path)
+                logger.info(f"Successfully deleted local file: {local_path}")
+                return True
+        except Exception as e:
+            logger.error(f"Failed to delete local file: {e}")
+            return False
+
+    return False

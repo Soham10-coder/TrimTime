@@ -325,6 +325,12 @@ def delete_staff_member(staff_id):
         if not exists:
             return jsonify({'message': 'Staff member not found'}), 404
 
+        # Find the specific staff member to delete their S3 photo
+        staff_member = next((s for s in barber.get('staff', []) if s.get('id') == staff_id), None)
+        if staff_member and staff_member.get('photoUrl'):
+            from app.utils.s3_utils import delete_from_s3
+            delete_from_s3(staff_member.get('photoUrl'))
+
         barbers_col.update_one(
             {'_id': ObjectId(barber_id)},
             {'$pull': {'staff': {'id': staff_id}}}
@@ -651,10 +657,15 @@ def delete_hairstyle(hairstyle_id):
         if not ObjectId.is_valid(hairstyle_id):
             return jsonify({'message': 'Invalid hairstyle ID'}), 400
 
-        result = hairstyles_col.delete_one({'_id': ObjectId(hairstyle_id), 'barber_id': ObjectId(barber_id)})
-        if result.deleted_count == 0:
+        hairstyle = hairstyles_col.find_one({'_id': ObjectId(hairstyle_id), 'barber_id': ObjectId(barber_id)})
+        if not hairstyle:
             return jsonify({'message': 'Hairstyle service not found or unauthorized'}), 404
 
+        if hairstyle.get('image_url'):
+            from app.utils.s3_utils import delete_from_s3
+            delete_from_s3(hairstyle.get('image_url'))
+
+        hairstyles_col.delete_one({'_id': ObjectId(hairstyle_id)})
         return jsonify({'message': 'Hairstyle service deleted successfully'}), 200
 
     except Exception as e:

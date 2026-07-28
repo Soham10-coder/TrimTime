@@ -298,16 +298,46 @@ def remove_barber(barber_id):
         if not ObjectId.is_valid(barber_id):
             return jsonify({'message': 'Invalid barber ID'}), 400
 
-        result = barbers_col.delete_one({'_id': ObjectId(barber_id)})
-        if result.deleted_count == 0:
+        barber = barbers_col.find_one({'_id': ObjectId(barber_id)})
+        if not barber:
             return jsonify({'message': 'Barber profile not found'}), 404
 
-        # Cleanup hairstyles and bookings
+        # Extract S3/Local media files to clean up
+        from app.utils.s3_utils import delete_from_s3
         from app.db import hairstyles_col, bookings_col
+
+        # 1. Barber owner avatar, gallery photos, and business documents
+        if barber.get('profile_pic'):
+            delete_from_s3(barber.get('profile_pic'))
+        if barber.get('identity_proof_url'):
+            delete_from_s3(barber.get('identity_proof_url'))
+        if barber.get('business_proof_url'):
+            delete_from_s3(barber.get('business_proof_url'))
+        
+        shop_images = barber.get('shop_images', [])
+        if isinstance(shop_images, list):
+            for img in shop_images:
+                delete_from_s3(img)
+
+        # 2. Staff member photos
+        staff_list = barber.get('staff', [])
+        if isinstance(staff_list, list):
+            for staff in staff_list:
+                if staff.get('photoUrl'):
+                    delete_from_s3(staff.get('photoUrl'))
+
+        # 3. Hairstyles images
+        matching_hairstyles = list(hairstyles_col.find({'barber_id': ObjectId(barber_id)}))
+        for hs in matching_hairstyles:
+            if hs.get('image_url'):
+                delete_from_s3(hs.get('image_url'))
+
+        # Perform DB deletions
+        barbers_col.delete_one({'_id': ObjectId(barber_id)})
         hairstyles_col.delete_many({'barber_id': ObjectId(barber_id)})
         bookings_col.delete_many({'barber_id': ObjectId(barber_id)})
 
-        return jsonify({'message': 'Barber salon removed successfully'}), 200
+        return jsonify({'message': 'Barber salon removed successfully and all media cleaned up'}), 200
     except Exception as e:
         logger.error(f"Error removing barber: {e}")
         return jsonify({'message': 'Internal Server Error'}), 500
