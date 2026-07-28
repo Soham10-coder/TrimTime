@@ -12,27 +12,48 @@ const categoryDefaultImages = {
   Haircut: [
     'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=60',
     'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=500&auto=format&fit=crop&q=60',
-    'https://images.unsplash.com/photo-1599351431247-f9fd212fef01?w=500&auto=format&fit=crop&q=60'
+    'https://images.unsplash.com/photo-1599351431247-f9fd212fef01?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1605497746444-052d5b3834ec?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1517832606589-7a598bab60af?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1501696461415-6bd0860ab749?w=500&auto=format&fit=crop&q=60'
   ],
   Beard: [
     'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=500&auto=format&fit=crop&q=60',
-    'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=60'
+    'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1517832606589-7a598bab60af?w=500&auto=format&fit=crop&q=60'
   ],
   Facial: [
     'https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=500&auto=format&fit=crop&q=60',
-    'https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=500&auto=format&fit=crop&q=60'
+    'https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?w=500&auto=format&fit=crop&q=60'
   ],
   'Hair Treatment': [
     'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500&auto=format&fit=crop&q=60',
-    'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=500&auto=format&fit=crop&q=60'
+    'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1488866022504-f2584929ca5f?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=500&auto=format&fit=crop&q=60'
   ],
   'Hair Color': [
     'https://images.unsplash.com/photo-1605497746444-052d5b3834ec?w=500&auto=format&fit=crop&q=60',
-    'https://images.unsplash.com/photo-1620331789556-99222c954593?w=500&auto=format&fit=crop&q=60'
+    'https://images.unsplash.com/photo-1620331789556-99222c954593?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1582095133179-bfd08e2fc6b3?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1488866022504-f2584929ca5f?w=500&auto=format&fit=crop&q=60'
   ],
   Others: [
     'https://images.unsplash.com/photo-1517832606589-7a598bab60af?w=500&auto=format&fit=crop&q=60',
-    'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=500&auto=format&fit=crop&q=60'
+    'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=60'
   ]
 };
 
