@@ -10,29 +10,29 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 const categoryDefaultImages = {
   Haircut: [
-    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/haircut1.jpg',
-    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/haircut2.jpg',
-    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/haircut3.jpg'
+    'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1599351431247-f9fd212fef01?w=500&auto=format&fit=crop&q=60'
   ],
   Beard: [
-    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/beard1.jpg',
-    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/beard2.jpg'
+    'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=60'
   ],
   Facial: [
-    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/facial1.jpg',
-    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/facial2.jpg'
+    'https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=500&auto=format&fit=crop&q=60'
   ],
   'Hair Treatment': [
-    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/treatment1.jpg',
-    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/treatment2.jpg'
+    'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=500&auto=format&fit=crop&q=60'
   ],
   'Hair Color': [
-    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/color1.jpg',
-    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/color2.jpg'
+    'https://images.unsplash.com/photo-1605497746444-052d5b3834ec?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1620331789556-99222c954593?w=500&auto=format&fit=crop&q=60'
   ],
   Others: [
-    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/other1.jpg',
-    'https://trimtimebucket.s3.us-east-2.amazonaws.com/hairstyles/other2.jpg'
+    'https://images.unsplash.com/photo-1517832606589-7a598bab60af?w=500&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=500&auto=format&fit=crop&q=60'
   ]
 };
 
