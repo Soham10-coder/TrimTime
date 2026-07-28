@@ -23,7 +23,7 @@ def get_pending_barbers():
                 'experience': p.get('experience'),
                 'profilePic': p.get('profile_pic'),
                 'shopImages': p.get('shop_images', []),
-                'aadhaarPan': p.get('aadhaar_pan'),
+                'aadhaarPan': p.get('identity_proof_url') or p.get('aadhaar_pan'),
                 'gst': p.get('gst'),
                 'createdAt': p.get('created_at').strftime('%Y-%m-%d') if p.get('created_at') else None
             })
