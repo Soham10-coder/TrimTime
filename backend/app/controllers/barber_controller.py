@@ -100,6 +100,7 @@ def register_barber():
             'rating_count': 12,
             'holiday_mode': False,
             'platform_fee_percent': 10.0,
+            'staff': [],
             'created_at': now
         }
 
@@ -477,7 +478,7 @@ def get_barber_profile(barber_id):
             'platformCommission': platform_commission,
             'netRevenue': net_revenue,
             'services': barber.get('services_list') or barber.get('services') or default_services,
-            'staff': barber.get('staff') or default_staff,
+            'staff': barber.get('staff') if barber.get('staff') is not None else [],
             'reviews': formatted_reviews
         }
 
