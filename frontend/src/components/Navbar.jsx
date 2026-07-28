@@ -7,22 +7,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function Navbar() {
   const { user, logout } = useContext(AuthContext);
   const [isOpen, setIsOpen] = useState(false);
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+  const theme = 'light';
   const navigate = useNavigate();
 
   useEffect(() => {
     const root = window.document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
-  };
+    root.classList.remove('dark');
+    localStorage.setItem('theme', 'light');
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -76,13 +68,7 @@ export default function Navbar() {
 
           {/* Action Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            {/* Theme Toggle */}
-            <button 
-              onClick={toggleTheme}
-              className="p-2 rounded-lg text-brand-500 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-800 transition-colors"
-            >
-              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-            </button>
+
 
             {user ? (
               <div className="flex items-center space-x-4">
@@ -109,13 +95,7 @@ export default function Navbar() {
 
           {/* Mobile Menu Toggle */}
           <div className="flex items-center space-x-2 md:hidden">
-            <button 
-              onClick={toggleTheme}
-              className="p-2 rounded-lg text-brand-500 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-800 transition-colors"
-            >
-              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-            </button>
-            
+
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="p-2 rounded-lg text-brand-600 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-800 transition-colors"
