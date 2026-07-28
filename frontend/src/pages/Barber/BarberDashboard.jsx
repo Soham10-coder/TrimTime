@@ -316,7 +316,7 @@ export default function BarberDashboard() {
     setServiceDuration('30');
     setServiceDesc('');
     setServiceFile(null);
-    setSelectedDefaultImage('');
+    setSelectedDefaultImage(categoryDefaultImages['Haircut']?.[0] || '');
     setServiceModal(true);
   };
 
@@ -923,7 +923,11 @@ export default function BarberDashboard() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block font-semibold mb-1">Category</label>
-                    <select value={serviceCategory} onChange={(e) => setServiceCategory(e.target.value)} className="w-full p-2.5 bg-brand-50 border rounded-xl font-semibold">
+                    <select value={serviceCategory} onChange={(e) => {
+                      const newCat = e.target.value;
+                      setServiceCategory(newCat);
+                      setSelectedDefaultImage(categoryDefaultImages[newCat]?.[0] || '');
+                    }} className="w-full p-2.5 bg-brand-50 border rounded-xl font-semibold font-display">
                       <option value="Haircut">Male/Female Haircut</option>
                       <option value="Beard">Beard Styling</option>
                       <option value="Facial">Facial Treatment</option>
