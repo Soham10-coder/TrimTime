@@ -148,6 +148,7 @@ export default function LandingPage() {
   const [showMapView, setShowMapView] = useState(true);
   const [userCoords, setUserCoords] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showGuide, setShowGuide] = useState(true);
   
   const navigate = useNavigate();
 
@@ -230,13 +231,26 @@ export default function LandingPage() {
           <span className="px-4 py-1.5 bg-accent-100 dark:bg-accent-950 text-accent-700 dark:text-accent-400 text-xs font-bold rounded-full uppercase tracking-wider">
             Barber Booking, Reimagined
           </span>
-          <h1 className="mt-6 font-display text-4xl sm:text-6xl font-extrabold text-brand-900 dark:text-brand-50 leading-tight tracking-tight">
-            Grooming On Your Schedule. <br/>
-            Book In <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-600 to-accent-500">Trim Time</span>.
-          </h1>
-          <p className="mt-6 text-lg sm:text-xl text-brand-600 dark:text-brand-300 max-w-2xl mx-auto leading-relaxed">
-            Discover top-rated local barbers, select specialized hairstyles, check real-time dynamic schedules, and confirm bookings instantly.
-          </p>
+          {user ? (
+            <h1 className="mt-6 font-display text-2xl sm:text-3.5xl font-bold text-brand-900 dark:text-brand-50">
+              Welcome back to <span className="text-accent-500">TrimTime</span>
+            </h1>
+          ) : (
+            <h1 className="mt-6 font-display text-4xl sm:text-6xl font-extrabold text-brand-900 dark:text-brand-50 leading-tight tracking-tight">
+              Grooming On Your Schedule. <br/>
+              Book In <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-600 to-accent-500">Trim Time</span>.
+            </h1>
+          )}
+
+          {user ? (
+            <p className="mt-2 text-sm text-brand-500 dark:text-brand-400 max-w-lg mx-auto">
+              Your personalized hub to manage styling sessions, appointments, and salon schedules.
+            </p>
+          ) : (
+            <p className="mt-6 text-lg sm:text-xl text-brand-600 dark:text-brand-300 max-w-2xl mx-auto leading-relaxed">
+              Discover top-rated local barbers, select specialized hairstyles, check real-time dynamic schedules, and confirm bookings instantly.
+            </p>
+          )}
 
           {!user ? (
             <div className="mt-10 flex flex-wrap justify-center gap-4">
@@ -266,11 +280,19 @@ export default function LandingPage() {
 
               {/* POST-LOGIN INTERACTIVE STEP GUIDES */}
               <div className="text-left bg-white/60 dark:bg-brand-900/60 backdrop-blur border border-brand-200 dark:border-brand-800 p-6 sm:p-8 rounded-3xl space-y-6">
-                <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-accent-500" /> Welcome back, {user.name}! Here's how to proceed:
-                </h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-accent-500" /> {user.role === 'barber' ? 'Salon Guide' : user.role === 'admin' ? 'Admin Guide' : 'Customer Guide'}
+                  </h3>
+                  <button 
+                    onClick={() => setShowGuide(!showGuide)}
+                    className="text-xs bg-brand-100 hover:bg-brand-200 dark:bg-brand-800 dark:hover:bg-brand-700 text-brand-700 dark:text-brand-300 font-bold px-3 py-1.5 rounded-xl transition-all"
+                  >
+                    {showGuide ? "Hide Guide" : "Show Guide"}
+                  </button>
+                </div>
 
-                {user.role === 'customer' && (
+                {showGuide && user.role === 'customer' && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
                     <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-1">
                       <span className="text-accent-500 font-extrabold block text-sm">1. Find a Barber Shop</span>
@@ -291,7 +313,7 @@ export default function LandingPage() {
                   </div>
                 )}
 
-                {user.role === 'barber' && (
+                {showGuide && user.role === 'barber' && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
                     <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-1">
                       <span className="text-accent-500 font-extrabold block text-sm">1. Configure Your Services</span>
@@ -312,7 +334,7 @@ export default function LandingPage() {
                   </div>
                 )}
 
-                {user.role === 'admin' && (
+                {showGuide && user.role === 'admin' && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
                     <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-1">
                       <span className="text-accent-500 font-extrabold block text-sm">1. Approve Barber Salons</span>
