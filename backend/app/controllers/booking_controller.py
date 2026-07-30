@@ -122,18 +122,27 @@ def get_available_slots():
         if not barber_id or not date_str or not hairstyle_id:
             return jsonify({'message': 'BarberId, date (YYYY-MM-DD), and hairstyleId are required'}), 400
 
-        if not ObjectId.is_valid(barber_id) or not ObjectId.is_valid(hairstyle_id):
-            return jsonify({'message': 'Invalid ID formats'}), 400
+        if not ObjectId.is_valid(barber_id):
+            return jsonify({'message': 'Invalid barber ID format'}), 400
+
+        # Support multiple comma-separated hairstyle IDs
+        hairstyle_ids = [i.strip() for i in hairstyle_id.split(',') if i.strip()]
+        for h_id in hairstyle_ids:
+            if not ObjectId.is_valid(h_id):
+                return jsonify({'message': 'Invalid hairstyle ID format'}), 400
 
         barber = barbers_col.find_one({'_id': ObjectId(barber_id)})
         if not barber:
             return jsonify({'message': 'Barber shop not found'}), 404
 
-        hairstyle = hairstyles_col.find_one({'_id': ObjectId(hairstyle_id)})
-        if not hairstyle:
-            return jsonify({'message': 'Hairstyle service not found'}), 404
+        # Retrieve all hairstyles and calculate total duration
+        hairstyles = list(hairstyles_col.find({'_id': {'$in': [ObjectId(h_id) for h_id in hairstyle_ids]}}))
+        if not hairstyles:
+            return jsonify({'message': 'No hairstyle services found'}), 404
 
-        slots = generate_slots_for_barber(barber, date_str, hairstyle.get('duration', 30), staff_id)
+        total_duration = sum([h.get('duration', 30) for h in hairstyles])
+
+        slots = generate_slots_for_barber(barber, date_str, total_duration, staff_id)
         return jsonify(slots), 200
 
     except Exception as e:
@@ -176,24 +185,34 @@ def create_booking():
         if not all([barber_id, hairstyle_id, date_str, time_slot]):
             return jsonify({'message': 'Required booking inputs are missing'}), 400
 
-        if not ObjectId.is_valid(barber_id) or not ObjectId.is_valid(hairstyle_id):
-            return jsonify({'message': 'Invalid parameters format'}), 400
+        if not ObjectId.is_valid(barber_id):
+            return jsonify({'message': 'Invalid barber parameters format'}), 400
+
+        # Support multiple comma-separated hairstyle IDs
+        hairstyle_ids = [i.strip() for i in hairstyle_id.split(',') if i.strip()]
+        for h_id in hairstyle_ids:
+            if not ObjectId.is_valid(h_id):
+                return jsonify({'message': 'Invalid service parameters format'}), 400
 
         barber = barbers_col.find_one({'_id': ObjectId(barber_id)})
         if not barber or not barber.get('verified', False) or barber.get('status') != 'active':
             return jsonify({'message': 'Barber shop is currently unavailable'}), 404
 
-        hairstyle = hairstyles_col.find_one({'_id': ObjectId(hairstyle_id)})
-        if not hairstyle:
-            return jsonify({'message': 'Selected service not found'}), 404
+        # Retrieve all hairstyles
+        hairstyles = list(hairstyles_col.find({'_id': {'$in': [ObjectId(h_id) for h_id in hairstyle_ids]}}))
+        if not hairstyles:
+            return jsonify({'message': 'Selected services not found'}), 404
 
-        # Validate Slot Availability
-        available_slots = generate_slots_for_barber(barber, date_str, hairstyle.get('duration', 30), staff_id)
+        total_duration = sum([h.get('duration', 30) for h in hairstyles])
+        original_price = sum([float(h.get('price', 0)) for h in hairstyles])
+        service_names = ", ".join([h.get('name') for h in hairstyles])
+
+        # Validate Slot Availability using total duration of all selected services
+        available_slots = generate_slots_for_barber(barber, date_str, total_duration, staff_id)
         slot_is_free = any(slot['time'] == time_slot for slot in available_slots)
         if not slot_is_free:
             return jsonify({'message': 'The requested time slot is no longer available'}), 409
 
-        original_price = float(hairstyle.get('price', 0))
         discount = 0.0
         service_final_price = original_price
 
@@ -217,7 +236,7 @@ def create_booking():
         check_in_otp = str(random.randint(100000, 999999))
         booking_short_id = f"TT-{str(uuid.uuid4().int)[:6]}"
         
-        qr_data = f"TrimTime Booking:{booking_short_id}|OTP:{check_in_otp}|Barber:{barber.get('shop_name')}|Service:{hairstyle.get('name')}"
+        qr_data = f"TrimTime Booking:{booking_short_id}|OTP:{check_in_otp}|Barber:{barber.get('shop_name')}|Services:{service_names}"
         qr_base64 = generate_qr_code_base64(qr_data)
 
         # Check if Razorpay is configured (disable live payment in unit tests)
@@ -231,7 +250,15 @@ def create_booking():
             'customer_name': customer_name,
             'customer_email': customer_email,
             'barber_id': ObjectId(barber_id),
-            'hairstyle_id': ObjectId(hairstyle_id),
+            'hairstyle_id': ObjectId(hairstyle_ids[0]), # first service for backward compatibility
+            'services': [
+                {
+                    'id': str(h['_id']),
+                    'name': h.get('name'),
+                    'price': float(h.get('price', 0)),
+                    'duration': h.get('duration', 30)
+                } for h in hairstyles
+            ],
             'staff_id': staff_id,
             'staff_name': staff_name,
             'date': date_str,
@@ -289,10 +316,10 @@ def create_booking():
                 booking_details = {
                     'booking_id': booking_short_id,
                     'shop_name': barber.get('shop_name', 'TrimTime'),
-                    'hairstyle_name': hairstyle.get('name', 'Service'),
+                    'hairstyle_name': service_names,
                     'date': date_str,
                     'time': time_slot,
-                    'duration': hairstyle.get('duration', 30),
+                    'duration': total_duration,
                     'price': service_final_price
                 }
                 send_booking_confirmation(customer_email, customer_name, booking_details)

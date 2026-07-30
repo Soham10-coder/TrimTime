@@ -22,7 +22,7 @@ export default function BookAppointment() {
   
   // Selection States
   const [selectedStaff, setSelectedStaff] = useState(null);
-  const [selectedHairstyle, setSelectedHairstyle] = useState(null);
+  const [selectedHairstyles, setSelectedHairstyles] = useState([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [slots, setSlots] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -76,11 +76,12 @@ export default function BookAppointment() {
   };
 
   const fetchSlots = async (date, staff) => {
-    if (!selectedHairstyle) return;
+    if (selectedHairstyles.length === 0) return;
     setSlotsLoading(true);
     try {
       const staffParam = staff ? `&staffId=${staff.id || staff.name}` : '';
-      const res = await api.get(`/booking/slots?barberId=${barberId}&date=${date}&hairstyleId=${selectedHairstyle.id}${staffParam}`);
+      const serviceIds = selectedHairstyles.map(h => h.id).join(',');
+      const res = await api.get(`/booking/slots?barberId=${barberId}&date=${date}&hairstyleId=${serviceIds}${staffParam}`);
       if (res.ok) {
         setSlots(await res.json());
       }
@@ -96,10 +97,16 @@ export default function BookAppointment() {
     setStep(2);
   };
 
-  const handleHairstyleSelect = (hs) => {
-    setSelectedHairstyle(hs);
+  const handleHairstyleToggle = (hs) => {
+    setSelectedHairstyles(prev => {
+      const exists = prev.some(item => item.id === hs.id);
+      if (exists) {
+        return prev.filter(item => item.id !== hs.id);
+      } else {
+        return [...prev, hs];
+      }
+    });
     setSelectedSlot(null);
-    setStep(3);
   };
 
   const handleDateSelect = (dateStr) => {
@@ -135,7 +142,7 @@ export default function BookAppointment() {
     try {
       const payload = {
         barberId,
-        hairstyleId: selectedHairstyle.id,
+        hairstyleId: selectedHairstyles.map(h => h.id).join(','),
         staffId: selectedStaff?.id || selectedStaff?.name || '1',
         staffName: selectedStaff?.name || 'Senior Stylist',
         date: selectedDate,
@@ -214,8 +221,8 @@ export default function BookAppointment() {
   };
 
   const getServicePrice = () => {
-    if (!selectedHairstyle) return 0;
-    return selectedHairstyle.price;
+    if (selectedHairstyles.length === 0) return 0;
+    return selectedHairstyles.reduce((total, hs) => total + parseFloat(hs.price || 0), 0);
   };
 
   const getPlatformFee = () => {
@@ -288,7 +295,7 @@ export default function BookAppointment() {
               <span>Assigned Stylist:</span> <span className="text-accent-600 font-bold">{bookingResult.staffName}</span>
             </p>
             <p className="flex justify-between text-brand-600 dark:text-brand-400">
-              <span>Service:</span> <span className="text-brand-900 dark:text-brand-50 font-bold">{selectedHairstyle?.name}</span>
+              <span>Services:</span> <span className="text-brand-900 dark:text-brand-50 font-bold">{selectedHairstyles.map(h => h.name).join(', ')}</span>
             </p>
             <p className="flex justify-between text-brand-600 dark:text-brand-400">
               <span>Date & Time:</span> <span className="text-brand-900 dark:text-brand-50 font-mono font-bold">{bookingResult.date} at {bookingResult.timeSlot}</span>
@@ -421,31 +428,51 @@ export default function BookAppointment() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {hairstyles
               .filter((hs) => selectedCategoryTab === 'All' || hs.category === selectedCategoryTab)
-              .map((hs) => (
-                <div 
-                  key={hs.id}
-                onClick={() => handleHairstyleSelect(hs)}
-                className={`p-5 bg-white dark:bg-brand-900 border-2 rounded-3xl cursor-pointer transition-all space-y-2 ${
-                  selectedHairstyle?.id === hs.id ? 'border-accent-500 ring-2 ring-accent-500/20' : 'hover:border-brand-300'
-                }`}
-              >
-                {hs.imageUrl && (
-                  <div className="w-full h-32 rounded-2xl overflow-hidden bg-brand-100 mb-2">
-                    <img src={hs.imageUrl} alt={hs.name} className="w-full h-full object-cover" />
+              .map((hs) => {
+                const isSelected = selectedHairstyles.some(item => item.id === hs.id);
+                return (
+                  <div 
+                    key={hs.id}
+                    onClick={() => handleHairstyleToggle(hs)}
+                    className={`p-5 bg-white dark:bg-brand-900 border-2 rounded-3xl cursor-pointer transition-all space-y-2 relative overflow-hidden ${
+                      isSelected ? 'border-accent-500 ring-2 ring-accent-500/20 bg-accent-50/10' : 'hover:border-brand-300'
+                    }`}
+                  >
+                    {isSelected && (
+                      <div className="absolute top-2 right-2 bg-accent-500 text-white p-1 rounded-full shadow-sm">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </div>
+                    )}
+                    {hs.imageUrl && (
+                      <div className="w-full h-32 rounded-2xl overflow-hidden bg-brand-100 mb-2">
+                        <img src={hs.imageUrl} alt={hs.name} className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <div className="flex justify-between items-start">
+                      <span className="px-2.5 py-0.5 bg-accent-100 text-accent-700 text-[10px] font-bold rounded-full uppercase">{hs.category || 'Grooming'}</span>
+                      <span className="text-lg font-extrabold text-brand-900 dark:text-brand-50">₹{hs.price}</span>
+                    </div>
+                    <h3 className="font-bold text-sm text-brand-900 dark:text-brand-50">{hs.name}</h3>
+                    <p className="text-xs text-brand-500">{hs.description}</p>
+                    <div className="pt-2 border-t text-[11px] text-brand-400 font-semibold flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5" /> {hs.duration || 30} mins
+                    </div>
                   </div>
-                )}
-                <div className="flex justify-between items-start">
-                  <span className="px-2.5 py-0.5 bg-accent-100 text-accent-700 text-[10px] font-bold rounded-full uppercase">{hs.category || 'Grooming'}</span>
-                  <span className="text-lg font-extrabold text-brand-900 dark:text-brand-50">₹{hs.price}</span>
-                </div>
-                <h3 className="font-bold text-sm text-brand-900 dark:text-brand-50">{hs.name}</h3>
-                <p className="text-xs text-brand-500">{hs.description}</p>
-                <div className="pt-2 border-t text-[11px] text-brand-400 font-semibold flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" /> {hs.duration || 30} mins
-                </div>
-              </div>
-            ))}
+                );
+              })}
           </div>
+
+          {selectedHairstyles.length > 0 && (
+            <div className="mt-8 flex justify-center">
+              <button
+                onClick={() => setStep(3)}
+                className="px-8 py-3.5 bg-accent-500 hover:bg-accent-600 text-white font-extrabold rounded-2xl text-xs shadow-lg flex items-center gap-2 transform active:scale-95 transition-all"
+              >
+                <span>Continue with {selectedHairstyles.length} Services Selected (Total: ₹{getServicePrice()})</span>
+                <ArrowRight className="w-4 h-4 animate-pulse" />
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -542,8 +569,15 @@ export default function BookAppointment() {
             <div className="flex justify-between text-brand-600 dark:text-brand-400 font-semibold">
               <span>Barber Stylist:</span> <span className="text-brand-900 dark:text-brand-50 font-bold">{selectedStaff?.name || 'Senior Stylist'}</span>
             </div>
-            <div className="flex justify-between text-brand-600 dark:text-brand-400 font-semibold">
-              <span>Service:</span> <span className="text-brand-900 dark:text-brand-50 font-bold">{selectedHairstyle?.name}</span>
+            <div className="flex flex-col text-brand-600 dark:text-brand-400 font-semibold space-y-1">
+              <span>Selected Services:</span>
+              <ul className="list-disc pl-5 text-brand-900 dark:text-brand-50 font-bold text-xs space-y-0.5">
+                {selectedHairstyles.map((hs) => (
+                  <li key={hs.id}>
+                    {hs.name} <span className="text-brand-500 font-normal">(₹{hs.price})</span>
+                  </li>
+                ))}
+              </ul>
             </div>
             <div className="flex justify-between text-brand-600 dark:text-brand-400 font-semibold">
               <span>Date & Time:</span> <span className="text-brand-900 dark:text-brand-50 font-mono font-bold">{selectedDate} at {selectedSlot?.displayTime}</span>
@@ -583,7 +617,7 @@ export default function BookAppointment() {
         bookingData={createdBooking ? {
           id: createdBooking.booking?.id,
           shopName: barber?.shopName,
-          hairstyleName: selectedHairstyle?.name,
+          hairstyleName: selectedHairstyles.map(h => h.name).join(', '),
           date: selectedDate,
           totalAmount: createdBooking.booking?.totalAmount,
           isLivePayment: createdBooking.isLivePayment,
