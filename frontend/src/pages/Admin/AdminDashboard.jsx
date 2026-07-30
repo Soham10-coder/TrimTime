@@ -589,6 +589,39 @@ export default function AdminDashboard() {
             </div>
             
             <p className="text-xs text-brand-400 mt-2 text-center">Chart displays monthly aggregated revenue generated platform-wide in INR.</p>
+
+            {/* SALON PERFORMANCE ANALYTICS TABLE */}
+            <div className="mt-8 border-t pt-8 space-y-4">
+              <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
+                <Store className="w-5 h-5 text-accent-500" /> Salon Booking & Revenue Statistics
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs font-semibold">
+                  <thead>
+                    <tr className="bg-brand-50 dark:bg-brand-950 text-brand-500 border-b">
+                      <th className="p-3">Salon Shop Name</th>
+                      <th className="p-3">Total Bookings Got</th>
+                      <th className="p-3">Total Revenue Generated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analytics?.barberStats && analytics.barberStats.length > 0 ? (
+                      analytics.barberStats.map((stat) => (
+                        <tr key={stat.barberId} className="border-b hover:bg-brand-50/45 dark:hover:bg-brand-850/20">
+                          <td className="p-3 font-bold text-brand-900 dark:text-brand-50">{stat.shopName}</td>
+                          <td className="p-3 text-brand-700 dark:text-brand-300 font-mono font-bold">{stat.bookingsCount} bookings</td>
+                          <td className="p-3 text-green-600 font-mono font-bold">₹{stat.totalRevenue}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="3" className="p-4 text-center text-brand-400">No salon statistics found yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 

@@ -1,7 +1,7 @@
 from flask import Blueprint
 from app.controllers.booking_controller import (
     get_available_slots, create_booking, get_customer_bookings, 
-    get_barber_bookings, cancel_booking
+    get_barber_bookings, cancel_booking, apply_coupon, redeem_loyalty_points
 )
 from app.controllers.payment_controller import (
     verify_and_confirm_payment, razorpay_webhook
@@ -35,4 +35,12 @@ booking_bp.route('/cancel', methods=['POST'])(
 # Payment confirmation (Secure: Customer)
 booking_bp.route('/verify-payment', methods=['POST'])(
     token_required(require_role('customer')(verify_and_confirm_payment))
+)
+
+# Coupon and Loyalty Points Redemption (Secure: Customer)
+booking_bp.route('/apply-coupon', methods=['POST'])(
+    token_required(require_role('customer')(apply_coupon))
+)
+booking_bp.route('/redeem-points', methods=['POST'])(
+    token_required(require_role('customer')(redeem_loyalty_points))
 )

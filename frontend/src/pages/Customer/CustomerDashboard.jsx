@@ -17,6 +17,35 @@ export default function CustomerDashboard() {
   const [reviewError, setReviewError] = useState('');
   const [reviewSuccess, setReviewSuccess] = useState('');
   
+  // Points redemption states
+  const [redemptionLoading, setRedemptionLoading] = useState(false);
+  const [redemptionError, setRedemptionError] = useState('');
+  const [redeemedCouponCode, setRedeemedCouponCode] = useState('');
+
+  const handleRedeemPoints = async () => {
+    setRedemptionLoading(true);
+    setRedemptionError('');
+    setRedeemedCouponCode('');
+    try {
+      const res = await api.post('/booking/redeem-points');
+      const data = await res.json();
+      if (res.ok) {
+        setRedeemedCouponCode(data.couponCode);
+        if (user) {
+          const updatedUser = { ...user, loyaltyPoints: data.pointsRemaining };
+          localStorage.setItem('trimtime_user', JSON.stringify(updatedUser));
+        }
+      } else {
+        setRedemptionError(data.message || 'Failed to redeem points');
+      }
+    } catch (err) {
+      console.error(err);
+      setRedemptionError('Failed to connect to server');
+    } finally {
+      setRedemptionLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchCustomerBookings();
   }, []);
@@ -349,6 +378,63 @@ export default function CustomerDashboard() {
 
         {/* SIDE BAR / SEARCH SALONS CARD */}
         <div className="space-y-6">
+          {/* LOYALTY POINTS REDEMPTION CARD */}
+          <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 space-y-4">
+            <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-accent-500" /> Loyalty Club Benefits
+            </h3>
+            <p className="text-xs text-brand-500">Collect 100 points to redeem a flat 20% discount coupon code valid for any haircut/grooming service!</p>
+            
+            {/* Progress bar */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-[11px] font-bold text-brand-600 dark:text-brand-400">
+                <span>Club Progress:</span>
+                <span>{getPointsBalance()} / 100 pts</span>
+              </div>
+              <div className="w-full h-3 bg-brand-100 dark:bg-brand-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-accent-500 to-accent-600 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (getPointsBalance() / 100) * 100)}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Actions / Results */}
+            {redeemedCouponCode ? (
+              <div className="p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-2xl text-center space-y-3">
+                <span className="text-[11px] font-bold text-green-700 dark:text-green-400 block">🎉 20% Discount Coupon Code Generated!</span>
+                <div className="bg-white dark:bg-brand-900 p-3 border border-green-300 dark:border-green-800 rounded-xl font-mono text-base font-extrabold text-brand-900 dark:text-brand-50 select-all tracking-wider shadow-sm">
+                  {redeemedCouponCode}
+                </div>
+                <p className="text-[10px] text-brand-400">Copy this code and apply it during your next checkout!</p>
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="w-full py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-xs shadow-sm transition-all"
+                >
+                  Got it! Update Balance
+                </button>
+              </div>
+            ) : getPointsBalance() >= 100 ? (
+              <button
+                type="button"
+                onClick={handleRedeemPoints}
+                disabled={redemptionLoading}
+                className="w-full py-3 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white font-bold rounded-2xl text-xs shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-1.5"
+              >
+                {redemptionLoading ? 'Generating Coupon...' : 'Redeem 100 Points for 20% Off Coupon'}
+              </button>
+            ) : (
+              <div className="p-4 bg-brand-50 dark:bg-brand-950/40 rounded-2xl text-[10px] font-bold text-brand-400 text-center">
+                🔒 You need {100 - getPointsBalance()} more points to redeem a discount coupon!
+              </div>
+            )}
+            
+            {redemptionError && (
+              <p className="text-[10px] text-red-500 font-bold text-center mt-1">{redemptionError}</p>
+            )}
+          </div>
+
           <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 space-y-4">
             <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50">Quick Location Navigation</h3>
             <p className="text-xs text-brand-500">Clicking "Navigate on Google Maps" opens live GPS turn-by-turn directions directly to your booked salon's door.</p>

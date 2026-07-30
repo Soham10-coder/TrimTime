@@ -145,6 +145,32 @@ def get_admin_analytics():
                 {'month': 'Jun 2026', 'revenue': 34200.0, 'bookingsCount': 110}
             ]
 
+        # Barber booking statistics (bookings count and revenue per salon)
+        barber_stats_pipeline = [
+            {'$group': {
+                '_id': '$barber_id',
+                'bookingsCount': {'$sum': 1},
+                'totalRevenue': {'$sum': '$total_amount'}
+            }}
+        ]
+        barber_booking_stats = list(bookings_col.aggregate(barber_stats_pipeline))
+        
+        barber_stats_list = []
+        for bs in barber_booking_stats:
+            b_id = bs['_id']
+            if not b_id: continue
+            barber_shop = barbers_col.find_one({'_id': b_id})
+            if barber_shop:
+                barber_stats_list.append({
+                    'barberId': str(b_id),
+                    'shopName': barber_shop.get('shop_name', 'Unknown Salon'),
+                    'bookingsCount': bs['bookingsCount'],
+                    'totalRevenue': round(bs['totalRevenue'], 2)
+                })
+        
+        # Sort by bookingsCount descending
+        barber_stats_list.sort(key=lambda x: x['bookingsCount'], reverse=True)
+
         analytics = {
             'metrics': {
                 'totalCustomers': total_customers,
@@ -153,7 +179,8 @@ def get_admin_analytics():
                 'confirmedBookings': total_confirmed,
                 'totalRevenue': round(total_revenue, 2)
             },
-            'revenueChart': chart_data
+            'revenueChart': chart_data,
+            'barberStats': barber_stats_list
         }
 
         return jsonify(analytics), 200

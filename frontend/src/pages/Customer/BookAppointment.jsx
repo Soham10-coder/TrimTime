@@ -94,7 +94,7 @@ export default function BookAppointment() {
 
   const handleStaffSelect = (st) => {
     setSelectedStaff(st);
-    setStep(2);
+    setStep(3);
   };
 
   const handleHairstyleToggle = (hs) => {
@@ -124,6 +124,39 @@ export default function BookAppointment() {
   const handleSwitchToCustomer = () => {
     logout();
     navigate('/login', { state: { from: { pathname: `/book/${barberId}` } } });
+  };
+
+  const getDiscountAmount = () => {
+    if (!appliedCoupon) return 0;
+    const servicePrice = getServicePrice();
+    if (appliedCoupon.discount_type === 'percentage') {
+      return Math.round((appliedCoupon.value / 100) * servicePrice);
+    } else {
+      return appliedCoupon.value;
+    }
+  };
+
+  const handleApplyCoupon = async () => {
+    setCouponError('');
+    if (!couponCode.trim()) return;
+    try {
+      const res = await api.post('/booking/apply-coupon', {
+        couponCode: couponCode.trim().toUpperCase(),
+        bookingAmount: getServicePrice()
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAppliedCoupon(data.coupon);
+        setCouponError('');
+      } else {
+        setCouponError(data.message || 'Invalid coupon code');
+        setAppliedCoupon(null);
+      }
+    } catch (err) {
+      console.error(err);
+      setCouponError('Failed to validate coupon');
+      setAppliedCoupon(null);
+    }
   };
 
   const handleOpenPaymentModal = async () => {
@@ -227,12 +260,17 @@ export default function BookAppointment() {
 
   const getPlatformFee = () => {
     const servicePrice = getServicePrice();
+    const discount = getDiscountAmount();
+    const discountedPrice = Math.max(0, servicePrice - discount);
     const feeRate = barber?.platformFeePercent || 10.0;
-    return Math.round(servicePrice * (feeRate / 100.0));
+    return Math.round(discountedPrice * (feeRate / 100.0));
   };
 
   const getTotalPayable = () => {
-    return getServicePrice() + getPlatformFee();
+    const servicePrice = getServicePrice();
+    const discount = getDiscountAmount();
+    const discountedPrice = Math.max(0, servicePrice - discount);
+    return discountedPrice + getPlatformFee();
   };
 
   if (loading) {
@@ -342,69 +380,49 @@ export default function BookAppointment() {
 
       {/* STEPPER HEADER */}
       <div className="flex justify-between text-xs font-bold border-b pb-3 text-brand-400">
-        <span className={step >= 1 ? 'text-accent-500 font-extrabold' : ''}>1. Select Stylist</span>
-        <span className={step >= 2 ? 'text-accent-500 font-extrabold' : ''}>2. Select Service</span>
-        <span className={step >= 3 ? 'text-accent-500 font-extrabold' : ''}>3. Select Date</span>
-        <span className={step >= 4 ? 'text-accent-500 font-extrabold' : ''}>4. Select Time</span>
-        <span className={step >= 5 ? 'text-accent-500 font-extrabold' : ''}>5. Checkout & Payment</span>
+        <button 
+          onClick={() => setStep(1)}
+          className={`focus:outline-none transition-all pb-1 ${step === 1 ? 'text-accent-500 font-extrabold border-b-2 border-accent-500' : 'text-brand-600 dark:text-brand-350 hover:text-accent-500'}`}
+        >
+          1. Select Services
+        </button>
+        <button 
+          disabled={selectedHairstyles.length === 0}
+          onClick={() => setStep(2)}
+          className={`focus:outline-none transition-all pb-1 ${step === 2 ? 'text-accent-500 font-extrabold border-b-2 border-accent-500' : selectedHairstyles.length > 0 ? 'text-brand-700 dark:text-brand-200 hover:text-accent-500' : 'cursor-not-allowed opacity-50'}`}
+        >
+          2. Select Stylist
+        </button>
+        <button 
+          disabled={selectedHairstyles.length === 0 || !selectedStaff}
+          onClick={() => setStep(3)}
+          className={`focus:outline-none transition-all pb-1 ${step === 3 ? 'text-accent-500 font-extrabold border-b-2 border-accent-500' : (selectedHairstyles.length > 0 && selectedStaff) ? 'text-brand-700 dark:text-brand-200 hover:text-accent-500' : 'cursor-not-allowed opacity-50'}`}
+        >
+          3. Select Date
+        </button>
+        <button 
+          disabled={selectedHairstyles.length === 0 || !selectedStaff || !selectedDate}
+          onClick={() => setStep(4)}
+          className={`focus:outline-none transition-all pb-1 ${step === 4 ? 'text-accent-500 font-extrabold border-b-2 border-accent-500' : (selectedHairstyles.length > 0 && selectedStaff && selectedDate) ? 'text-brand-700 dark:text-brand-200 hover:text-accent-500' : 'cursor-not-allowed opacity-50'}`}
+        >
+          4. Select Time
+        </button>
+        <button 
+          disabled={selectedHairstyles.length === 0 || !selectedStaff || !selectedDate || !selectedSlot}
+          onClick={() => setStep(5)}
+          className={`focus:outline-none transition-all pb-1 ${step === 5 ? 'text-accent-500 font-extrabold border-b-2 border-accent-500' : (selectedHairstyles.length > 0 && selectedStaff && selectedDate && selectedSlot) ? 'text-brand-700 dark:text-brand-200 hover:text-accent-500' : 'cursor-not-allowed opacity-50'}`}
+        >
+          5. Checkout & Payment
+        </button>
       </div>
 
-      {/* STEP 1: SELECT BARBER STAFF MEMBER */}
+      {/* STEP 1: SELECT SERVICE (MULTIPLE SELECT) */}
       {step === 1 && (
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
-            <UserCheck className="w-5 h-5 text-accent-500" /> Choose Your Preferred Barber Stylist
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {staffList.length === 0 ? (
-              <div 
-                onClick={() => handleStaffSelect({ name: barber?.ownerName || 'Senior Barber', role: 'Owner & Master Stylist' })} 
-                className="p-5 bg-white dark:bg-brand-900 border-2 hover:border-accent-500 rounded-3xl cursor-pointer shadow-sm flex items-center gap-4"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-accent-100 text-accent-700 font-bold flex items-center justify-center text-base">
-                  {barber?.ownerName?.charAt(0) || 'S'}
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-brand-900 dark:text-brand-50">{barber?.ownerName || 'Senior Barber'}</h3>
-                  <p className="text-xs text-accent-600 font-semibold">Owner & Master Stylist</p>
-                </div>
-              </div>
-            ) : (
-              staffList.map((st, idx) => (
-                <div 
-                  key={idx} 
-                  onClick={() => handleStaffSelect(st)}
-                  className={`p-5 bg-white dark:bg-brand-900 border-2 rounded-3xl cursor-pointer transition-all flex items-center justify-between ${
-                    selectedStaff?.name === st.name ? 'border-accent-500 shadow-md ring-2 ring-accent-500/20' : 'hover:border-brand-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-accent-100 text-accent-700 font-bold flex items-center justify-center text-base overflow-hidden">
-                      {st.photoUrl ? <img src={st.photoUrl} alt={st.name} className="w-full h-full object-cover" /> : st.name?.charAt(0)}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm text-brand-900 dark:text-brand-50">{st.name}</h3>
-                      <p className="text-xs text-accent-600 font-semibold">{st.role}</p>
-                      <p className="text-[10px] text-brand-400">Shift: {st.shift || '09:00 AM - 08:00 PM'}</p>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-brand-400" />
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* STEP 2: SELECT SERVICE */}
-      {step === 2 && (
         <div className="space-y-5">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
-              <Scissors className="w-5 h-5 text-accent-500" /> Choose Grooming Service / Facial
+              <Scissors className="w-5 h-5 text-accent-500" /> Choose Grooming Services
             </h2>
-            <button onClick={() => setStep(1)} className="text-xs text-accent-500 font-bold">Change Stylist</button>
           </div>
 
           {/* SERVICE CATEGORY SECTIONS TABS */}
@@ -465,14 +483,65 @@ export default function BookAppointment() {
           {selectedHairstyles.length > 0 && (
             <div className="mt-8 flex justify-center">
               <button
-                onClick={() => setStep(3)}
+                onClick={() => setStep(2)}
                 className="px-8 py-3.5 bg-accent-500 hover:bg-accent-600 text-white font-extrabold rounded-2xl text-xs shadow-lg flex items-center gap-2 transform active:scale-95 transition-all"
               >
-                <span>Continue with {selectedHairstyles.length} Services Selected (Total: ₹{getServicePrice()})</span>
+                <span>Continue to Stylist Selection ({selectedHairstyles.length} Selected • Total: ₹{getServicePrice()})</span>
                 <ArrowRight className="w-4 h-4 animate-pulse" />
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* STEP 2: SELECT BARBER STAFF MEMBER */}
+      {step === 2 && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-accent-500" /> Choose Your Preferred Barber Stylist
+            </h2>
+            <button onClick={() => setStep(1)} className="text-xs text-accent-500 font-bold">Change Services</button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {staffList.length === 0 ? (
+              <div 
+                onClick={() => handleStaffSelect({ name: barber?.ownerName || 'Senior Barber', role: 'Owner & Master Stylist' })} 
+                className="p-5 bg-white dark:bg-brand-900 border-2 hover:border-accent-500 rounded-3xl cursor-pointer shadow-sm flex items-center gap-4"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-accent-100 text-accent-700 font-bold flex items-center justify-center text-base">
+                  {barber?.ownerName?.charAt(0) || 'S'}
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-brand-900 dark:text-brand-50">{barber?.ownerName || 'Senior Barber'}</h3>
+                  <p className="text-xs text-accent-600 font-semibold">Owner & Master Stylist</p>
+                </div>
+              </div>
+            ) : (
+              staffList.map((st, idx) => (
+                <div 
+                  key={idx} 
+                  onClick={() => handleStaffSelect(st)}
+                  className={`p-5 bg-white dark:bg-brand-900 border-2 rounded-3xl cursor-pointer transition-all flex items-center justify-between ${
+                    selectedStaff?.name === st.name ? 'border-accent-500 shadow-md ring-2 ring-accent-500/20' : 'hover:border-brand-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-accent-100 text-accent-700 font-bold flex items-center justify-center text-base overflow-hidden">
+                      {st.photoUrl ? <img src={st.photoUrl} alt={st.name} className="w-full h-full object-cover" /> : st.name?.charAt(0)}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm text-brand-900 dark:text-brand-50">{st.name}</h3>
+                      <p className="text-xs text-accent-600 font-semibold">{st.role}</p>
+                      <p className="text-[10px] text-brand-400">Shift: {st.shift || '09:00 AM - 08:00 PM'}</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-brand-400" />
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
@@ -483,7 +552,7 @@ export default function BookAppointment() {
             <h2 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-accent-500" /> Select Appointment Date
             </h2>
-            <button onClick={() => setStep(2)} className="text-xs text-accent-500 font-bold">Change Service</button>
+            <button onClick={() => setStep(2)} className="text-xs text-accent-500 font-bold">Change Stylist</button>
           </div>
 
           <div className="flex overflow-x-auto gap-3 pb-2">
@@ -584,10 +653,46 @@ export default function BookAppointment() {
             </div>
           </div>
 
+          {/* COUPON CODE INPUT & VALIDATION */}
+          <div className="space-y-2 border-b pb-4">
+            <label className="block text-xs font-bold text-brand-600 dark:text-brand-400">Have a Coupon Code?</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                placeholder="e.g. SAVE20"
+                className="flex-1 px-3 py-2 bg-brand-50 dark:bg-brand-800 border rounded-xl text-xs font-bold font-mono focus:outline-none uppercase text-brand-900 dark:text-brand-50"
+              />
+              <button
+                type="button"
+                onClick={handleApplyCoupon}
+                className="px-4 py-2 bg-accent-500 hover:bg-accent-600 text-white rounded-xl text-xs font-bold"
+              >
+                Apply
+              </button>
+            </div>
+            {couponError && (
+              <p className="text-[10px] text-red-500 font-bold flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" /> {couponError}
+              </p>
+            )}
+            {appliedCoupon && (
+              <p className="text-[10px] text-green-600 font-bold flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5" /> Coupon "{appliedCoupon.code}" applied! ({appliedCoupon.discount_type === 'percentage' ? `${appliedCoupon.value}%` : `₹${appliedCoupon.value}`} discount)
+              </p>
+            )}
+          </div>
+
           <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-2 text-xs font-semibold">
             <div className="flex justify-between text-brand-600 dark:text-brand-400">
               <span>Service Fee:</span> <span className="text-brand-900 dark:text-brand-50 font-bold">₹{getServicePrice()}</span>
             </div>
+            {appliedCoupon && (
+              <div className="flex justify-between text-green-600 font-bold">
+                <span>Discount Applied:</span> <span>-₹{getDiscountAmount()}</span>
+              </div>
+            )}
             <div className="flex justify-between text-brand-600 dark:text-brand-400">
               <span>Online Convenience Charge (10%):</span> <span className="text-amber-600 font-bold">₹{getPlatformFee()}</span>
             </div>

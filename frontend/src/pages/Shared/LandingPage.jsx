@@ -147,6 +147,7 @@ export default function LandingPage() {
   const [activeFaq, setActiveFaq] = useState(null);
   const [showMapView, setShowMapView] = useState(true);
   const [userCoords, setUserCoords] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
   
   const navigate = useNavigate();
 
@@ -184,6 +185,7 @@ export default function LandingPage() {
 
   const handleSearch = (e) => {
     e.preventDefault();
+    setCurrentPage(1);
     fetchBarbers(searchCity, searchShop, filterCategory, filterSalonType, maxPrice);
   };
 
@@ -236,20 +238,103 @@ export default function LandingPage() {
             Discover top-rated local barbers, select specialized hairstyles, check real-time dynamic schedules, and confirm bookings instantly.
           </p>
 
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
-            <a 
-              href="#search-barber" 
-              className="px-8 py-4 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-xl font-bold shadow-lg shadow-accent-500/10 hover:shadow-accent-500/25 transition-all text-base transform hover:-translate-y-0.5"
-            >
-              Book Appointment Now
-            </a>
-            <Link 
-              to="/barber/signup" 
-              className="px-8 py-4 bg-white dark:bg-brand-900 hover:bg-brand-100 dark:hover:bg-brand-800 text-brand-700 dark:text-brand-200 border border-brand-200 dark:border-brand-700 rounded-xl font-bold transition-all text-base transform hover:-translate-y-0.5"
-            >
-              Register as Barber
-            </Link>
-          </div>
+          {!user ? (
+            <div className="mt-10 flex flex-wrap justify-center gap-4">
+              <a 
+                href="#search-barber" 
+                className="px-8 py-4 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-xl font-bold shadow-lg shadow-accent-500/10 hover:shadow-accent-500/25 transition-all text-base transform hover:-translate-y-0.5"
+              >
+                Book Appointment Now
+              </a>
+              <Link 
+                to="/barber/signup" 
+                className="px-8 py-4 bg-white dark:bg-brand-900 hover:bg-brand-100 dark:hover:bg-brand-800 text-brand-700 dark:text-brand-200 border border-brand-200 dark:border-brand-700 rounded-xl font-bold transition-all text-base transform hover:-translate-y-0.5"
+              >
+                Register as Barber
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-10 space-y-8 max-w-3xl mx-auto">
+              <div className="flex justify-center">
+                <Link 
+                  to={user.role === 'admin' ? '/admin' : user.role === 'barber' ? '/barber/dashboard' : '/dashboard'} 
+                  className="px-8 py-4 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-xl font-bold shadow-lg shadow-accent-500/10 hover:shadow-accent-500/25 transition-all text-base transform hover:-translate-y-0.5 flex items-center gap-2"
+                >
+                  <Award className="w-5 h-5 text-yellow-300" /> Go to Your Dashboard
+                </Link>
+              </div>
+
+              {/* POST-LOGIN INTERACTIVE STEP GUIDES */}
+              <div className="text-left bg-white/60 dark:bg-brand-900/60 backdrop-blur border border-brand-200 dark:border-brand-800 p-6 sm:p-8 rounded-3xl space-y-6">
+                <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-accent-500" /> Welcome back, {user.name}! Here's how to proceed:
+                </h3>
+
+                {user.role === 'customer' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
+                    <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-1">
+                      <span className="text-accent-500 font-extrabold block text-sm">1. Find a Barber Shop</span>
+                      <p className="text-brand-500 font-medium leading-relaxed">Scroll down to use our filters to search for the best salons in your city.</p>
+                    </div>
+                    <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-1">
+                      <span className="text-accent-500 font-extrabold block text-sm">2. Select Multiple Services</span>
+                      <p className="text-brand-500 font-medium leading-relaxed">Pick a shop, choose multiple grooming services (haircuts, facial, nails) and add them to your booking.</p>
+                    </div>
+                    <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-1">
+                      <span className="text-accent-500 font-extrabold block text-sm">3. Choose Stylist & Slots</span>
+                      <p className="text-brand-500 font-medium leading-relaxed">Select your favorite stylist, picking the available date & time slot for your appointment.</p>
+                    </div>
+                    <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-1">
+                      <span className="text-accent-500 font-extrabold block text-sm">4. Apply Coupons & Checkout</span>
+                      <p className="text-brand-500 font-medium leading-relaxed">Input discount coupons at checkout, complete payments via Razorpay, and view your OTP code!</p>
+                    </div>
+                  </div>
+                )}
+
+                {user.role === 'barber' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
+                    <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-1">
+                      <span className="text-accent-500 font-extrabold block text-sm">1. Configure Your Services</span>
+                      <p className="text-brand-500 font-medium leading-relaxed">Go to the Catalog Settings tab on your dashboard to select services from the Master Pool and set your pricing.</p>
+                    </div>
+                    <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-1">
+                      <span className="text-accent-500 font-extrabold block text-sm">2. Add Shop Stylists</span>
+                      <p className="text-brand-500 font-medium leading-relaxed">List your stylists under the Staff Management tab to enable customers to select them during booking.</p>
+                    </div>
+                    <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-1">
+                      <span className="text-accent-500 font-extrabold block text-sm">3. Manage Shop Appointments</span>
+                      <p className="text-brand-500 font-medium leading-relaxed">View all client reservations in real-time, update their status, or track daily shop schedule load.</p>
+                    </div>
+                    <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-1">
+                      <span className="text-accent-500 font-extrabold block text-sm">4. Verify Customer Check-In OTP</span>
+                      <p className="text-brand-500 font-medium leading-relaxed">Input the customer's 6-digit OTP code when they arrive at the salon to validate their presence.</p>
+                    </div>
+                  </div>
+                )}
+
+                {user.role === 'admin' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
+                    <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-1">
+                      <span className="text-accent-500 font-extrabold block text-sm">1. Approve Barber Salons</span>
+                      <p className="text-brand-500 font-medium leading-relaxed">Review incoming barber shop requests and approve their profiles to make them live on the app.</p>
+                    </div>
+                    <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-1">
+                      <span className="text-accent-500 font-extrabold block text-sm">2. Manage Master Catalog</span>
+                      <p className="text-brand-500 font-medium leading-relaxed">Oversee and update the core catalog of 79+ services and upload S3 cover images.</p>
+                    </div>
+                    <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-1">
+                      <span className="text-accent-500 font-extrabold block text-sm">3. Create Promos & Coupons</span>
+                      <p className="text-brand-500 font-medium leading-relaxed">Generate discount coupons (fixed or percentage-based) and distribute them to customers.</p>
+                    </div>
+                    <div className="p-4 bg-brand-50 dark:bg-brand-950 rounded-2xl space-y-1">
+                      <span className="text-accent-500 font-extrabold block text-sm">4. Monitor Platform Analytics</span>
+                      <p className="text-brand-500 font-medium leading-relaxed">Observe bookings, user registrations, revenue counts, and performance metrics per salon.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </motion.div>
       </section>
 
@@ -379,7 +464,82 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* 3. INTERACTIVE SALONS MAP SECTION */}
+      {/* 3. BARBER RESULTS LIST */}
+      <section className="max-w-7xl mx-auto px-4 py-8" id="barbers">
+        <div className="flex justify-between items-baseline mb-8">
+          <h2 className="text-3xl font-bold font-display text-brand-900 dark:text-brand-50">Verified Barber Shops</h2>
+          <span className="text-sm font-medium text-brand-500 dark:text-brand-400">{barbers.length} active listings</span>
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="border border-brand-200 dark:border-brand-800 rounded-2xl p-4 animate-pulse space-y-4">
+                <div className="bg-brand-200 dark:bg-brand-800 h-48 rounded-xl w-full"></div>
+                <div className="h-6 bg-brand-200 dark:bg-brand-800 rounded w-2/3"></div>
+                <div className="h-4 bg-brand-200 dark:bg-brand-800 rounded w-1/2"></div>
+                <div className="h-10 bg-brand-200 dark:bg-brand-800 rounded w-full mt-4"></div>
+              </div>
+            ))}
+          </div>
+        ) : barbers.length === 0 ? (
+          <div className="text-center py-20 bg-white/50 dark:bg-brand-900/50 rounded-2xl border border-brand-200 dark:border-brand-800">
+            <Scissors className="w-12 h-12 text-brand-300 dark:text-brand-700 mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-brand-800 dark:text-brand-200">No Shops Found</h3>
+            <p className="text-brand-500 dark:text-brand-400 mt-1">Try resetting your filters or searching a different city.</p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            <motion.div 
+              initial="hidden"
+              animate="show"
+              variants={{
+                hidden: { opacity: 0 },
+                show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+              }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              {getSortedBarbers().slice((currentPage - 1) * 6, (currentPage - 1) * 6 + 6).map((b) => (
+                <BarberCard key={b.id} b={b} navigate={navigate} />
+              ))}
+            </motion.div>
+
+            {Math.ceil(getSortedBarbers().length / 6) > 1 && (
+              <div className="flex justify-center items-center gap-2 pt-4">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  className="p-2.5 bg-brand-100 hover:bg-brand-200 dark:bg-brand-800 dark:hover:bg-brand-700 text-brand-700 dark:text-brand-200 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed font-bold"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                {Array.from({ length: Math.ceil(getSortedBarbers().length / 6) }, (_, idx) => (
+                  <button
+                    key={idx + 1}
+                    onClick={() => setCurrentPage(idx + 1)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                      currentPage === idx + 1
+                        ? 'bg-accent-500 text-white shadow-md'
+                        : 'bg-brand-100 hover:bg-brand-200 dark:bg-brand-800 dark:hover:bg-brand-700 text-brand-700 dark:text-brand-350'
+                    }`}
+                  >
+                    {idx + 1}
+                  </button>
+                ))}
+                <button
+                  disabled={currentPage === Math.ceil(getSortedBarbers().length / 6)}
+                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(getSortedBarbers().length / 6), prev + 1))}
+                  className="p-2.5 bg-brand-100 hover:bg-brand-200 dark:bg-brand-800 dark:hover:bg-brand-700 text-brand-700 dark:text-brand-200 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed font-bold"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* 4. INTERACTIVE SALONS MAP SECTION */}
       {user && barbers.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 pb-8">
           <div className="bg-white dark:bg-brand-900 rounded-3xl border border-brand-200 dark:border-brand-800 p-6 shadow-sm space-y-4">
@@ -439,47 +599,6 @@ export default function LandingPage() {
           </div>
         </section>
       )}
-
-      {/* 4. BARBER RESULTS LIST */}
-      <section className="max-w-7xl mx-auto px-4 py-8" id="barbers">
-        <div className="flex justify-between items-baseline mb-8">
-          <h2 className="text-3xl font-bold font-display text-brand-900 dark:text-brand-50">Verified Barber Shops</h2>
-          <span className="text-sm font-medium text-brand-500 dark:text-brand-400">{barbers.length} active listings</span>
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((n) => (
-              <div key={n} className="border border-brand-200 dark:border-brand-800 rounded-2xl p-4 animate-pulse space-y-4">
-                <div className="bg-brand-200 dark:bg-brand-800 h-48 rounded-xl w-full"></div>
-                <div className="h-6 bg-brand-200 dark:bg-brand-800 rounded w-2/3"></div>
-                <div className="h-4 bg-brand-200 dark:bg-brand-800 rounded w-1/2"></div>
-                <div className="h-10 bg-brand-200 dark:bg-brand-800 rounded w-full mt-4"></div>
-              </div>
-            ))}
-          </div>
-        ) : barbers.length === 0 ? (
-          <div className="text-center py-20 bg-white/50 dark:bg-brand-900/50 rounded-2xl border border-brand-200 dark:border-brand-800">
-            <Scissors className="w-12 h-12 text-brand-300 dark:text-brand-700 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-brand-800 dark:text-brand-200">No Shops Found</h3>
-            <p className="text-brand-500 dark:text-brand-400 mt-1">Try resetting your filters or searching a different city.</p>
-          </div>
-        ) : (
-          <motion.div 
-            initial="hidden"
-            animate="show"
-            variants={{
-              hidden: { opacity: 0 },
-              show: { opacity: 1, transition: { staggerChildren: 0.1 } }
-            }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            {getSortedBarbers().map((b) => (
-              <BarberCard key={b.id} b={b} navigate={navigate} />
-            ))}
-          </motion.div>
-        )}
-      </section>
 
       {/* 5. WHY CHOOSE US */}
       <section className="bg-brand-100/50 dark:bg-brand-900/30 py-20 transition-colors" id="why-choose-us">

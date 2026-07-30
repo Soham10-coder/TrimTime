@@ -503,3 +503,74 @@ def cancel_booking():
     except Exception as e:
         logger.error(f"Error in cancel_booking: {e}")
         return jsonify({'message': 'Internal Server Error'}), 500
+
+def apply_coupon():
+    try:
+        data = request.json or {}
+        coupon_code = data.get('couponCode', '').strip().upper()
+        booking_amount = float(data.get('bookingAmount', 0))
+
+        if not coupon_code:
+            return jsonify({'message': 'Coupon code is required'}), 400
+
+        coupon = coupons_col.find_one({'code': coupon_code, 'active': True})
+        if not coupon:
+            return jsonify({'message': 'Invalid or inactive coupon code'}), 404
+
+        if coupon.get('expiry_date') and coupon.get('expiry_date') < datetime.datetime.utcnow():
+            return jsonify({'message': 'Coupon code has expired'}), 400
+
+        min_amount = float(coupon.get('min_booking_amount', 0))
+        if booking_amount < min_amount:
+            return jsonify({'message': f'Minimum booking amount to use this coupon is ₹{min_amount}'}), 400
+
+        return jsonify({
+            'message': 'Coupon applied successfully',
+            'coupon': {
+                'code': coupon.get('code'),
+                'discount_type': coupon.get('discount_type'),
+                'value': float(coupon.get('value', 0)),
+                'min_booking_amount': min_amount
+            }
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error in apply_coupon: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500
+
+def redeem_loyalty_points():
+    try:
+        customer_id = g.current_user_id
+        customer = users_col.find_one({'_id': ObjectId(customer_id)})
+        if not customer:
+            return jsonify({'message': 'Customer profile not found'}), 404
+
+        points = int(customer.get('loyalty_points', 0))
+        if points < 100:
+            return jsonify({'message': 'Insufficient loyalty points. Minimum 100 points required to redeem.'}), 400
+
+        # Deduct 100 points from user profile
+        users_col.update_one({'_id': ObjectId(customer_id)}, {'$inc': {'loyalty_points': -100}})
+
+        # Create unique 20% discount coupon
+        code = f"LOYAL-{str(uuid.uuid4().int)[:6]}"
+        coupon_doc = {
+            'code': code,
+            'discount_type': 'percentage',
+            'value': 20.0,
+            'min_booking_amount': 0.0,
+            'expiry_date': datetime.datetime.utcnow() + datetime.timedelta(days=30),
+            'active': True,
+            'created_at': datetime.datetime.utcnow()
+        }
+        coupons_col.insert_one(coupon_doc)
+
+        return jsonify({
+            'message': 'Points redeemed successfully! Here is your 20% discount coupon code.',
+            'couponCode': code,
+            'pointsRemaining': points - 100
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error in redeem_loyalty_points: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500
