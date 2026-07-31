@@ -75,45 +75,9 @@ def seed_default_data():
         else:
             users_col.update_one({'email': admin_email}, {'$set': {'role': 'admin', 'verified': True}})
 
-        # 2. Seed Demo Barber Salon
-        barber_email = "urban@trimtime.com"
-        if not barbers_col.find_one({'email': barber_email}):
-            barbers_col.insert_one({
-                'owner_name': 'Vikram Sharma',
-                'shop_name': 'Urban Cut Studio & Spa',
-                'email': barber_email,
-                'phone': '9876543210',
-                'password': hash_password('Barber@123'),
-                'role': 'barber',
-                'city': 'Mumbai',
-                'address': 'MG Road, Bandra West, Mumbai',
-                'salon_type': "Men's Salon",
-                'verification_status': 'APPROVED',
-                'verified': True,
-                'status': 'active',
-                'opening_time': '09:00',
-                'closing_time': '20:00',
-                'rating_avg': 4.9,
-                'rating_count': 28,
-                'description': 'Premier luxury grooming studio for haircuts, styling, and beard care.',
-                'created_at': now
-            })
-            logger.info("Demo Barber Salon seeded successfully.")
-
-        # 3. Seed Demo Customer
-        customer_email = "customer@trimtime.com"
-        if not users_col.find_one({'email': customer_email}):
-            users_col.insert_one({
-                'name': 'Rohan Patil',
-                'email': customer_email,
-                'phone': '9123456789',
-                'password': hash_password('Customer@123'),
-                'role': 'customer',
-                'gender': 'Male',
-                'verified': True,
-                'created_at': now
-            })
-            logger.info("Demo Customer account seeded successfully.")
+        # 2. Cleanup legacy demo accounts if present
+        barbers_col.delete_many({'email': 'urban@trimtime.com'})
+        users_col.delete_many({'email': 'customer@trimtime.com'})
 
     except Exception as e:
         logger.error(f"Error seeding default data: {e}")
