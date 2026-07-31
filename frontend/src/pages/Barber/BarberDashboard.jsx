@@ -906,20 +906,27 @@ export default function BarberDashboard() {
                               checked={localEnabled}
                               onChange={(e) => {
                                 const checked = e.target.checked;
-                                handleFieldChange(s.masterServiceId, 'enabled', checked);
-                                if (!checked && s.salonServiceId) {
-                                  handleToggleCatalogService(s.masterServiceId, false);
-                                } else if (checked) {
-                                  const currentPrice = localPrice || 100;
+                                if (checked) {
+                                  if (!localPrice || Number(localPrice) <= 0) {
+                                    alert("Please fill in the price before enabling this service!");
+                                    handleFieldChange(s.masterServiceId, 'enabled', false);
+                                    return;
+                                  }
+                                  handleFieldChange(s.masterServiceId, 'enabled', true);
                                   handleToggleCatalogService(
                                     s.masterServiceId,
                                     true,
-                                    currentPrice,
+                                    localPrice,
                                     localDuration,
                                     localDescription,
                                     localFile,
                                     localClearImg
                                   );
+                                } else {
+                                  handleFieldChange(s.masterServiceId, 'enabled', false);
+                                  if (s.salonServiceId) {
+                                    handleToggleCatalogService(s.masterServiceId, false);
+                                  }
                                 }
                               }}
                               className="w-3.5 h-3.5 accent-accent-500 cursor-pointer"
