@@ -944,8 +944,8 @@ export default function BarberDashboard() {
                             <p className="text-[11px] text-brand-400 font-medium">Standard Duration: {s.defaultDuration} mins</p>
                           </div>
 
-                          {/* Configuration inputs - only active if enabled */}
-                          <div className={`space-y-3 transition-opacity ${localEnabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+                          {/* Configuration inputs */}
+                          <div className="space-y-3">
                             {/* Price field */}
                             <div>
                               <label className="block text-[10px] font-bold text-brand-500 mb-1">YOUR PRICE (₹) *</label>
