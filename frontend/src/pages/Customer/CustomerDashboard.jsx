@@ -22,12 +22,12 @@ export default function CustomerDashboard() {
   const [redemptionError, setRedemptionError] = useState('');
   const [redeemedCouponCode, setRedeemedCouponCode] = useState('');
 
-  const handleRedeemPoints = async () => {
+  const handleRedeemPoints = async (tier = 'silver') => {
     setRedemptionLoading(true);
     setRedemptionError('');
     setRedeemedCouponCode('');
     try {
-      const res = await api.post('/booking/redeem-points');
+      const res = await api.post('/booking/redeem-points', { tier });
       const data = await res.json();
       if (res.ok) {
         setRedeemedCouponCode(data.couponCode);
@@ -381,28 +381,18 @@ export default function CustomerDashboard() {
           {/* LOYALTY POINTS REDEMPTION CARD */}
           <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 space-y-4">
             <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-accent-500" /> Loyalty Club Benefits
+              <ShieldCheck className="w-5 h-5 text-accent-500" /> Loyalty Club Tiers
             </h3>
-            <p className="text-xs text-brand-500">Collect 100 points to redeem a flat 20% discount coupon code valid for any haircut/grooming service!</p>
+            <p className="text-xs text-brand-500">Deduct points to unlock high-value discount coupons for your next grooming booking!</p>
             
-            {/* Progress bar */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-[11px] font-bold text-brand-600 dark:text-brand-400">
-                <span>Club Progress:</span>
-                <span>{getPointsBalance()} / 100 pts</span>
-              </div>
-              <div className="w-full h-3 bg-brand-100 dark:bg-brand-800 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-accent-500 to-accent-600 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, (getPointsBalance() / 100) * 100)}%` }}
-                ></div>
-              </div>
+            <div className="flex justify-between items-center bg-brand-50 dark:bg-brand-950 p-3 rounded-2xl border text-xs font-bold">
+              <span>Your Points Balance:</span>
+              <span className="text-accent-500 font-extrabold text-sm">{getPointsBalance()} pts</span>
             </div>
 
-            {/* Actions / Results */}
             {redeemedCouponCode ? (
               <div className="p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-2xl text-center space-y-3">
-                <span className="text-[11px] font-bold text-green-700 dark:text-green-400 block">🎉 20% Discount Coupon Code Generated!</span>
+                <span className="text-[11px] font-bold text-green-700 dark:text-green-400 block">🎉 Coupon Code Generated!</span>
                 <div className="bg-white dark:bg-brand-900 p-3 border border-green-300 dark:border-green-800 rounded-xl font-mono text-base font-extrabold text-brand-900 dark:text-brand-50 select-all tracking-wider shadow-sm">
                   {redeemedCouponCode}
                 </div>
@@ -412,21 +402,97 @@ export default function CustomerDashboard() {
                   onClick={() => window.location.reload()}
                   className="w-full py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-xs shadow-sm transition-all"
                 >
-                  Got it! Update Balance
+                  Update Points & Roster
                 </button>
               </div>
-            ) : getPointsBalance() >= 100 ? (
-              <button
-                type="button"
-                onClick={handleRedeemPoints}
-                disabled={redemptionLoading}
-                className="w-full py-3 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white font-bold rounded-2xl text-xs shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-1.5"
-              >
-                {redemptionLoading ? 'Generating Coupon...' : 'Redeem 100 Points for 20% Off Coupon'}
-              </button>
             ) : (
-              <div className="p-4 bg-brand-50 dark:bg-brand-950/40 rounded-2xl text-[10px] font-bold text-brand-400 text-center">
-                🔒 You need {100 - getPointsBalance()} more points to redeem a discount coupon!
+              <div className="space-y-4 pt-2">
+                {/* 1. Bronze Tier */}
+                <div className="space-y-1.5 border border-brand-100 dark:border-brand-800/80 p-3 rounded-2xl">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-amber-700 dark:text-amber-500 flex items-center gap-1">🥉 Bronze Reward (10% Off)</span>
+                    <span className="text-[10px] font-mono text-brand-500">Min. ₹300</span>
+                  </div>
+                  <div className="w-full h-2 bg-brand-100 dark:bg-brand-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-amber-500 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(100, (getPointsBalance() / 50) * 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between items-center pt-1.5">
+                    <span className="text-[9px] text-brand-400 font-bold">{getPointsBalance()} / 50 pts</span>
+                    {getPointsBalance() >= 50 ? (
+                      <button
+                        type="button"
+                        onClick={() => handleRedeemPoints('bronze')}
+                        disabled={redemptionLoading}
+                        className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold rounded-lg transition-all"
+                      >
+                        Redeem 50 pts
+                      </button>
+                    ) : (
+                      <span className="text-[9px] text-brand-400 font-bold bg-brand-100 dark:bg-brand-800 px-2 py-0.5 rounded">🔒 Needs {50 - getPointsBalance()} pts</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Silver Tier */}
+                <div className="space-y-1.5 border border-brand-100 dark:border-brand-800/80 p-3 rounded-2xl">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1">🥈 Silver Reward (20% Off)</span>
+                    <span className="text-[10px] font-mono text-brand-500">Min. ₹500</span>
+                  </div>
+                  <div className="w-full h-2 bg-brand-100 dark:bg-brand-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gray-500 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(100, (getPointsBalance() / 100) * 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between items-center pt-1.5">
+                    <span className="text-[9px] text-brand-400 font-bold">{getPointsBalance()} / 100 pts</span>
+                    {getPointsBalance() >= 100 ? (
+                      <button
+                        type="button"
+                        onClick={() => handleRedeemPoints('silver')}
+                        disabled={redemptionLoading}
+                        className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-[10px] font-bold rounded-lg transition-all"
+                      >
+                        Redeem 100 pts
+                      </button>
+                    ) : (
+                      <span className="text-[9px] text-brand-400 font-bold bg-brand-100 dark:bg-brand-800 px-2 py-0.5 rounded">🔒 Needs {100 - getPointsBalance()} pts</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. Gold Tier */}
+                <div className="space-y-1.5 border border-brand-100 dark:border-brand-800/80 p-3 rounded-2xl">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-yellow-600 dark:text-yellow-500 flex items-center gap-1">🥇 Gold Reward (30% Off)</span>
+                    <span className="text-[10px] font-mono text-brand-500">Min. ₹800</span>
+                  </div>
+                  <div className="w-full h-2 bg-brand-100 dark:bg-brand-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-yellow-500 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(100, (getPointsBalance() / 150) * 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between items-center pt-1.5">
+                    <span className="text-[9px] text-brand-400 font-bold">{getPointsBalance()} / 150 pts</span>
+                    {getPointsBalance() >= 150 ? (
+                      <button
+                        type="button"
+                        onClick={() => handleRedeemPoints('gold')}
+                        disabled={redemptionLoading}
+                        className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white text-[10px] font-bold rounded-lg transition-all"
+                      >
+                        Redeem 150 pts
+                      </button>
+                    ) : (
+                      <span className="text-[9px] text-brand-400 font-bold bg-brand-100 dark:bg-brand-800 px-2 py-0.5 rounded">🔒 Needs {150 - getPointsBalance()} pts</span>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
             

@@ -96,8 +96,8 @@ def register_barber():
             'shop_images': shop_images,
             'profile_pic': profile_pic_url,
             'gst': gst,
-            'rating_avg': 4.8,
-            'rating_count': 12,
+            'rating_avg': 0.0,
+            'rating_count': 0,
             'holiday_mode': False,
             'platform_fee_percent': 10.0,
             'staff': [],
@@ -229,13 +229,25 @@ def add_staff_member():
         image_file = request.files.get('photo')
         photo_url = upload_to_s3(image_file, 'staff_photos') if image_file else ""
 
+        experience = int(data.get('experience', 0)) if data.get('experience') else 0
+
+        shifts_data = []
+        if 'shifts' in data:
+            import json
+            try:
+                shifts_data = json.loads(data.get('shifts'))
+            except Exception:
+                pass
+
         staff_doc = {
             'id': str(ObjectId()),
             'name': name,
             'role': role,
             'shift': shift,
+            'shifts': shifts_data,
             'phone': phone,
             'holiday': holiday,
+            'experience': experience,
             'photoUrl': photo_url,
             'status': 'ACTIVE'
         }
@@ -264,6 +276,15 @@ def update_staff_member(staff_id):
         shift = data.get('shift', '09:00 AM - 08:00 PM').strip()
         phone = data.get('phone', '').strip()
         holiday = data.get('holiday', 'Sunday').strip()
+        experience = int(data.get('experience', 0)) if data.get('experience') else 0
+
+        shifts_data = []
+        if 'shifts' in data:
+            import json
+            try:
+                shifts_data = json.loads(data.get('shifts'))
+            except Exception:
+                pass
 
         if not name:
             return jsonify({'message': 'Staff name is required'}), 400
@@ -288,8 +309,10 @@ def update_staff_member(staff_id):
                     'staff.$.name': name,
                     'staff.$.role': role,
                     'staff.$.shift': shift,
+                    'staff.$.shifts': shifts_data,
                     'staff.$.phone': phone,
                     'staff.$.holiday': holiday,
+                    'staff.$.experience': experience,
                     'staff.$.photoUrl': final_photo_url
                 }
             }
@@ -302,8 +325,10 @@ def update_staff_member(staff_id):
                 'name': name,
                 'role': role,
                 'shift': shift,
+                'shifts': shifts_data,
                 'phone': phone,
                 'holiday': holiday,
+                'experience': experience,
                 'photoUrl': final_photo_url,
                 'status': current_staff.get('status', 'ACTIVE')
             }
@@ -382,6 +407,23 @@ def get_barbers():
         barbers = list(barbers_col.find(query))
         results = []
         for b in barbers:
+            # Calculate if closed today (India timezone: UTC + 5.5 hours)
+            now_india = datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
+            today_str = now_india.strftime("%Y-%m-%d")
+            today_weekday = now_india.weekday()  # Monday (0) - Sunday (6)
+
+            weekly_holidays = b.get('weekly_holidays', [])
+            if not weekly_holidays and b.get('weekly_holiday') is not None:
+                weekly_holidays = [b.get('weekly_holiday')]
+
+            closed_today = False
+            if b.get('holiday_mode', False):
+                closed_today = True
+            elif today_str in b.get('closed_dates', []):
+                closed_today = True
+            elif today_weekday in weekly_holidays:
+                closed_today = True
+
             results.append({
                 'id': str(b['_id']),
                 'shopName': b.get('shop_name', 'TrimTime Salon'),
@@ -396,11 +438,15 @@ def get_barbers():
                 'shopImages': b.get('shop_images', []),
                 'experience': b.get('experience', 5),
                 'description': b.get('description', ''),
-                'ratingAvg': b.get('rating_avg', 4.8),
-                'ratingCount': b.get('rating_count', 12),
+                'ratingAvg': b.get('rating_avg', 0.0),
+                'ratingCount': b.get('rating_count', 0),
                 'openingTime': b.get('opening_time', '09:00'),
                 'closingTime': b.get('closing_time', '20:00'),
                 'weeklyHoliday': b.get('weekly_holiday'),
+                'weeklyHolidays': b.get('weekly_holidays', []),
+                'closedDates': b.get('closed_dates', []),
+                'shifts': b.get('shifts', []),
+                'closedToday': closed_today,
                 'holidayMode': b.get('holiday_mode', False),
                 'staff': b.get('staff', [])
             })
@@ -493,12 +539,15 @@ def get_barber_profile(barber_id):
             'openingTime': barber.get('opening_time', '09:00'),
             'closingTime': barber.get('closing_time', '20:00'),
             'weeklyHoliday': barber.get('weekly_holiday'),
+            'weeklyHolidays': barber.get('weekly_holidays', []),
+            'closedDates': barber.get('closed_dates', []),
+            'shifts': barber.get('shifts', []),
             'experience': barber.get('experience', 5),
             'description': barber.get('description', ''),
             'profilePic': barber.get('profile_pic', ''),
             'shopImages': barber.get('shop_images', []),
-            'ratingAvg': barber.get('rating_avg', 4.8),
-            'ratingCount': barber.get('rating_count', 12),
+            'ratingAvg': barber.get('rating_avg', 0.0),
+            'ratingCount': barber.get('rating_count', 0),
             'holidayMode': barber.get('holiday_mode', False),
             'verificationStatus': 'APPROVED',
             'verifiedBadge': True,
@@ -534,6 +583,24 @@ def update_barber_profile():
         if 'weeklyHoliday' in data:
             val = data.get('weeklyHoliday')
             update_fields['weekly_holiday'] = int(val) if str(val).isdigit() else None
+        if 'weeklyHolidays' in data:
+            import json
+            try:
+                update_fields['weekly_holidays'] = [int(x) for x in json.loads(data.get('weeklyHolidays'))]
+            except Exception:
+                pass
+        if 'closedDates' in data:
+            import json
+            try:
+                update_fields['closed_dates'] = json.loads(data.get('closedDates'))
+            except Exception:
+                pass
+        if 'shifts' in data:
+            import json
+            try:
+                update_fields['shifts'] = json.loads(data.get('shifts'))
+            except Exception:
+                pass
         if 'experience' in data: update_fields['experience'] = int(data.get('experience', 0))
         if 'description' in data: update_fields['description'] = data.get('description').strip()
         if 'holidayMode' in data:
@@ -598,6 +665,8 @@ def add_hairstyle():
         elif 'defaultImageUrl' in data:
             image_url = data.get('defaultImageUrl', '')
 
+        loyalty_points = int(data.get('loyaltyPoints')) if data.get('loyaltyPoints') else None
+
         hairstyle_doc = {
             'barber_id': ObjectId(barber_id),
             'name': name,
@@ -606,6 +675,7 @@ def add_hairstyle():
             'price': price,
             'duration': duration,
             'image_url': image_url,
+            'loyalty_points': loyalty_points,
             'created_at': datetime.datetime.utcnow()
         }
 
@@ -619,7 +689,8 @@ def add_hairstyle():
                 'description': description,
                 'price': price,
                 'duration': duration,
-                'imageUrl': image_url
+                'imageUrl': image_url,
+                'loyaltyPoints': loyalty_points
             }
         }), 201
 
@@ -658,6 +729,8 @@ def get_barber_hairstyles(barber_id):
                 'duration': hs.get('duration') if hs.get('duration') is not None else default_duration,
                 'imageUrl': hs.get('image_url') or cover_image,
                 'icon': icon,
+                'loyaltyPoints': hs.get('loyalty_points'),
+                'isCustom': ms_id is None,
                 'enabled': True
             })
 
@@ -685,6 +758,7 @@ def update_hairstyle(hairstyle_id):
         if 'description' in data: update_fields['description'] = data.get('description').strip()
         if 'price' in data: update_fields['price'] = float(data.get('price'))
         if 'duration' in data: update_fields['duration'] = int(data.get('duration'))
+        if 'loyaltyPoints' in data: update_fields['loyalty_points'] = int(data.get('loyaltyPoints')) if data.get('loyaltyPoints') else None
 
         if 'image' in request.files:
             image_file = request.files['image']

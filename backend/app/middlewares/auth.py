@@ -36,9 +36,10 @@ def generate_refresh_token(user_id, email, role):
         logger.error(f"Error generating refresh token: {e}")
         return None
 
-def decode_token(token, secret):
+def decode_token(token, secret, is_refresh=False):
     try:
-        return jwt.decode(token, secret, algorithms=['HS256'])
+        dec_secret = Config.JWT_REFRESH_SECRET_KEY if is_refresh else secret
+        return jwt.decode(token, dec_secret, algorithms=['HS256'])
     except jwt.ExpiredSignatureError:
         logger.warning("Token signature has expired")
         return "EXPIRED"

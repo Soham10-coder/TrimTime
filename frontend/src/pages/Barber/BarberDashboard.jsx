@@ -101,6 +101,10 @@ export default function BarberDashboard() {
   const [openingTime, setOpeningTime] = useState('09:00');
   const [closingTime, setClosingTime] = useState('20:00');
   const [weeklyHoliday, setWeeklyHoliday] = useState('6');
+  const [weeklyHolidays, setWeeklyHolidays] = useState([]);
+  const [closedDates, setClosedDates] = useState([]);
+  const [newClosedDate, setNewClosedDate] = useState('');
+  const [shifts, setShifts] = useState([{ start: '09:00', end: '20:00' }]);
   const [holidayMode, setHolidayMode] = useState(false);
   const [experience, setExperience] = useState('5');
   const [description, setDescription] = useState('');
@@ -119,6 +123,7 @@ export default function BarberDashboard() {
   const [serviceCategory, setServiceCategory] = useState('Haircut');
   const [servicePrice, setServicePrice] = useState('');
   const [serviceDuration, setServiceDuration] = useState('30');
+  const [serviceLoyaltyPoints, setServiceLoyaltyPoints] = useState('');
   const [serviceDesc, setServiceDesc] = useState('');
   const [serviceFile, setServiceFile] = useState(null);
   const [selectedDefaultImage, setSelectedDefaultImage] = useState('');
@@ -130,8 +135,10 @@ export default function BarberDashboard() {
   const [staffName, setStaffName] = useState('');
   const [staffRole, setStaffRole] = useState('Senior Barber & Stylist');
   const [staffShift, setStaffShift] = useState('09:00 AM - 08:00 PM');
+  const [staffShifts, setStaffShifts] = useState([]);
   const [staffPhone, setStaffPhone] = useState('');
   const [staffHoliday, setStaffHoliday] = useState('Sunday');
+  const [staffExperience, setStaffExperience] = useState('');
   const [staffPhoto, setStaffPhoto] = useState(null);
 
   const [settingsSuccess, setSettingsSuccess] = useState('');
@@ -176,6 +183,9 @@ export default function BarberDashboard() {
         setOpeningTime(pData.openingTime || '09:00');
         setClosingTime(pData.closingTime || '20:00');
         setWeeklyHoliday(pData.weeklyHoliday !== undefined ? String(pData.weeklyHoliday) : '6');
+        setWeeklyHolidays(pData.weeklyHolidays || []);
+        setClosedDates(pData.closedDates || []);
+        setShifts(pData.shifts && pData.shifts.length > 0 ? pData.shifts : [{ start: pData.openingTime || '09:00', end: pData.closingTime || '20:00' }]);
         setHolidayMode(pData.holidayMode || false);
         setExperience(pData.experience || '5');
         setDescription(pData.description || '');
@@ -248,6 +258,9 @@ export default function BarberDashboard() {
     formData.append('openingTime', openingTime);
     formData.append('closingTime', closingTime);
     formData.append('weeklyHoliday', weeklyHoliday);
+    formData.append('weeklyHolidays', JSON.stringify(weeklyHolidays));
+    formData.append('closedDates', JSON.stringify(closedDates));
+    formData.append('shifts', JSON.stringify(shifts));
     formData.append('holidayMode', holidayMode);
     formData.append('experience', experience);
     formData.append('description', description);
@@ -282,8 +295,10 @@ export default function BarberDashboard() {
     setStaffName('');
     setStaffRole('Senior Barber & Stylist');
     setStaffShift('09:00 AM - 08:00 PM');
+    setStaffShifts([]);
     setStaffPhone('');
     setStaffHoliday('Sunday');
+    setStaffExperience('');
     setStaffPhoto(null);
     setStaffModal(true);
   };
@@ -293,8 +308,10 @@ export default function BarberDashboard() {
     setStaffName(st.name);
     setStaffRole(st.role || 'Barber Stylist');
     setStaffShift(st.shift || '09:00 AM - 08:00 PM');
+    setStaffShifts(st.shifts || []);
     setStaffPhone(st.phone || '');
     setStaffHoliday(st.holiday || 'Sunday');
+    setStaffExperience(st.experience || '');
     setStaffPhoto(null);
     setStaffModal(true);
   };
@@ -305,8 +322,10 @@ export default function BarberDashboard() {
     formData.append('name', staffName);
     formData.append('role', staffRole);
     formData.append('shift', staffShift);
+    formData.append('shifts', JSON.stringify(staffShifts));
     formData.append('phone', staffPhone);
     formData.append('holiday', staffHoliday);
+    formData.append('experience', staffExperience);
     if (staffPhoto) formData.append('photo', staffPhoto);
 
     try {
@@ -377,6 +396,7 @@ export default function BarberDashboard() {
     setServiceCategory('Haircut');
     setServicePrice('');
     setServiceDuration('30');
+    setServiceLoyaltyPoints('');
     setServiceDesc('');
     setServiceFile(null);
     setSelectedDefaultImage(categoryDefaultImages['Haircut']?.[0] || '');
@@ -389,6 +409,7 @@ export default function BarberDashboard() {
     setServiceCategory(s.category);
     setServicePrice(s.price);
     setServiceDuration(String(s.duration));
+    setServiceLoyaltyPoints(s.loyaltyPoints !== undefined && s.loyaltyPoints !== null ? String(s.loyaltyPoints) : '');
     setServiceDesc(s.description || '');
     setServiceFile(null);
     setSelectedDefaultImage(s.imageUrl && s.imageUrl.includes('trimtimebucket') ? s.imageUrl : '');
@@ -404,6 +425,7 @@ export default function BarberDashboard() {
     formData.append('category', serviceCategory);
     formData.append('price', servicePrice);
     formData.append('duration', serviceDuration);
+    formData.append('loyaltyPoints', serviceLoyaltyPoints);
     formData.append('description', serviceDesc);
     if (serviceFile) {
       formData.append('image', serviceFile);
@@ -613,7 +635,31 @@ export default function BarberDashboard() {
                       <td className="p-4 font-bold text-brand-900 dark:text-brand-50">{b.customer?.name}</td>
                       <td className="p-4 font-semibold text-accent-600">{b.staffName || 'Senior Stylist'}</td>
                       <td className="p-4 font-medium">{b.hairstyle?.name}</td>
-                      <td className="p-4 font-mono">{b.date} at {b.timeSlot}</td>
+                      <td className="p-4 font-mono text-xs">
+                        <div>{b.date} at {b.timeSlot}</div>
+                        <div className="text-[10px] text-accent-500 font-semibold font-sans mt-0.5 flex items-center gap-1">
+                          <span>⏱️ {b.hairstyle?.duration || 30} min session</span>
+                          <span className="text-brand-300">|</span>
+                          <span className="text-brand-400 font-bold">Ends: {(() => {
+                            try {
+                              const [time, modifier] = b.timeSlot.split(' ');
+                              let [hours, minutes] = time.split(':').map(Number);
+                              if (modifier === 'PM' && hours !== 12) hours += 12;
+                              if (modifier === 'AM' && hours === 12) hours = 0;
+                              
+                              const totalMinutes = hours * 60 + minutes + (b.hairstyle?.duration || 30);
+                              const endHours24 = Math.floor(totalMinutes / 60) % 24;
+                              const endMinutes = totalMinutes % 60;
+                              
+                              const endHours12 = endHours24 % 12 || 12;
+                              const ampm = endHours24 >= 12 ? 'PM' : 'AM';
+                              return `${String(endHours12).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')} ${ampm}`;
+                            } catch (e) {
+                              return 'N/A';
+                            }
+                          })()}</span>
+                        </div>
+                      </td>
                       <td className="p-4 font-mono font-bold text-brand-900 dark:text-brand-50">{b.checkInOtp || 'N/A'}</td>
                       <td className="p-4 font-bold text-green-600">₹{b.price}</td>
                       <td className="p-4">
@@ -691,12 +737,95 @@ export default function BarberDashboard() {
       {/* TAB 5: SERVICES CATALOG */}
       {activeTab === 'services' && (
         <div className="space-y-6">
-          <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm">
-            <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50">Salon Services Catalog Settings</h3>
-            <p className="text-xs text-brand-500 mt-1">
-              Select which services your salon offers from the Master Catalog. Configure your custom pricing, optional durations, and description notes.
-            </p>
+          <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50">Salon Services Catalog Settings</h3>
+              <p className="text-xs text-brand-500 mt-1">
+                Select which services your salon offers from the Master Catalog. Configure your custom pricing, optional durations, and description notes.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleOpenAddService}
+              className="px-4 py-2.5 bg-accent-500 hover:bg-accent-600 text-white rounded-xl text-xs font-bold shadow-md transition-all whitespace-nowrap"
+            >
+              + Create Custom Service
+            </button>
           </div>
+
+          {/* CUSTOM SALON SERVICES SECTION */}
+          {(() => {
+            const customServices = (hairstyles || []).filter(h => h.isCustom);
+            if (customServices.length === 0) return null;
+            
+            return (
+              <div className="space-y-4 border border-brand-200 dark:border-brand-850 p-6 rounded-3xl bg-brand-50/50 dark:bg-brand-950/20">
+                <h4 className="font-bold text-sm text-brand-900 dark:text-brand-50 flex items-center gap-1.5">
+                  ✨ Custom Salon-Created Services ({customServices.length})
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {customServices.map((s) => (
+                    <div key={s.id} className="bg-white dark:bg-brand-900 rounded-2xl border border-brand-200 dark:border-brand-800 shadow-sm overflow-hidden flex flex-col justify-between">
+                      <div className="relative h-32 bg-brand-100">
+                        <img src={s.imageUrl} alt={s.name} className="w-full h-full object-cover" />
+                        <span className="absolute top-2.5 right-2.5 bg-accent-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          Custom
+                        </span>
+                      </div>
+                      
+                      <div className="p-4 space-y-2 flex-grow flex flex-col justify-between">
+                        <div>
+                          <div className="flex justify-between items-start">
+                            <span className="font-extrabold text-xs text-brand-800 dark:text-brand-200">{s.name}</span>
+                            <span className="font-mono font-bold text-xs text-accent-500">₹{s.price}</span>
+                          </div>
+                          <p className="text-[10px] text-brand-500 mt-1 line-clamp-2">{s.description || 'No description notes.'}</p>
+                        </div>
+                        
+                        <div className="flex justify-between items-center text-[10px] font-semibold text-brand-400 border-t pt-2">
+                          <span>⏱️ {s.duration} Min</span>
+                          {s.loyaltyPoints !== undefined && s.loyaltyPoints !== null && (
+                            <span className="text-yellow-600">🏆 {s.loyaltyPoints} Pts</span>
+                          )}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t mt-2">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditService(s)}
+                            className="py-1.5 bg-brand-100 hover:bg-brand-200 dark:bg-brand-800 text-brand-700 dark:text-brand-250 font-bold rounded-lg text-[10px]"
+                          >
+                            Edit Service
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (window.confirm(`Are you sure you want to delete "${s.name}"?`)) {
+                                try {
+                                  const res = await api.delete(`/barber/hairstyles/${s.id}`);
+                                  if (res.ok) {
+                                    // Refresh both profile details and hairstyles
+                                    fetchBarberDashboardData();
+                                  } else {
+                                    alert("Failed to delete custom service.");
+                                  }
+                                } catch (e) {
+                                  alert("Error deleting service.");
+                                }
+                              }
+                            }}
+                            className="py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg text-[10px]"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* SERVICES CATEGORY SWEEP SWITCHER */}
           <div className="flex overflow-x-auto gap-2 pb-4 scrollbar-none border-b border-brand-100">
@@ -940,115 +1069,321 @@ export default function BarberDashboard() {
           </div>
         </div>
       )}
-
-      {/* TAB 7: SHOP OPERATING HOURS & INTERACTIVE MAP LOCATION PICKER */}
+       {/* TAB 7: SHOP OPERATING HOURS & INTERACTIVE MAP LOCATION PICKER */}
       {activeTab === 'settings' && (
-        <form onSubmit={handleUpdateSettings} className="bg-white dark:bg-brand-900 p-6 rounded-3xl border max-w-xl space-y-4">
-          <div className="flex justify-between items-center">
+        <form onSubmit={handleUpdateSettings} className="max-w-2xl space-y-6">
+          
+          {/* INTRO CARD */}
+          <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50">Interactive Map Location & Shop Hours</h3>
-              <p className="text-xs text-brand-500">Click or drag the marker on the map to choose your exact shop location.</p>
+              <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
+                ⚙️ Salon Configurations & Business Hours
+              </h3>
+              <p className="text-xs text-brand-500 mt-1">
+                Customize your salon profile info, maps geo-location, daily shift timings, weekly off-days, and custom vacation closures.
+              </p>
             </div>
             <button
-              type="button"
-              onClick={handleDetectGPS}
-              disabled={geoLocating}
-              className="px-3 py-1.5 bg-accent-100 text-accent-700 dark:bg-accent-950 dark:text-accent-400 font-bold rounded-xl text-xs flex items-center gap-1.5 hover:bg-accent-200"
+              type="submit"
+              className="px-5 py-3 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white font-bold rounded-xl text-xs shadow-md shadow-accent-500/10 transition-all flex items-center gap-1.5 self-stretch md:self-auto justify-center"
             >
-              <Locate className="w-3.5 h-3.5" /> {geoLocating ? 'Detecting...' : '📍 GPS Auto Detect'}
+              <Save className="w-4 h-4" /> Save Settings
             </button>
           </div>
 
-          {settingsSuccess && <div className="p-3 bg-green-50 text-green-700 text-xs font-bold rounded-xl">{settingsSuccess}</div>}
-
-          {/* INTERACTIVE MAP PICKER COMPONENT */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-brand-700 dark:text-brand-300">Click on Map to Pick Shop Location Pin *</label>
-            <MapLocationPicker 
-              lat={lat} 
-              lng={lng} 
-              onLocationSelect={handleMapLocationSelect} 
-            />
-            <p className="text-[11px] text-brand-400">Selected Coordinates: Lat <span className="font-mono font-bold text-brand-900 dark:text-brand-50">{lat}</span>, Lng <span className="font-mono font-bold text-brand-900 dark:text-brand-50">{lng}</span></p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-brand-500 mb-1">Shop Opening Time *</label>
-              <input type="time" value={openingTime} onChange={(e) => setOpeningTime(e.target.value)} className="w-full p-2.5 bg-brand-50 border rounded-xl text-xs font-mono font-bold" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-brand-500 mb-1">Shop Closing Time *</label>
-              <input type="time" value={closingTime} onChange={(e) => setClosingTime(e.target.value)} className="w-full p-2.5 bg-brand-50 border rounded-xl text-xs font-mono font-bold" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-brand-500 mb-1">Full Shop Address *</label>
-            <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="e.g. 102 MG Road, Bandra West, Mumbai" className="w-full p-2.5 bg-brand-50 border rounded-xl text-xs" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-brand-500 mb-1">City *</label>
-              <input type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Mumbai" className="w-full p-2.5 bg-brand-50 border rounded-xl text-xs" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-brand-500 mb-1">Shop Holiday</label>
-              <select value={weeklyHoliday} onChange={(e) => setWeeklyHoliday(e.target.value)} className="w-full p-2.5 bg-brand-50 border rounded-xl text-xs font-bold">
-                <option value="6">Sunday</option>
-                <option value="0">Monday</option>
-                <option value="1">Tuesday</option>
-                <option value="2">Wednesday</option>
-                <option value="3">Thursday</option>
-                <option value="4">Friday</option>
-                <option value="5">Saturday</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-brand-500 mb-1">Years of Experience *</label>
-              <input type="number" value={experience} onChange={(e) => setExperience(e.target.value)} placeholder="5" className="w-full p-2.5 bg-brand-50 border rounded-xl text-xs font-bold" required />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-brand-500 mb-1">Shop Profile Avatar Photo</label>
-              <input type="file" accept="image/*" onChange={(e) => setProfilePicFile(e.target.files[0])} className="w-full p-2 bg-brand-50 border rounded-xl text-xs" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-brand-500 mb-1">Description / Salon Tagline</label>
-            <textarea rows="2" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Specialized grooming, haircuts, and hot towel shaves..." className="w-full p-2.5 bg-brand-50 border rounded-xl text-xs" />
-          </div>
-
-          {/* CURRENT SHOP GALLERY IMAGES */}
-          {profile?.shopImages && profile.shopImages.length > 0 && (
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-brand-500">Current Shop Gallery Pictures (on Homepage Card):</label>
-              <div className="grid grid-cols-3 gap-3">
-                {profile.shopImages.map((img, idx) => (
-                  <div key={idx} className="relative aspect-video rounded-xl overflow-hidden border bg-brand-50 shadow-sm">
-                    <img src={img} className="w-full h-full object-cover" alt={`Shop gallery ${idx + 1}`} />
-                    <div className="absolute top-1 left-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">
-                      #{idx + 1}
-                    </div>
-                  </div>
-                ))}
-              </div>
+          {settingsSuccess && (
+            <div className="p-3.5 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-300 text-xs font-bold rounded-2xl border border-green-200 dark:border-green-800 flex items-center gap-2 animate-pulse">
+              🎉 {settingsSuccess}
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-semibold text-brand-500 mb-1">Upload New Shop Gallery Pictures (Up to 3 images)</label>
-            <input type="file" multiple accept="image/*" onChange={(e) => setShopImagesFiles(Array.from(e.target.files))} className="w-full p-2 bg-brand-50 border rounded-xl text-xs" />
-            <p className="text-[10px] text-brand-400 mt-1">This will overwrite the current hover carousel images on the home page salon card.</p>
+          {/* CARD 1: CORE SALON DETAILS */}
+          <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm space-y-4">
+            <h4 className="font-bold text-xs uppercase tracking-wider text-accent-500 border-b pb-2 flex items-center gap-1.5">
+              📝 Salon Profile Details
+            </h4>
+            
+            <div>
+              <label className="block text-xs font-semibold text-brand-500 mb-1">Description / Salon Tagline</label>
+              <textarea 
+                rows="2" 
+                value={description} 
+                onChange={(e) => setDescription(e.target.value)} 
+                placeholder="e.g. Premium hair styling, grooming, beard styling, and hot towel shaves..." 
+                className="w-full p-3 bg-brand-50/50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800 rounded-2xl text-xs focus:ring-1 focus:ring-accent-500 transition-all" 
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-brand-500 mb-1">Salon Experience (Years) *</label>
+                <input 
+                  type="number" 
+                  value={experience} 
+                  onChange={(e) => setExperience(e.target.value)} 
+                  placeholder="5" 
+                  className="w-full p-3 bg-brand-50/50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800 rounded-2xl text-xs font-bold" 
+                  required 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-brand-500 mb-1">Shop Profile Avatar Photo</label>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={(e) => setProfilePicFile(e.target.files[0])} 
+                  className="w-full p-2 bg-brand-50/50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800 rounded-2xl text-xs" 
+                />
+              </div>
+            </div>
           </div>
 
-          <button type="submit" className="px-6 py-2.5 bg-accent-500 text-white font-bold rounded-xl text-xs shadow-md">
-            Save Shop Location & Hours
-          </button>
+          {/* CARD 2: LOCATION MAP SETTINGS */}
+          <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm space-y-4">
+            <div className="flex justify-between items-center border-b pb-2">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-accent-500 flex items-center gap-1.5">
+                🗺️ Location Map Pin & Address
+              </h4>
+              <button
+                type="button"
+                onClick={handleDetectGPS}
+                disabled={geoLocating}
+                className="px-2.5 py-1 bg-accent-50 hover:bg-accent-100 dark:bg-brand-950 dark:hover:bg-brand-900 text-accent-600 dark:text-accent-400 font-bold rounded-lg text-[10px] flex items-center gap-1 transition-all"
+              >
+                <Locate className="w-3 h-3 animate-bounce" /> {geoLocating ? 'Detecting GPS...' : 'GPS Auto Detect'}
+              </button>
+            </div>
+
+            <p className="text-[11px] text-brand-400">
+              Drag or click the map to place a pin directly on your salon's entrance. This allows customers to get GPS navigation directions.
+            </p>
+
+            <div className="space-y-2.5">
+              <MapLocationPicker 
+                lat={lat} 
+                lng={lng} 
+                onLocationSelect={handleMapLocationSelect} 
+              />
+              <p className="text-[10px] text-brand-400 font-mono">
+                Latitude: <span className="font-bold text-brand-800 dark:text-brand-300">{lat}</span> | Longitude: <span className="font-bold text-brand-800 dark:text-brand-300">{lng}</span>
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-brand-500 mb-1">Full Street Address *</label>
+                <input 
+                  type="text" 
+                  value={address} 
+                  onChange={(e) => setAddress(e.target.value)} 
+                  placeholder="e.g. 102 MG Road, Bandra West" 
+                  className="w-full p-3 bg-brand-50/50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800 rounded-2xl text-xs" 
+                  required 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-brand-500 mb-1">City *</label>
+                <input 
+                  type="text" 
+                  value={city} 
+                  onChange={(e) => setCity(e.target.value)} 
+                  placeholder="Mumbai" 
+                  className="w-full p-3 bg-brand-50/50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800 rounded-2xl text-xs" 
+                  required 
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* CARD 3: OPERATING SHIFTS */}
+          <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm space-y-4">
+            <div className="flex justify-between items-center border-b pb-2">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-accent-500 flex items-center gap-1.5">
+                ⏱️ Operating Shifts (Business Hours)
+              </h4>
+              <button
+                type="button"
+                onClick={() => setShifts([...shifts, { start: '09:00', end: '13:00' }])}
+                className="px-2.5 py-1 bg-accent-500 hover:bg-accent-600 text-white font-bold rounded-lg text-[10px] shadow transition-all"
+              >
+                + Add Shift Interval
+              </button>
+            </div>
+            
+            <p className="text-[11px] text-brand-400">
+              Create one or more time slots when the salon is open. Split shifts (e.g. morning shift and afternoon shift) are supported.
+            </p>
+
+            <div className="space-y-2">
+              {shifts.map((sh, idx) => (
+                <div key={idx} className="flex items-center gap-3 bg-brand-50/30 dark:bg-brand-950/10 p-2.5 rounded-2xl border border-brand-100 dark:border-brand-850">
+                  <span className="text-[10px] font-bold text-brand-400 font-mono w-14">Shift #{idx + 1}:</span>
+                  <div className="flex-1 grid grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-[9px] text-brand-400 font-bold block mb-0.5">Start Time</span>
+                      <input
+                        type="time"
+                        value={sh.start}
+                        onChange={(e) => {
+                          const updated = [...shifts];
+                          updated[idx].start = e.target.value;
+                          setShifts(updated);
+                        }}
+                        className="w-full p-2 bg-white dark:bg-brand-900 border rounded-xl text-xs font-mono font-bold"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-brand-400 font-bold block mb-0.5">End Time</span>
+                      <input
+                        type="time"
+                        value={sh.end}
+                        onChange={(e) => {
+                          const updated = [...shifts];
+                          updated[idx].end = e.target.value;
+                          setShifts(updated);
+                        }}
+                        className="w-full p-2 bg-white dark:bg-brand-900 border rounded-xl text-xs font-mono font-bold"
+                      />
+                    </div>
+                  </div>
+                  {shifts.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setShifts(shifts.filter((_, i) => i !== idx))}
+                      className="p-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-all self-end"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CARD 4: HOLIDAYS & VACATION DAYS */}
+          <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm space-y-4">
+            <h4 className="font-bold text-xs uppercase tracking-wider text-accent-500 border-b pb-2 flex items-center gap-1.5">
+              📅 Standard Holidays & Vacation Days
+            </h4>
+            
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-brand-500">Weekly Off Days</label>
+              <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                {[
+                  { label: 'Monday', val: 0 },
+                  { label: 'Tuesday', val: 1 },
+                  { label: 'Wednesday', val: 2 },
+                  { label: 'Thursday', val: 3 },
+                  { label: 'Friday', val: 4 },
+                  { label: 'Saturday', val: 5 },
+                  { label: 'Sunday', val: 6 },
+                ].map((d) => {
+                  const isChecked = weeklyHolidays.includes(d.val);
+                  return (
+                    <label key={d.val} className={`flex items-center justify-center p-2.5 rounded-xl text-[10px] font-bold border cursor-pointer select-none transition-all ${
+                      isChecked
+                        ? 'bg-red-500 text-white border-red-500 shadow-md shadow-red-500/10'
+                        : 'bg-brand-50/50 border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 hover:bg-brand-100'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          if (isChecked) {
+                            setWeeklyHolidays(weeklyHolidays.filter((x) => x !== d.val));
+                          } else {
+                            setWeeklyHolidays([...weeklyHolidays, d.val]);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      {d.label.slice(0, 3)}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="border-t pt-4 space-y-3">
+              <label className="block text-xs font-semibold text-brand-500">Block Custom Closed Vacation Days</label>
+              <p className="text-[10px] text-brand-400">Add custom holiday dates (e.g. festivals or personal leaves) when your entire salon will be marked closed.</p>
+              
+              <div className="flex gap-2.5">
+                <input
+                  type="date"
+                  value={newClosedDate}
+                  onChange={(e) => setNewClosedDate(e.target.value)}
+                  className="flex-1 p-3 bg-brand-50/50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800 rounded-2xl text-xs font-mono font-bold"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newClosedDate && !closedDates.includes(newClosedDate)) {
+                      setClosedDates([...closedDates, newClosedDate]);
+                      setNewClosedDate('');
+                    }
+                  }}
+                  className="bg-accent-500 hover:bg-accent-600 text-white font-bold text-xs px-4 py-2.5 rounded-2xl shadow transition-all whitespace-nowrap"
+                >
+                  Block Date
+                </button>
+              </div>
+
+              {closedDates.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1.5">
+                  {closedDates.map((dateVal) => (
+                    <span key={dateVal} className="flex items-center gap-1.5 bg-red-50 dark:bg-red-950/30 text-red-650 dark:text-red-300 text-[10px] font-bold px-2.5 py-1 rounded-xl border border-red-150">
+                      {new Date(dateVal).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'})}
+                      <button
+                        type="button"
+                        onClick={() => setClosedDates(closedDates.filter((d) => d !== dateVal))}
+                        className="text-red-500 hover:text-red-700 font-extrabold text-xs"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* CARD 5: GALLERY IMAGES */}
+          <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm space-y-4">
+            <h4 className="font-bold text-xs uppercase tracking-wider text-accent-500 border-b pb-2 flex items-center gap-1.5">
+              🖼️ Hover Gallery Pictures
+            </h4>
+            
+            {profile?.shopImages && profile.shopImages.length > 0 && (
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-brand-500">Active Gallery Photos:</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {profile.shopImages.map((img, idx) => (
+                    <div key={idx} className="relative aspect-video rounded-2xl overflow-hidden border bg-brand-50 shadow-sm">
+                      <img src={img} className="w-full h-full object-cover" alt={`Shop gallery ${idx + 1}`} />
+                      <div className="absolute top-1.5 left-1.5 bg-black/60 text-white text-[9px] px-2 py-0.5 rounded-full font-extrabold">
+                        Photo #{idx + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-brand-500 mb-1">Upload New Gallery Images (Select up to 3 pictures)</label>
+              <input 
+                type="file" 
+                multiple 
+                accept="image/*" 
+                onChange={(e) => setShopImagesFiles(Array.from(e.target.files))} 
+                className="w-full p-2 bg-brand-50/50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800 rounded-2xl text-xs" 
+              />
+              <p className="text-[10px] text-brand-400 mt-1.5">
+                Note: This uploads fresh custom gallery pictures that show in a sliding carousel when clients hover over your salon card.
+              </p>
+            </div>
+          </div>
         </form>
       )}
 
@@ -1073,8 +1408,33 @@ export default function BarberDashboard() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-semibold mb-1">Shift Hours *</label>
-                    <input type="text" value={staffShift} onChange={(e) => setStaffShift(e.target.value)} placeholder="09:00 AM - 05:00 PM" className="w-full p-2.5 bg-brand-50 border rounded-xl font-mono" />
+                    <label className="block font-semibold mb-1">Select Shifts *</label>
+                    {shifts && shifts.length > 0 ? (
+                      <div className="space-y-1.5 p-2.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-850 rounded-xl max-h-24 overflow-y-auto">
+                        {shifts.map((sh, idx) => {
+                          const isAssigned = staffShifts.some(s => s.start === sh.start && s.end === sh.end);
+                          return (
+                            <label key={idx} className="flex items-center gap-1.5 text-[10px] font-bold text-brand-700 dark:text-brand-350 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={isAssigned}
+                                onChange={() => {
+                                  if (isAssigned) {
+                                    setStaffShifts(staffShifts.filter(s => !(s.start === sh.start && s.end === sh.end)));
+                                  } else {
+                                    setStaffShifts([...staffShifts, sh]);
+                                  }
+                                }}
+                                className="rounded text-accent-500"
+                              />
+                              <span>Shift {idx + 1} ({sh.start} - {sh.end})</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <input type="text" value={staffShift} onChange={(e) => setStaffShift(e.target.value)} placeholder="09:00 AM - 05:00 PM" className="w-full p-2.5 bg-brand-50 border rounded-xl font-mono" />
+                    )}
                   </div>
                   <div>
                     <label className="block font-semibold mb-1">Individual Holiday *</label>
@@ -1088,6 +1448,10 @@ export default function BarberDashboard() {
                       <option value="Sunday">Sunday</option>
                     </select>
                   </div>
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">Experience (in Years)</label>
+                  <input type="number" min="0" value={staffExperience} onChange={(e) => setStaffExperience(e.target.value)} placeholder="e.g. 5" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
                 </div>
                 <div>
                   <label className="block font-semibold mb-1">Staff Photo (S3 Bucket Upload)</label>
@@ -1141,9 +1505,15 @@ export default function BarberDashboard() {
                     <input type="number" required value={servicePrice} onChange={(e) => setServicePrice(e.target.value)} placeholder="350" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
                   </div>
                 </div>
-                <div>
-                  <label className="block font-semibold mb-1">Duration (Minutes)</label>
-                  <input type="number" value={serviceDuration} onChange={(e) => setServiceDuration(e.target.value)} placeholder="30" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold mb-1">Duration (Minutes)</label>
+                    <input type="number" value={serviceDuration} onChange={(e) => setServiceDuration(e.target.value)} placeholder="30" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
+                  </div>
+                  <div>
+                    <label className="block font-semibold mb-1">Loyalty Points Reward</label>
+                    <input type="number" value={serviceLoyaltyPoints} onChange={(e) => setServiceLoyaltyPoints(e.target.value)} placeholder="e.g. 15 (optional)" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
+                  </div>
                 </div>
                 <div>
                   <label className="block font-semibold mb-1">Service Photo (S3 Bucket Upload)</label>

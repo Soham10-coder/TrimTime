@@ -263,10 +263,10 @@ def refresh_token():
         if not token_doc:
             return jsonify({'message': 'Invalid refresh token'}), 401
 
-        payload, err = decode_token(ref_token, is_refresh=True)
-        if err:
+        payload = decode_token(ref_token, Config.JWT_REFRESH_SECRET_KEY, is_refresh=True)
+        if not payload or payload == "EXPIRED":
             refresh_tokens_col.delete_one({'token': ref_token})
-            return jsonify({'message': f'Refresh token invalid: {err}'}), 401
+            return jsonify({'message': 'Refresh token invalid or expired'}), 401
 
         user_id = payload.get('sub')
         role = payload.get('role')

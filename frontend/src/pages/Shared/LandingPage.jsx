@@ -84,9 +84,15 @@ function BarberCard({ b, navigate }) {
           </div>
         )}
 
+        {b.closedToday && (
+          <div className="absolute top-4 left-4 px-2.5 py-1 bg-red-600 text-white rounded-lg text-[10px] font-bold shadow-md z-10 uppercase tracking-wider">
+            Closed Today
+          </div>
+        )}
+
         <div className="absolute top-4 right-4 px-2.5 py-1 bg-white/95 dark:bg-brand-900/95 rounded-lg text-xs font-bold text-brand-900 dark:text-brand-50 shadow-md flex items-center gap-1 z-10">
           <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-          <span>{b.ratingAvg ? b.ratingAvg.toFixed(1) : "New"}</span>
+          <span>{b.ratingCount > 0 && b.ratingAvg ? b.ratingAvg.toFixed(1) : "New"}</span>
           {b.ratingCount > 0 && <span className="text-brand-400 font-normal">({b.ratingCount})</span>}
         </div>
       </div>
@@ -119,7 +125,13 @@ function BarberCard({ b, navigate }) {
           </span>
           <span className="flex items-center gap-1 font-medium bg-brand-100 dark:bg-brand-800 text-brand-800 dark:text-brand-300 px-2 py-0.5 rounded">
             <Award className="w-3 h-3 text-accent-500" />
-            {b.experience} Yrs Exp
+            {(() => {
+              const activeStaff = (b.staff || []).filter(s => s.status !== 'INACTIVE');
+              const avgStaffExp = activeStaff.length > 0
+                ? (activeStaff.reduce((acc, curr) => acc + parseFloat(curr.experience || 0), 0) / activeStaff.length).toFixed(1)
+                : null;
+              return avgStaffExp ? `${avgStaffExp} Yrs Staff Exp` : `${b.experience || 0} Yrs Exp`;
+            })()}
           </span>
         </div>
 

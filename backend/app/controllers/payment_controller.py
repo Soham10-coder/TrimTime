@@ -5,6 +5,7 @@ from bson import ObjectId
 from app.db import bookings_col, payments_col, users_col, barbers_col, hairstyles_col
 from app.utils.razorpay_utils import verify_payment_signature
 from app.utils.email_utils import send_booking_confirmation
+from app.controllers.booking_controller import calculate_booking_loyalty_points
 from config import Config
 
 logger = logging.getLogger(__name__)
@@ -78,8 +79,14 @@ def verify_and_confirm_payment():
             }
         )
 
-        # 3. Add loyalty points (10% of service final price as points)
-        points_earned = int(booking.get('service_final_price', booking.get('price', 0)) * 0.1)
+        # Deactivate used coupon
+        used_coupon_code = booking.get('coupon_code')
+        if used_coupon_code:
+            from app.db import coupons_col
+            coupons_col.update_one({'code': used_coupon_code}, {'$set': {'active': False}})
+
+        # 3. Add loyalty points
+        points_earned = calculate_booking_loyalty_points(booking)
         users_col.update_one(
             {'_id': booking['customer_id']},
             {'$inc': {'loyalty_points': points_earned}}
@@ -164,8 +171,8 @@ def razorpay_webhook():
                     }
                 )
                 
-                # Award loyalty points (10% of service final price as points)
-                points_earned = int(booking.get('service_final_price', booking.get('price', 0)) * 0.1)
+                # Award loyalty points
+                points_earned = calculate_booking_loyalty_points(booking)
                 users_col.update_one({'_id': booking['customer_id']}, {'$inc': {'loyalty_points': points_earned}})
                 
                 # Send email

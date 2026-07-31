@@ -235,9 +235,25 @@ export default function BookAppointment() {
       const weekday = nextDate.getDay();
       
       let isClosed = false;
-      if (barber && barber.weeklyHoliday !== null) {
+      if (barber) {
         const pyWeekday = weekday === 0 ? 6 : weekday - 1;
-        if (pyWeekday === barber.weeklyHoliday) {
+        const weeklyHols = barber.weeklyHolidays || [];
+        
+        if (weeklyHols.length > 0) {
+          if (weeklyHols.includes(pyWeekday)) {
+            isClosed = true;
+          }
+        } else if (barber.weeklyHoliday !== null && barber.weeklyHoliday !== undefined) {
+          if (pyWeekday === Number(barber.weeklyHoliday)) {
+            isClosed = true;
+          }
+        }
+        
+        if (barber.closedDates && barber.closedDates.includes(dateStr)) {
+          isClosed = true;
+        }
+        
+        if (barber.holidayMode) {
           isClosed = true;
         }
       }

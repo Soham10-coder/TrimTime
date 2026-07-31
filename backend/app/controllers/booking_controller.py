@@ -38,10 +38,17 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
     except ValueError:
         return []
 
-    # Check weekly holiday
-    if barber_doc.get('weekly_holiday') is not None:
-        if target_date.weekday() == barber_doc.get('weekly_holiday'):
-            return []
+    # Check custom closed dates
+    closed_dates = barber_doc.get('closed_dates', [])
+    if date_str in closed_dates:
+        return []
+
+    # Check weekly holiday list
+    weekly_holidays = barber_doc.get('weekly_holidays', [])
+    if not weekly_holidays and barber_doc.get('weekly_holiday') is not None:
+        weekly_holidays = [barber_doc.get('weekly_holiday')]
+    if target_date.weekday() in weekly_holidays:
+        return []
 
     # (c) Check independent staff member holiday if staff_id is selected
     if staff_id and barber_doc.get('staff'):
@@ -51,9 +58,6 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
             current_weekday_name = weekday_names[target_date.weekday()]
             if staff_member.get('holiday').strip().lower() == current_weekday_name.lower():
                 return []
-
-    open_mins = time_to_minutes(barber_doc.get('opening_time', '09:00'))
-    close_mins = time_to_minutes(barber_doc.get('closing_time', '20:00'))
 
     query = {
         'barber_id': barber_doc['_id'],
@@ -81,34 +85,54 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
     is_today = target_date == current_time.date()
     current_mins_today = current_time.hour * 60 + current_time.minute + 15
 
-    for slot_start in range(open_mins, close_mins, 30):
-        slot_end = slot_start + duration_mins
-        
-        if slot_end > close_mins:
-            continue
+    # Retrieve custom shifts list (prioritize staff member shifts if selected)
+    shifts = []
+    if staff_id and barber_doc.get('staff'):
+        staff_member = next((s for s in barber_doc['staff'] if str(s.get('id')) == str(staff_id) or s.get('name') == staff_id), None)
+        if staff_member:
+            shifts = staff_member.get('shifts', [])
 
-        if is_today and slot_start < current_mins_today:
-            continue
+    if not shifts:
+        shifts = barber_doc.get('shifts', [])
 
-        collides = False
-        new_interval_start = slot_start
-        new_interval_end = slot_start + duration_mins + BUFFER_TIME_MINS
+    if not shifts:
+        shifts = [{
+            'start': barber_doc.get('opening_time', '09:00'),
+            'end': barber_doc.get('closing_time', '20:00')
+        }]
 
-        for booked_start, booked_end in booked_intervals:
-            if (new_interval_start < booked_end) and (new_interval_end > booked_start):
-                collides = True
-                break
+    for sh in shifts:
+        open_mins = time_to_minutes(sh.get('start', '09:00'))
+        close_mins = time_to_minutes(sh.get('end', '20:00'))
 
-        slot_time_str = minutes_to_time(slot_start)
-        time_obj = datetime.datetime.strptime(slot_time_str, "%H:%M")
-        display_time = time_obj.strftime("%I:%M %p")
+        for slot_start in range(open_mins, close_mins, 30):
+            slot_end = slot_start + duration_mins
+            if slot_end > close_mins:
+                continue
 
-        if not collides:
-            available_slots.append({
-                'time': slot_time_str,
-                'displayTime': display_time,
-                'available': True
-            })
+            if is_today and slot_start < current_mins_today:
+                continue
+
+            collides = False
+            new_interval_start = slot_start
+            new_interval_end = slot_start + duration_mins + BUFFER_TIME_MINS
+
+            for booked_start, booked_end in booked_intervals:
+                if (new_interval_start < booked_end) and (new_interval_end > booked_start):
+                    collides = True
+                    break
+
+            slot_time_str = minutes_to_time(slot_start)
+            time_obj = datetime.datetime.strptime(slot_time_str, "%H:%M")
+            display_time = time_obj.strftime("%I:%M %p")
+
+            if not collides:
+                if not any(slot['time'] == slot_time_str for slot in available_slots):
+                    available_slots.append({
+                        'time': slot_time_str,
+                        'displayTime': display_time,
+                        'available': True
+                    })
 
     return available_slots
 
@@ -161,6 +185,38 @@ def generate_qr_code_base64(data_str):
     except Exception as e:
         logger.error(f"Failed to generate QR code: {e}")
         return ""
+
+def calculate_booking_loyalty_points(booking):
+    service_ids = []
+    if 'services' in booking:
+        service_ids = [ObjectId(s['id']) for s in booking['services'] if ObjectId.is_valid(s.get('id', ''))]
+    elif 'hairstyle_id' in booking:
+        service_ids = [ObjectId(booking['hairstyle_id'])]
+
+    points = 0
+    if service_ids:
+        from app.db import hairstyles_col
+        hairstyles = list(hairstyles_col.find({'_id': {'$in': service_ids}}))
+        hs_map = {str(h['_id']): h for h in hairstyles}
+        
+        for s_id in service_ids:
+            h = hs_map.get(str(s_id))
+            if h and h.get('loyalty_points') is not None:
+                points += int(h.get('loyalty_points'))
+            else:
+                price = 0
+                if h:
+                    price = float(h.get('price', 0))
+                elif 'services' in booking:
+                    s_dict = next((s for s in booking['services'] if s.get('id') == str(s_id)), None)
+                    if s_dict:
+                        price = float(s_dict.get('price', 0))
+                points += int(price * 0.1)
+    else:
+        price = booking.get('service_final_price', booking.get('price', 0))
+        points = int(price * 0.1)
+
+    return max(0, points)
 
 def create_booking():
     """
@@ -266,6 +322,7 @@ def create_booking():
             'price': original_price,
             'discount': discount,
             'service_final_price': service_final_price,
+            'coupon_code': coupon_code,
             'platform_fee_percent': platform_fee_rate,
             'platform_fee': platform_fee,
             'total_amount': total_amount,
@@ -304,8 +361,12 @@ def create_booking():
                 {'$set': {'payment_id': payment_insert.inserted_id}}
             )
 
-            # Award loyalty points (10% of service final price as points)
-            points_earned = int(service_final_price * 0.1)
+            # Deactivate used coupon
+            if coupon_code:
+                coupons_col.update_one({'code': coupon_code}, {'$set': {'active': False}})
+
+            # Award loyalty points
+            points_earned = calculate_booking_loyalty_points(booking_doc)
             users_col.update_one(
                 {'_id': ObjectId(customer_id)},
                 {'$inc': {'loyalty_points': points_earned}}
@@ -357,7 +418,15 @@ def get_customer_bookings():
         results = []
         for b in bookings:
             barber = barbers_col.find_one({'_id': b['barber_id']}, {'shop_name': 1, 'profile_pic': 1, 'address': 1, 'lat': 1, 'lng': 1})
-            hairstyle = hairstyles_col.find_one({'_id': b['hairstyle_id']}, {'name': 1, 'duration': 1})
+            
+            services_list = b.get('services', [])
+            if services_list:
+                hairstyle_name = ", ".join([s.get('name', 'Service') for s in services_list])
+                hairstyle_duration = sum([int(s.get('duration', 30)) for s in services_list])
+            else:
+                hairstyle = hairstyles_col.find_one({'_id': b['hairstyle_id']}, {'name': 1, 'duration': 1})
+                hairstyle_name = hairstyle.get('name') if hairstyle else 'Service'
+                hairstyle_duration = hairstyle.get('duration', 30) if hairstyle else 30
 
             results.append({
                 'id': str(b['_id']),
@@ -379,8 +448,8 @@ def get_customer_bookings():
                     'googleMapsUrl': f"https://www.google.com/maps/search/?api=1&query={barber.get('lat', 18.5204)},{barber.get('lng', 73.8567)}" if barber else ''
                 },
                 'hairstyle': {
-                    'name': hairstyle.get('name') if hairstyle else 'Service',
-                    'duration': hairstyle.get('duration', 30) if hairstyle else 30
+                    'name': hairstyle_name,
+                    'duration': hairstyle_duration
                 }
             })
 
@@ -404,7 +473,15 @@ def get_barber_bookings():
         results = []
         for b in bookings:
             customer = users_col.find_one({'_id': b['customer_id']}, {'name': 1, 'phone': 1, 'email': 1})
-            hairstyle = hairstyles_col.find_one({'_id': b['hairstyle_id']}, {'name': 1, 'duration': 1})
+            
+            services_list = b.get('services', [])
+            if services_list:
+                hairstyle_name = ", ".join([s.get('name', 'Service') for s in services_list])
+                hairstyle_duration = sum([int(s.get('duration', 30)) for s in services_list])
+            else:
+                hairstyle = hairstyles_col.find_one({'_id': b['hairstyle_id']}, {'name': 1, 'duration': 1})
+                hairstyle_name = hairstyle.get('name') if hairstyle else 'Service'
+                hairstyle_duration = hairstyle.get('duration', 30) if hairstyle else 30
 
             results.append({
                 'id': str(b['_id']),
@@ -424,8 +501,8 @@ def get_barber_bookings():
                     'email': customer.get('email') if customer else ''
                 },
                 'hairstyle': {
-                    'name': hairstyle.get('name') if hairstyle else 'Service',
-                    'duration': hairstyle.get('duration', 30) if hairstyle else 30
+                    'name': hairstyle_name,
+                    'duration': hairstyle_duration
                 }
             })
 
@@ -545,20 +622,39 @@ def redeem_loyalty_points():
         if not customer:
             return jsonify({'message': 'Customer profile not found'}), 404
 
+        data = request.json or {}
+        tier = data.get('tier', 'silver').lower().strip()
+
+        if tier == 'bronze':
+            points_cost = 50
+            discount_value = 10.0
+            min_booking = 300.0
+            prefix = "LOYAL10"
+        elif tier == 'gold':
+            points_cost = 150
+            discount_value = 30.0
+            min_booking = 800.0
+            prefix = "LOYAL30"
+        else: # silver
+            points_cost = 100
+            discount_value = 20.0
+            min_booking = 500.0
+            prefix = "LOYAL20"
+
         points = int(customer.get('loyalty_points', 0))
-        if points < 100:
-            return jsonify({'message': 'Insufficient loyalty points. Minimum 100 points required to redeem.'}), 400
+        if points < points_cost:
+            return jsonify({'message': f'Insufficient loyalty points. {points_cost} points required for this reward.'}), 400
 
-        # Deduct 100 points from user profile
-        users_col.update_one({'_id': ObjectId(customer_id)}, {'$inc': {'loyalty_points': -100}})
+        # Deduct points from user profile
+        users_col.update_one({'_id': ObjectId(customer_id)}, {'$inc': {'loyalty_points': -points_cost}})
 
-        # Create unique 20% discount coupon
-        code = f"LOYAL-{str(uuid.uuid4().int)[:6]}"
+        # Create unique discount coupon
+        code = f"{prefix}-{str(uuid.uuid4().int)[:6]}"
         coupon_doc = {
             'code': code,
             'discount_type': 'percentage',
-            'value': 20.0,
-            'min_booking_amount': 0.0,
+            'value': discount_value,
+            'min_booking_amount': min_booking,
             'expiry_date': datetime.datetime.utcnow() + datetime.timedelta(days=30),
             'active': True,
             'created_at': datetime.datetime.utcnow()
@@ -566,9 +662,9 @@ def redeem_loyalty_points():
         coupons_col.insert_one(coupon_doc)
 
         return jsonify({
-            'message': 'Points redeemed successfully! Here is your 20% discount coupon code.',
+            'message': f'Points redeemed successfully! Here is your {int(discount_value)}% discount coupon code.',
             'couponCode': code,
-            'pointsRemaining': points - 100
+            'pointsRemaining': points - points_cost
         }), 200
 
     except Exception as e:
