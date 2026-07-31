@@ -297,8 +297,7 @@ export default function BookAppointment() {
   const getTotalPayable = () => {
     const servicePrice = getServicePrice();
     const discount = getDiscountAmount();
-    const discountedPrice = Math.max(0, servicePrice - discount);
-    return discountedPrice + getPlatformFee();
+    return Math.max(0, servicePrice - discount);
   };
 
   if (loading) {
@@ -724,9 +723,7 @@ export default function BookAppointment() {
                 <span>Discount Applied:</span> <span>-₹{getDiscountAmount()}</span>
               </div>
             )}
-            <div className="flex justify-between text-brand-600 dark:text-brand-400">
-              <span>Online Convenience Charge (10%):</span> <span className="text-amber-600 font-bold">₹{getPlatformFee()}</span>
-            </div>
+
             <div className="pt-2 border-t flex justify-between text-base font-extrabold text-brand-900 dark:text-brand-50">
               <span>Total Amount Payable:</span> <span className="text-green-600">₹{getTotalPayable()}</span>
             </div>

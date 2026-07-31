@@ -330,7 +330,7 @@ class TrimTimeBackendTests(unittest.TestCase):
         payment_doc = payments_col.find_one({'booking_id': ObjectId(mongo_booking_id)})
         self.assertIsNotNone(payment_doc)
         self.assertEqual(payment_doc.get('status'), 'captured')
-        self.assertEqual(payment_doc.get('amount'), 550.0) # 500 + 10% fee = 550
+        self.assertEqual(payment_doc.get('amount'), 500.0) # customer pays exact service price (500)
 
         # 7. Cancel booking and check for refund trigger (since tomorrow > 24 hours away)
         cancel_res = self.client.post('/api/booking/cancel', json={

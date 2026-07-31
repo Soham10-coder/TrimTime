@@ -419,10 +419,11 @@ def create_booking():
                     discount = min(discount, original_price)
                     service_final_price = original_price - discount
 
-        # (e) Calculate 10% - 15% Platform Convenience Charge
+        # (e) Calculate 10% - 15% Platform Convenience Charge (deducted from total service price)
         platform_fee_rate = barber.get('platform_fee_percent', 10.0) # 10% default
         platform_fee = round(service_final_price * (platform_fee_rate / 100.0), 2)
-        total_amount = round(service_final_price + platform_fee, 2)
+        net_amount = round(service_final_price - platform_fee, 2)
+        total_amount = round(service_final_price, 2)
 
         # (f) Generate 6-digit Check-In OTP for in-person salon arrival validation
         check_in_otp = str(random.randint(100000, 999999))
@@ -461,6 +462,7 @@ def create_booking():
             'coupon_code': coupon_code,
             'platform_fee_percent': platform_fee_rate,
             'platform_fee': platform_fee,
+            'net_amount': net_amount,
             'total_amount': total_amount,
             'status': 'pending' if is_live_payment else 'confirmed',
             'payment_status': 'unpaid' if is_live_payment else 'paid',
@@ -628,6 +630,7 @@ def get_barber_bookings():
                 'timeSlot': b.get('time_slot'),
                 'price': b.get('service_final_price', b.get('price')),
                 'platformFee': b.get('platform_fee', 0.0),
+                'netAmount': b.get('net_amount', round(b.get('service_final_price', b.get('price', 0)) * 0.9, 2)),
                 'totalAmount': b.get('total_amount', b.get('price')),
                 'status': b.get('status'),
                 'paymentStatus': b.get('payment_status'),

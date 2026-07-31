@@ -672,7 +672,10 @@ export default function BarberDashboard() {
                         </div>
                       </td>
                       <td className="p-4 font-mono font-bold text-brand-900 dark:text-brand-50">{b.checkInOtp || 'N/A'}</td>
-                      <td className="p-4 font-bold text-green-600">₹{b.price}</td>
+                      <td className="p-4">
+                        <div className="font-bold text-green-600">₹{b.netAmount ?? (b.price ? Math.round(b.price * 0.9) : 0)}</div>
+                        <div className="text-[10px] text-brand-400 font-semibold font-sans">Net Payout (10% fee cut)</div>
+                      </td>
                       <td className="p-4">
                         <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${
                           b.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-accent-100 text-accent-700'
