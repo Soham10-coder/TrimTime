@@ -948,12 +948,19 @@ def toggle_barber_service():
             
         price_val = data.get('price')
         if price_val is None or price_val == '':
-            return jsonify({'message': 'Price is required to enable service'}), 400
-        price = float(price_val)
-        
+            price = 100.0
+        else:
+            try:
+                price = float(price_val)
+            except (ValueError, TypeError):
+                price = 100.0
+
         duration = None
         if data.get('duration'):
-            duration = int(data.get('duration'))
+            try:
+                duration = int(data.get('duration'))
+            except (ValueError, TypeError):
+                duration = None
             
         description = data.get('description', '').strip()
         

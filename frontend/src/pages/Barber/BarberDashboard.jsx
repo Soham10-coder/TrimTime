@@ -909,6 +909,17 @@ export default function BarberDashboard() {
                                 handleFieldChange(s.masterServiceId, 'enabled', checked);
                                 if (!checked && s.salonServiceId) {
                                   handleToggleCatalogService(s.masterServiceId, false);
+                                } else if (checked) {
+                                  const currentPrice = localPrice || 100;
+                                  handleToggleCatalogService(
+                                    s.masterServiceId,
+                                    true,
+                                    currentPrice,
+                                    localDuration,
+                                    localDescription,
+                                    localFile,
+                                    localClearImg
+                                  );
                                 }
                               }}
                               className="w-3.5 h-3.5 accent-accent-500 cursor-pointer"
