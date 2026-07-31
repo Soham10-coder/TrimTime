@@ -72,10 +72,15 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
     booked_intervals = []
     for b in existing_bookings:
         start_m = time_to_minutes(b['time_slot'])
-        duration = 30
-        hs = hairstyles_col.find_one({'_id': b.get('hairstyle_id')})
-        if hs:
-            duration = hs.get('duration', 30)
+        
+        services_list = b.get('services', [])
+        if services_list:
+            duration = sum([int(s.get('duration', 30)) for s in services_list])
+        else:
+            duration = 30
+            hs = hairstyles_col.find_one({'_id': b.get('hairstyle_id')})
+            if hs:
+                duration = hs.get('duration', 30)
             
         end_m = start_m + duration + BUFFER_TIME_MINS
         booked_intervals.append((start_m, end_m))
