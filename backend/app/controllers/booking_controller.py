@@ -15,11 +15,25 @@ from config import Config
 logger = logging.getLogger(__name__)
 
 BUFFER_TIME_MINS = 10
+SLOT_INTERVAL_MINS = 60
 
 def time_to_minutes(time_str):
     try:
-        parts = time_str.split(':')
-        return int(parts[0]) * 60 + int(parts[1])
+        time_str = time_str.strip()
+        if 'am' in time_str.lower() or 'pm' in time_str.lower():
+            is_pm = 'pm' in time_str.lower()
+            clean_str = time_str.lower().replace('am', '').replace('pm', '').strip()
+            parts = clean_str.split(':')
+            hours = int(parts[0])
+            minutes = int(parts[1])
+            if is_pm and hours < 12:
+                hours += 12
+            if not is_pm and hours == 12:
+                hours = 0
+            return hours * 60 + minutes
+        else:
+            parts = time_str.split(':')
+            return int(parts[0]) * 60 + int(parts[1])
     except Exception as e:
         logger.error(f"Error parsing time format {time_str}: {e}")
         return 0
@@ -113,7 +127,7 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
             open_mins = time_to_minutes(sh.get('start', '09:00'))
             close_mins = time_to_minutes(sh.get('end', '20:00'))
 
-            for slot_start in range(open_mins, close_mins, 30):
+            for slot_start in range(open_mins, close_mins, SLOT_INTERVAL_MINS):
                 slot_end = slot_start + duration_mins
                 if slot_end > close_mins:
                     continue
@@ -152,7 +166,7 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
                 open_mins = time_to_minutes(sh.get('start', '09:00'))
                 close_mins = time_to_minutes(sh.get('end', '20:00'))
 
-                for slot_start in range(open_mins, close_mins, 30):
+                for slot_start in range(open_mins, close_mins, SLOT_INTERVAL_MINS):
                     slot_end = slot_start + duration_mins
                     if slot_end > close_mins:
                         continue
@@ -209,7 +223,7 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
                 for sh in st_shifts:
                     open_mins = time_to_minutes(sh.get('start', '09:00'))
                     close_mins = time_to_minutes(sh.get('end', '20:00'))
-                    for start in range(open_mins, close_mins, 30):
+                    for start in range(open_mins, close_mins, SLOT_INTERVAL_MINS):
                         if is_today and start < current_mins_today:
                             continue
                         all_possible_starts.add(start)
