@@ -12,6 +12,11 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"]
 )
 
+@limiter.request_filter
+def ip_whitelist():
+    from flask import request
+    return request.method == "OPTIONS"
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
