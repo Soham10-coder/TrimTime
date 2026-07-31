@@ -620,9 +620,14 @@ export default function BookAppointment() {
               {slots.map((s) => (
                 <button
                   key={s.time}
+                  disabled={s.available === false}
                   onClick={() => handleSlotSelect(s)}
                   className={`p-3 rounded-2xl border text-xs font-bold transition-all ${
-                    selectedSlot?.time === s.time ? 'bg-accent-500 text-white border-accent-600 shadow' : 'bg-white dark:bg-brand-900 hover:border-accent-400'
+                    s.available === false
+                      ? 'bg-red-50 dark:bg-red-950/25 border-red-200 dark:border-red-900/60 text-red-500 dark:text-red-400 cursor-not-allowed opacity-65'
+                      : selectedSlot?.time === s.time
+                      ? 'bg-accent-500 text-white border-accent-600 shadow'
+                      : 'bg-white dark:bg-brand-900 hover:border-accent-400 text-brand-900 dark:text-brand-50'
                   }`}
                 >
                   {s.displayTime}

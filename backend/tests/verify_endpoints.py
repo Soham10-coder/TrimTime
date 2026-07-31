@@ -205,8 +205,7 @@ class TrimTimeBackendTests(unittest.TestCase):
         res = self.client.get(f'/api/booking/slots?barberId={str(barber_id)}&date=2026-07-20&hairstyleId={str(hairstyle_id)}')
         self.assertEqual(res.status_code, 200)
         
-        # Check slot availability
-        available_slots = [s['time'] for s in res.json]
+        available_slots = [s['time'] for s in res.json if s.get('available', True)]
         
         # Expected:
         # 09:00 -> ends 09:45 + 10 buffer = 09:55. Doesn't overlap with 10:00. AVAILABLE.

@@ -50,94 +50,211 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
     if target_date.weekday() in weekly_holidays:
         return []
 
-    # (c) Check independent staff member holiday if staff_id is selected
-    if staff_id and barber_doc.get('staff'):
-        staff_member = next((s for s in barber_doc['staff'] if str(s.get('id')) == str(staff_id) or s.get('name') == staff_id), None)
-        if staff_member and staff_member.get('holiday'):
-            weekday_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-            current_weekday_name = weekday_names[target_date.weekday()]
-            if staff_member.get('holiday').strip().lower() == current_weekday_name.lower():
-                return []
+    weekday_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    current_weekday_name = weekday_names[target_date.weekday()]
 
+    # Get all active bookings for this date and barber
     query = {
         'barber_id': barber_doc['_id'],
         'date': date_str,
         'status': {'$in': ['confirmed', 'pending', 'completed']}
     }
-    if staff_id:
-        query['staff_id'] = staff_id
+    all_bookings = list(bookings_col.find(query))
 
-    existing_bookings = list(bookings_col.find(query))
+    # Helper to calculate booked intervals
+    def get_booked_intervals_for_bookings(bookings):
+        intervals = []
+        for b in bookings:
+            start_m = time_to_minutes(b['time_slot'])
+            services_list = b.get('services', [])
+            if services_list:
+                duration = sum([int(s.get('duration', 30)) for s in services_list])
+            else:
+                duration = 30
+                hs = hairstyles_col.find_one({'_id': b.get('hairstyle_id')})
+                if hs:
+                    duration = hs.get('duration', 30)
+            end_m = start_m + duration + BUFFER_TIME_MINS
+            intervals.append((start_m, end_m))
+        return intervals
 
-    booked_intervals = []
-    for b in existing_bookings:
-        start_m = time_to_minutes(b['time_slot'])
-        
-        services_list = b.get('services', [])
-        if services_list:
-            duration = sum([int(s.get('duration', 30)) for s in services_list])
-        else:
-            duration = 30
-            hs = hairstyles_col.find_one({'_id': b.get('hairstyle_id')})
-            if hs:
-                duration = hs.get('duration', 30)
-            
-        end_m = start_m + duration + BUFFER_TIME_MINS
-        booked_intervals.append((start_m, end_m))
-
-    available_slots = []
     current_time = datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
     is_today = target_date == current_time.date()
     current_mins_today = current_time.hour * 60 + current_time.minute + 15
 
-    # Retrieve custom shifts list (prioritize staff member shifts if selected)
-    shifts = []
-    if staff_id and barber_doc.get('staff'):
-        staff_member = next((s for s in barber_doc['staff'] if str(s.get('id')) == str(staff_id) or s.get('name') == staff_id), None)
-        if staff_member:
-            shifts = staff_member.get('shifts', [])
+    available_slots = []
 
-    if not shifts:
-        shifts = barber_doc.get('shifts', [])
+    # Resolve active staff
+    staff_list = barber_doc.get('staff', [])
+    active_staff = [s for s in staff_list if s.get('status', 'ACTIVE') == 'ACTIVE']
 
-    if not shifts:
-        shifts = [{
-            'start': barber_doc.get('opening_time', '09:00'),
-            'end': barber_doc.get('closing_time', '20:00')
-        }]
+    if staff_id and active_staff:
+        # 1) Specific stylist is selected
+        staff_member = next((s for s in active_staff if str(s.get('id')) == str(staff_id) or s.get('name') == staff_id), None)
+        if not staff_member:
+            return []
+        
+        # Check staff holiday
+        if staff_member.get('holiday') and staff_member.get('holiday').strip().lower() == current_weekday_name.lower():
+            return []
 
-    for sh in shifts:
-        open_mins = time_to_minutes(sh.get('start', '09:00'))
-        close_mins = time_to_minutes(sh.get('end', '20:00'))
+        # Get bookings for this stylist
+        stylist_bookings = [b for b in all_bookings if str(b.get('staff_id')) == str(staff_member.get('id')) or b.get('staff_name') == staff_member.get('name')]
+        booked_intervals = get_booked_intervals_for_bookings(stylist_bookings)
 
-        for slot_start in range(open_mins, close_mins, 30):
-            slot_end = slot_start + duration_mins
-            if slot_end > close_mins:
-                continue
+        # Get shifts for this stylist
+        shifts = staff_member.get('shifts', [])
+        if not shifts:
+            shifts = [{'start': staff_member.get('shift', '09:00 AM - 08:00 PM').split('-')[0].strip(), 'end': staff_member.get('shift', '09:00 AM - 08:00 PM').split('-')[1].strip()}] if '-' in staff_member.get('shift', '') else []
+        if not shifts:
+            shifts = [{'start': '09:00', 'end': '20:00'}]
 
-            if is_today and slot_start < current_mins_today:
-                continue
+        for sh in shifts:
+            open_mins = time_to_minutes(sh.get('start', '09:00'))
+            close_mins = time_to_minutes(sh.get('end', '20:00'))
 
-            collides = False
-            new_interval_start = slot_start
-            new_interval_end = slot_start + duration_mins + BUFFER_TIME_MINS
+            for slot_start in range(open_mins, close_mins, 30):
+                slot_end = slot_start + duration_mins
+                if slot_end > close_mins:
+                    continue
+                if is_today and slot_start < current_mins_today:
+                    continue
 
-            for booked_start, booked_end in booked_intervals:
-                if (new_interval_start < booked_end) and (new_interval_end > booked_start):
-                    collides = True
-                    break
+                collides = False
+                new_interval_start = slot_start
+                new_interval_end = slot_start + duration_mins + BUFFER_TIME_MINS
 
-            slot_time_str = minutes_to_time(slot_start)
-            time_obj = datetime.datetime.strptime(slot_time_str, "%H:%M")
-            display_time = time_obj.strftime("%I:%M %p")
+                for booked_start, booked_end in booked_intervals:
+                    if (new_interval_start < booked_end) and (new_interval_end > booked_start):
+                        collides = True
+                        break
 
-            if not collides:
-                if not any(slot['time'] == slot_time_str for slot in available_slots):
+                slot_time_str = minutes_to_time(slot_start)
+                time_obj = datetime.datetime.strptime(slot_time_str, "%H:%M")
+                display_time = time_obj.strftime("%I:%M %p")
+
+                available_slots.append({
+                    'time': slot_time_str,
+                    'displayTime': display_time,
+                    'available': not collides
+                })
+
+    else:
+        # 2) "Any Stylist" (or no stylist specified)
+        if not active_staff:
+            # Fallback if no staff list exists at all (owner is the only stylist)
+            booked_intervals = get_booked_intervals_for_bookings(all_bookings)
+            shifts = barber_doc.get('shifts', [])
+            if not shifts:
+                shifts = [{'start': barber_doc.get('opening_time', '09:00'), 'end': barber_doc.get('closing_time', '20:00')}]
+
+            for sh in shifts:
+                open_mins = time_to_minutes(sh.get('start', '09:00'))
+                close_mins = time_to_minutes(sh.get('end', '20:00'))
+
+                for slot_start in range(open_mins, close_mins, 30):
+                    slot_end = slot_start + duration_mins
+                    if slot_end > close_mins:
+                        continue
+                    if is_today and slot_start < current_mins_today:
+                        continue
+
+                    collides = False
+                    new_interval_start = slot_start
+                    new_interval_end = slot_start + duration_mins + BUFFER_TIME_MINS
+
+                    for booked_start, booked_end in booked_intervals:
+                        if (new_interval_start < booked_end) and (new_interval_end > booked_start):
+                            collides = True
+                            break
+
+                    slot_time_str = minutes_to_time(slot_start)
+                    time_obj = datetime.datetime.strptime(slot_time_str, "%H:%M")
+                    display_time = time_obj.strftime("%I:%M %p")
+
                     available_slots.append({
                         'time': slot_time_str,
                         'displayTime': display_time,
-                        'available': True
+                        'available': not collides
                     })
+        else:
+            # Multi-stylist salon check:
+            # We determine availability of a slot if at least one stylist has a shift covering it and is free!
+            # Generate the union of all active stylists shifts to determine possible slot starting times
+            all_possible_starts = set()
+            stylist_schedules = []
+
+            for stylist in active_staff:
+                # Skip holiday
+                if stylist.get('holiday') and stylist.get('holiday').strip().lower() == current_weekday_name.lower():
+                    continue
+
+                # Get shifts
+                st_shifts = stylist.get('shifts', [])
+                if not st_shifts:
+                    st_shifts = [{'start': stylist.get('shift', '09:00 AM - 08:00 PM').split('-')[0].strip(), 'end': stylist.get('shift', '09:00 AM - 08:00 PM').split('-')[1].strip()}] if '-' in stylist.get('shift', '') else []
+                if not st_shifts:
+                    st_shifts = [{'start': '09:00', 'end': '20:00'}]
+
+                # Get bookings for this stylist
+                st_bookings = [b for b in all_bookings if str(b.get('staff_id')) == str(stylist.get('id')) or b.get('staff_name') == stylist.get('name')]
+                st_booked_intervals = get_booked_intervals_for_bookings(st_bookings)
+
+                stylist_schedules.append({
+                    'stylist': stylist,
+                    'shifts': st_shifts,
+                    'booked_intervals': st_booked_intervals
+                })
+
+                for sh in st_shifts:
+                    open_mins = time_to_minutes(sh.get('start', '09:00'))
+                    close_mins = time_to_minutes(sh.get('end', '20:00'))
+                    for start in range(open_mins, close_mins, 30):
+                        if is_today and start < current_mins_today:
+                            continue
+                        all_possible_starts.add(start)
+
+            # Check availability for each slot starting time
+            for start in sorted(all_possible_starts):
+                is_available = False
+                
+                # Check if at least one stylist is free for this slot
+                for sched in stylist_schedules:
+                    # Check if stylist shifts cover this slot
+                    covers = False
+                    for sh in sched['shifts']:
+                        sh_start = time_to_minutes(sh.get('start', '09:00'))
+                        sh_end = time_to_minutes(sh.get('end', '20:00'))
+                        if start >= sh_start and (start + duration_mins) <= sh_end:
+                            covers = True
+                            break
+
+                    if not covers:
+                        continue
+
+                    # Check collision
+                    collides = False
+                    new_interval_start = start
+                    new_interval_end = start + duration_mins + BUFFER_TIME_MINS
+
+                    for booked_start, booked_end in sched['booked_intervals']:
+                        if (new_interval_start < booked_end) and (new_interval_end > booked_start):
+                            collides = True
+                            break
+
+                    if not collides:
+                        is_available = True
+                        break
+
+                slot_time_str = minutes_to_time(start)
+                time_obj = datetime.datetime.strptime(slot_time_str, "%H:%M")
+                display_time = time_obj.strftime("%I:%M %p")
+
+                available_slots.append({
+                    'time': slot_time_str,
+                    'displayTime': display_time,
+                    'available': is_available
+                })
 
     return available_slots
 
@@ -270,7 +387,7 @@ def create_booking():
 
         # Validate Slot Availability using total duration of all selected services
         available_slots = generate_slots_for_barber(barber, date_str, total_duration, staff_id)
-        slot_is_free = any(slot['time'] == time_slot for slot in available_slots)
+        slot_is_free = any(slot['time'] == time_slot and slot.get('available', True) for slot in available_slots)
         if not slot_is_free:
             return jsonify({'message': 'The requested time slot is no longer available'}), 409
 
