@@ -53,8 +53,19 @@ const categoryDefaultImages = {
     'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=500&auto=format&fit=crop&q=60',
     'https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=500&auto=format&fit=crop&q=60',
     'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=500&auto=format&fit=crop&q=60',
-    'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=60'
   ]
+};
+
+const getServiceFallbackImage = (category) => {
+  const fallbacks = {
+    'Haircut': 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=500&auto=format&fit=crop&q=60',
+    'Beard': 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=500&auto=format&fit=crop&q=60',
+    'Facial': 'https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=500&auto=format&fit=crop&q=60',
+    'Hair Treatment': 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500&auto=format&fit=crop&q=60',
+    'Hair Color': 'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=500&auto=format&fit=crop&q=60',
+    'Others': 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=60'
+  };
+  return fallbacks[category] || fallbacks['Others'];
 };
 
 export default function BarberDashboard() {
@@ -399,7 +410,7 @@ export default function BarberDashboard() {
     setServiceLoyaltyPoints('');
     setServiceDesc('');
     setServiceFile(null);
-    setSelectedDefaultImage(categoryDefaultImages['Haircut']?.[0] || '');
+    setSelectedDefaultImage('');
     setServiceModal(true);
   };
 
@@ -412,7 +423,7 @@ export default function BarberDashboard() {
     setServiceLoyaltyPoints(s.loyaltyPoints !== undefined && s.loyaltyPoints !== null ? String(s.loyaltyPoints) : '');
     setServiceDesc(s.description || '');
     setServiceFile(null);
-    setSelectedDefaultImage(s.imageUrl && s.imageUrl.includes('trimtimebucket') ? s.imageUrl : '');
+    setSelectedDefaultImage('');
     setServiceModal(true);
   };
 
@@ -767,7 +778,7 @@ export default function BarberDashboard() {
                   {customServices.map((s) => (
                     <div key={s.id} className="bg-white dark:bg-brand-900 rounded-2xl border border-brand-200 dark:border-brand-800 shadow-sm overflow-hidden flex flex-col justify-between">
                       <div className="relative h-32 bg-brand-100">
-                        <img src={s.imageUrl} alt={s.name} className="w-full h-full object-cover" />
+                        <img src={s.imageUrl || getServiceFallbackImage(s.category)} alt={s.name} className="w-full h-full object-cover" />
                         <span className="absolute top-2.5 right-2.5 bg-accent-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                           Custom
                         </span>
@@ -1488,9 +1499,7 @@ export default function BarberDashboard() {
                   <div>
                     <label className="block font-semibold mb-1">Category</label>
                     <select value={serviceCategory} onChange={(e) => {
-                      const newCat = e.target.value;
-                      setServiceCategory(newCat);
-                      setSelectedDefaultImage(categoryDefaultImages[newCat]?.[0] || '');
+                      setServiceCategory(e.target.value);
                     }} className="w-full p-2.5 bg-brand-50 border rounded-xl font-semibold font-display">
                       <option value="Haircut">Male/Female Haircut</option>
                       <option value="Beard">Beard Styling</option>
@@ -1519,43 +1528,7 @@ export default function BarberDashboard() {
                   <label className="block font-semibold mb-1">Service Photo (S3 Bucket Upload)</label>
                   <input type="file" accept="image/*" onChange={(e) => {
                     setServiceFile(e.target.files[0]);
-                    setSelectedDefaultImage(''); // Clear predefined image on custom upload
                   }} className="w-full p-2 bg-brand-50 border rounded-xl" />
-                </div>
-
-                {/* GALLERY SELECTION */}
-                <div className="space-y-1.5">
-                  <label className="block font-semibold">Or Select Pre-defined Gallery Photo:</label>
-                  <div className="grid grid-cols-4 gap-2 bg-brand-50 dark:bg-brand-950 p-2.5 rounded-2xl border">
-                    {(categoryDefaultImages[serviceCategory] || []).map((img, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => {
-                          setSelectedDefaultImage(img);
-                          setServiceFile(null); // Clear custom upload if picking pre-defined
-                        }}
-                        className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all ${
-                          selectedDefaultImage === img && !serviceFile
-                            ? 'border-accent-500 scale-105 shadow-sm'
-                            : 'border-transparent hover:scale-102 opacity-70 hover:opacity-100'
-                        }`}
-                      >
-                        <img src={img} alt={`${serviceCategory} default ${idx + 1}`} className="w-full h-full object-cover" />
-                        {selectedDefaultImage === img && !serviceFile && (
-                          <div className="absolute inset-0 bg-accent-500/10 flex items-center justify-center">
-                            <span className="bg-accent-500 text-white rounded-full p-0.5 text-[8px] font-bold">✓</span>
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                  {selectedDefaultImage && !serviceFile && (
-                    <p className="text-[10px] text-accent-500 font-bold">Selected gallery photo will be cloned on save.</p>
-                  )}
-                  {serviceFile && (
-                    <p className="text-[10px] text-amber-600 font-bold">Uploaded custom photo will take precedence.</p>
-                  )}
                 </div>
 
                 <button type="submit" className="w-full py-3 bg-accent-500 text-white font-bold rounded-xl shadow mt-2">

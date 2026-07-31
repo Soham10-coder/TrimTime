@@ -7,6 +7,18 @@ import { Scissors, Clock, Calendar, Check, ArrowRight, User, Sparkles, Receipt, 
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
+const getServiceFallbackImage = (category) => {
+  const fallbacks = {
+    'Haircut': 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=500&auto=format&fit=crop&q=60',
+    'Beard': 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=500&auto=format&fit=crop&q=60',
+    'Facial': 'https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=500&auto=format&fit=crop&q=60',
+    'Hair Treatment': 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500&auto=format&fit=crop&q=60',
+    'Hair Color': 'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=500&auto=format&fit=crop&q=60',
+    'Others': 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=60'
+  };
+  return fallbacks[category] || fallbacks['Others'];
+};
+
 export default function BookAppointment() {
   const { barberId } = useParams();
   const { user, logout } = useContext(AuthContext);
@@ -477,11 +489,9 @@ export default function BookAppointment() {
                         <Check className="w-3.5 h-3.5 stroke-[3]" />
                       </div>
                     )}
-                    {hs.imageUrl && (
-                      <div className="w-full h-32 rounded-2xl overflow-hidden bg-brand-100 mb-2">
-                        <img src={hs.imageUrl} alt={hs.name} className="w-full h-full object-cover" />
-                      </div>
-                    )}
+                    <div className="w-full h-32 rounded-2xl overflow-hidden bg-brand-100 mb-2">
+                      <img src={hs.imageUrl || getServiceFallbackImage(hs.category)} alt={hs.name} className="w-full h-full object-cover" />
+                    </div>
                     <div className="flex justify-between items-start">
                       <span className="px-2.5 py-0.5 bg-accent-100 text-accent-700 text-[10px] font-bold rounded-full uppercase">{hs.category || 'Grooming'}</span>
                       <span className="text-lg font-extrabold text-brand-900 dark:text-brand-50">₹{hs.price}</span>
