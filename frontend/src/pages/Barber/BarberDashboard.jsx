@@ -540,29 +540,105 @@ export default function BarberDashboard() {
       </div>
 
       {/* TAB 1: FINANCIAL REVENUE OVERVIEW */}
-      {activeTab === 'overview' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-6 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-3xl shadow-lg">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">Net Earnings (Net Revenue)</span>
-              <h2 className="text-4xl font-extrabold font-display mt-1">₹{netRevenue}</h2>
-              <p className="text-[11px] text-white/80 mt-2">After {platformFeePercent}% online booking charge</p>
+      {activeTab === 'overview' && (() => {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth(); // 0-indexed
+
+        const prevMonthDate = new Date(currentYear, currentMonth - 1, 1);
+        const prevMonth = prevMonthDate.getMonth();
+        const prevMonthYear = prevMonthDate.getFullYear();
+
+        let thisMonthNet = 0;
+        let prevMonthNet = 0;
+        let thisYearNet = 0;
+        let totalNet = 0;
+        const monthlyBreakdown = {};
+
+        (bookings || []).forEach(b => {
+          if (b.status === 'cancelled') return;
+
+          const net = b.netAmount ?? (b.price ? Math.round(b.price * 0.9) : 0);
+          totalNet += net;
+
+          if (!b.date) return;
+          const parts = b.date.split('-');
+          if (parts.length < 2) return;
+          const y = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10) - 1;
+
+          const monthKey = `${parts[0]}-${parts[1]}`;
+          monthlyBreakdown[monthKey] = (monthlyBreakdown[monthKey] || 0) + net;
+
+          if (y === currentYear) {
+            thisYearNet += net;
+            if (m === currentMonth) {
+              thisMonthNet += net;
+            }
+          }
+
+          if (y === prevMonthYear && m === prevMonth) {
+            prevMonthNet += net;
+          }
+        });
+
+        const sortedMonths = Object.keys(monthlyBreakdown).sort().reverse();
+        const currentMonthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const prevMonthLabel = prevMonthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+        return (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-6 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-3xl shadow-lg">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">This Month ({currentMonthLabel})</span>
+                <h2 className="text-3xl font-extrabold font-display mt-1">₹{thisMonthNet.toLocaleString()}</h2>
+                <p className="text-[11px] text-white/80 mt-2">Net revenue earned this month</p>
+              </div>
+
+              <div className="p-6 bg-white dark:bg-brand-900 border rounded-3xl shadow-sm">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-500">Previous Month ({prevMonthLabel})</span>
+                <h2 className="text-3xl font-extrabold font-display text-brand-900 dark:text-brand-50 mt-1">₹{prevMonthNet.toLocaleString()}</h2>
+                <p className="text-[11px] text-brand-400 mt-2">Net revenue earned last month</p>
+              </div>
+
+              <div className="p-6 bg-white dark:bg-brand-900 border rounded-3xl shadow-sm">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-500">This Year ({currentYear})</span>
+                <h2 className="text-3xl font-extrabold font-display text-accent-600 mt-1">₹{thisYearNet.toLocaleString()}</h2>
+                <p className="text-[11px] text-brand-400 mt-2">Net revenue earned in {currentYear}</p>
+              </div>
+
+              <div className="p-6 bg-white dark:bg-brand-900 border rounded-3xl shadow-sm">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-500">Total Net Revenue</span>
+                <h2 className="text-3xl font-extrabold font-display text-emerald-600 mt-1">₹{totalNet.toLocaleString()}</h2>
+                <p className="text-[11px] text-brand-400 mt-2">All-time net earnings</p>
+              </div>
             </div>
 
-            <div className="p-6 bg-white dark:bg-brand-900 border rounded-3xl shadow-sm">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-500">Gross Online Revenue</span>
-              <h2 className="text-3xl font-extrabold font-display text-brand-900 dark:text-brand-50 mt-1">₹{grossRevenue}</h2>
-              <p className="text-[11px] text-brand-400 mt-2">Total amount paid by customers online</p>
-            </div>
-
-            <div className="p-6 bg-white dark:bg-brand-900 border rounded-3xl shadow-sm">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-500">Platform Charge ({platformFeePercent}%)</span>
-              <h2 className="text-3xl font-extrabold font-display text-amber-500 mt-1">₹{platformCommission}</h2>
-              <p className="text-[11px] text-brand-400 mt-2">Online booking convenience fee</p>
+            {/* Monthly Net Revenue History List */}
+            <div className="bg-white dark:bg-brand-900 rounded-3xl border shadow-sm p-6 space-y-4">
+              <h3 className="text-base font-bold font-display text-brand-900 dark:text-brand-50">Monthly Net Revenue History</h3>
+              {sortedMonths.length === 0 ? (
+                <p className="text-xs text-brand-400">No revenue records logged yet.</p>
+              ) : (
+                <div className="divide-y border-t">
+                  {sortedMonths.map((mKey) => {
+                    const [yStr, mStr] = mKey.split('-');
+                    const d = new Date(parseInt(yStr), parseInt(mStr) - 1, 1);
+                    const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                    const amount = monthlyBreakdown[mKey];
+                    return (
+                      <div key={mKey} className="py-3 flex justify-between items-center text-xs font-bold">
+                        <span className="text-brand-800 dark:text-brand-200">{label}</span>
+                        <span className="text-emerald-600 text-sm font-extrabold">₹{amount.toLocaleString()}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* TAB 2: IN-PERSON OTP VALIDATION */}
       {activeTab === 'otp_validate' && (
