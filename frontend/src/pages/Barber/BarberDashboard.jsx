@@ -1953,7 +1953,6 @@ export default function BarberDashboard() {
             </div>
           )}
         </AnimatePresence>
-      </div>
     </div>
   );
 }
