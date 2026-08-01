@@ -62,7 +62,7 @@ export default function Signup() {
     setLoading(false);
 
     if (res.success) {
-      navigate('/login', { state: { email, successMsg: '✅ Account created successfully! Please sign in with your password.' } });
+      navigate('/verify-otp', { state: { email, type: 'signup', devOtp: res.devOtp } });
     } else {
       setError(res.message || 'Registration failed. Try again.');
     }

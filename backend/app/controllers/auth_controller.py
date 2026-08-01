@@ -71,7 +71,7 @@ def register_customer():
             'gender': gender,
             'password': hashed_pass,
             'role': role,
-            'verified': True,
+            'verified': False,
             'loyalty_points': 0,
             'favorites': [],
             'created_at': datetime.datetime.utcnow()
@@ -206,6 +206,9 @@ def login():
 
         if not check_password(password, user.get('password')):
             return jsonify({'message': 'Invalid email or password'}), 401
+
+        if not is_barber and not user.get('verified', False):
+            return jsonify({'message': 'Email address not verified. Please verify your OTP.', 'code': 'UNVERIFIED'}), 403
 
         user_id = str(user['_id'])
         user_role = 'barber' if is_barber else user.get('role', 'customer')

@@ -71,7 +71,11 @@ export default function Login({ defaultRole = 'customer' }) {
         navigate('/admin');
       }
     } else {
-      setError(res.message || 'Invalid email/mobile or password');
+      if (res.code === 'UNVERIFIED') {
+        navigate('/verify-otp', { state: { email } });
+      } else {
+        setError(res.message || 'Invalid email/mobile or password');
+      }
     }
   };
 
