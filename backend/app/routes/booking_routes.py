@@ -1,6 +1,6 @@
 from flask import Blueprint
 from app.controllers.booking_controller import (
-    get_available_slots, create_booking, get_customer_bookings, 
+    get_available_slots, create_booking, create_offline_booking, get_customer_bookings, 
     get_barber_bookings, cancel_booking, apply_coupon, redeem_loyalty_points
 )
 from app.controllers.payment_controller import (
@@ -25,6 +25,9 @@ booking_bp.route('/customer', methods=['GET'])(
 # Secured routes (Barbers)
 booking_bp.route('/barber', methods=['GET'])(
     token_required(require_role('barber')(get_barber_bookings))
+)
+booking_bp.route('/create-offline', methods=['POST'])(
+    token_required(require_role('barber')(create_offline_booking))
 )
 
 # Secured routes (Both Customers and Barbers)

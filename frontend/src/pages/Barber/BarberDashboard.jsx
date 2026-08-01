@@ -5,7 +5,7 @@ import MapLocationPicker from '../../components/MapLocationPicker';
 import { 
   Calendar, Clock, DollarSign, Users, Scissors, Star, ToggleLeft, ToggleRight, 
   Edit, Trash2, Plus, Settings, Sparkles, Check, X, ClipboardList, ShieldCheck, 
-  MapPin, ExternalLink, CheckCircle2, AlertCircle, Image as ImageIcon, UserCheck, Locate, Save, RefreshCw
+  MapPin, ExternalLink, CheckCircle2, AlertCircle, Image as ImageIcon, UserCheck, Locate, Save, RefreshCw, UserPlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 const categoryDefaultImages = {
@@ -155,10 +155,129 @@ export default function BarberDashboard() {
   const [settingsSuccess, setSettingsSuccess] = useState('');
   const [serviceError, setServiceError] = useState('');
 
+  // Walk-in / Offline Booking Modal state
+  const [offlineModal, setOfflineModal] = useState(false);
+  const [offlineCustName, setOfflineCustName] = useState('');
+  const [offlineCustPhone, setOfflineCustPhone] = useState('');
+  const [offlineDate, setOfflineDate] = useState(new Date().toISOString().split('T')[0]);
+  const [offlineStaffId, setOfflineStaffId] = useState('');
+  const [offlineStaffName, setOfflineStaffName] = useState('');
+  const [offlineSelectedServices, setOfflineSelectedServices] = useState([]);
+  const [offlineSlots, setOfflineSlots] = useState([]);
+  const [offlineSelectedSlot, setOfflineSelectedSlot] = useState('');
+  const [offlineSlotsLoading, setOfflineSlotsLoading] = useState(false);
+  const [offlineSubmitting, setOfflineSubmitting] = useState(false);
+
   useEffect(() => {
     fetchBarberDashboardData();
     fetchCatalogSettings();
   }, []);
+
+  const handleOpenOfflineModal = () => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    setOfflineCustName('');
+    setOfflineCustPhone('');
+    setOfflineDate(todayStr);
+    setOfflineStaffId('');
+    setOfflineStaffName('');
+    setOfflineSelectedServices([]);
+    setOfflineSlots([]);
+    setOfflineSelectedSlot('');
+    setOfflineModal(true);
+  };
+
+  const fetchOfflineSlots = async (dateStr, staffIdVal, selectedServicesList) => {
+    if (!dateStr || selectedServicesList.length === 0) {
+      setOfflineSlots([]);
+      return;
+    }
+    setOfflineSlotsLoading(true);
+    try {
+      const hairstyleParam = selectedServicesList.map(s => s.id).join(',');
+      let url = `/booking/slots?barberId=${user.id}&date=${dateStr}&hairstyleId=${hairstyleParam}`;
+      if (staffIdVal) {
+        url += `&staffId=${staffIdVal}`;
+      }
+      const res = await api.get(url);
+      if (res.ok) {
+        setOfflineSlots(await res.json());
+      } else {
+        setOfflineSlots([]);
+      }
+    } catch (e) {
+      console.error("Failed to fetch offline slots:", e);
+      setOfflineSlots([]);
+    } finally {
+      setOfflineSlotsLoading(false);
+    }
+  };
+
+  const handleToggleOfflineService = (service) => {
+    let updated;
+    if (offlineSelectedServices.some(s => s.id === service.id)) {
+      updated = offlineSelectedServices.filter(s => s.id !== service.id);
+    } else {
+      updated = [...offlineSelectedServices, service];
+    }
+    setOfflineSelectedServices(updated);
+    setOfflineSelectedSlot('');
+    fetchOfflineSlots(offlineDate, offlineStaffId, updated);
+  };
+
+  const handleOfflineDateChange = (newDate) => {
+    setOfflineDate(newDate);
+    setOfflineSelectedSlot('');
+    fetchOfflineSlots(newDate, offlineStaffId, offlineSelectedServices);
+  };
+
+  const handleOfflineStaffChange = (staffIdVal) => {
+    setOfflineStaffId(staffIdVal);
+    const staffObj = staffList.find(st => String(st.id) === String(staffIdVal));
+    setOfflineStaffName(staffObj ? staffObj.name : 'Senior Stylist');
+    setOfflineSelectedSlot('');
+    fetchOfflineSlots(offlineDate, staffIdVal, offlineSelectedServices);
+  };
+
+  const handleConfirmOfflineBooking = async (e) => {
+    e.preventDefault();
+    if (offlineSelectedServices.length === 0) {
+      alert("Please select at least one service!");
+      return;
+    }
+    if (!offlineSelectedSlot) {
+      alert("Please pick an available time slot!");
+      return;
+    }
+
+    setOfflineSubmitting(true);
+    try {
+      const payload = {
+        customerName: offlineCustName.trim() || 'Walk-in Customer',
+        customerPhone: offlineCustPhone.trim(),
+        date: offlineDate,
+        timeSlot: offlineSelectedSlot,
+        staffId: offlineStaffId || null,
+        staffName: offlineStaffName || 'Senior Stylist',
+        hairstyleIds: offlineSelectedServices.map(s => s.id)
+      };
+
+      const res = await api.post('/booking/create-offline', payload);
+      const data = await res.json();
+
+      if (res.ok) {
+        alert("✅ Walk-in offline booking confirmed successfully!");
+        setOfflineModal(false);
+        fetchBarberDashboardData();
+      } else {
+        alert(data.message || "Failed to create walk-in booking.");
+      }
+    } catch (e) {
+      console.error("Error creating offline booking:", e);
+      alert("Error creating walk-in booking.");
+    } finally {
+      setOfflineSubmitting(false);
+    }
+  };
 
   const fetchCatalogSettings = async () => {
     setCatalogLoading(true);
@@ -506,9 +625,14 @@ export default function BarberDashboard() {
           </div>
         </div>
 
-        <button onClick={() => setActiveTab('otp_validate')} className="px-5 py-2.5 bg-accent-500 hover:bg-accent-600 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-md">
-          <ShieldCheck className="w-4 h-4" /> Validate In-Person OTP
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={handleOpenOfflineModal} className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-md transition-all">
+            <UserPlus className="w-4 h-4" /> + Book Walk-In Customer
+          </button>
+          <button onClick={() => setActiveTab('otp_validate')} className="px-5 py-2.5 bg-accent-500 hover:bg-accent-600 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-md">
+            <ShieldCheck className="w-4 h-4" /> Validate In-Person OTP
+          </button>
+        </div>
       </div>
 
       {/* NAVIGATION TABS */}
@@ -719,7 +843,14 @@ export default function BarberDashboard() {
                 ) : (
                   bookings.map((b) => (
                     <tr key={b.id} className="hover:bg-brand-50/50">
-                      <td className="p-4 font-bold text-brand-900 dark:text-brand-50">{b.customer?.name}</td>
+                      <td className="p-4 font-bold text-brand-900 dark:text-brand-50">
+                        <div>{b.customer?.name}</div>
+                        {b.isOffline && (
+                          <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+                            WALK-IN (OFFLINE)
+                          </span>
+                        )}
+                      </td>
                       <td className="p-4 font-semibold text-accent-600">{b.staffName || 'Senior Stylist'}</td>
                       <td className="p-4 font-medium">{b.hairstyle?.name}</td>
                       <td className="p-4 font-mono text-xs">
@@ -1575,68 +1706,254 @@ export default function BarberDashboard() {
         )}
       </AnimatePresence>
 
-      {/* SERVICE MODAL */}
-      <AnimatePresence>
-        {serviceModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-brand-900 max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4">
-              <div className="flex justify-between items-center border-b pb-3">
-                <h3 className="font-bold text-base font-display">{editingService ? 'Edit Service' : 'Add New Service'}</h3>
-                <button onClick={() => setServiceModal(false)}><X className="w-5 h-5 text-brand-400" /></button>
-              </div>
-
-              {serviceError && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-xl">{serviceError}</div>}
-
-              <form onSubmit={handleServiceSubmit} className="space-y-3 text-xs">
-                <div>
-                  <label className="block font-semibold mb-1">Service Name *</label>
-                  <input type="text" required value={serviceName} onChange={(e) => setServiceName(e.target.value)} placeholder="Executive Haircut / Herbal Facial" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-semibold mb-1">Category</label>
-                    <select value={serviceCategory} onChange={(e) => {
-                      setServiceCategory(e.target.value);
-                    }} className="w-full p-2.5 bg-brand-50 border rounded-xl font-semibold font-display">
-                      <option value="Haircut">Male/Female Haircut</option>
-                      <option value="Beard">Beard Styling</option>
-                      <option value="Facial">Facial Treatment</option>
-                      <option value="Hair Treatment">Hair Spa & Treatment</option>
-                      <option value="Hair Color">Hair Coloring & Highlights</option>
-                      <option value="Others">Other Grooming</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block font-semibold mb-1">Price (₹) *</label>
-                    <input type="number" required value={servicePrice} onChange={(e) => setServicePrice(e.target.value)} placeholder="350" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-semibold mb-1">Duration (Minutes)</label>
-                    <input type="number" value={serviceDuration} onChange={(e) => setServiceDuration(e.target.value)} placeholder="30" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
-                  </div>
-                  <div>
-                    <label className="block font-semibold mb-1">Loyalty Points Reward</label>
-                    <input type="number" value={serviceLoyaltyPoints} onChange={(e) => setServiceLoyaltyPoints(e.target.value)} placeholder="e.g. 15 (optional)" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block font-semibold mb-1">Service Photo (S3 Bucket Upload)</label>
-                  <input type="file" accept="image/*" onChange={(e) => {
-                    setServiceFile(e.target.files[0]);
-                  }} className="w-full p-2 bg-brand-50 border rounded-xl" />
+        {/* SERVICE MODAL */}
+        <AnimatePresence>
+          {serviceModal && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-brand-900 max-w-md w-full p-6 rounded-3xl shadow-2xl border space-y-4">
+                <div className="flex justify-between items-center border-b pb-3">
+                  <h3 className="font-bold text-base font-display">{editingService ? 'Edit Service' : 'Add New Service'}</h3>
+                  <button onClick={() => setServiceModal(false)}><X className="w-5 h-5 text-brand-400" /></button>
                 </div>
 
-                <button type="submit" className="w-full py-3 bg-accent-500 text-white font-bold rounded-xl shadow mt-2">
-                  Save Service
-                </button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                {serviceError && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-xl">{serviceError}</div>}
 
+                <form onSubmit={handleServiceSubmit} className="space-y-3 text-xs">
+                  <div>
+                    <label className="block font-semibold mb-1">Service Name *</label>
+                    <input type="text" required value={serviceName} onChange={(e) => setServiceName(e.target.value)} placeholder="Executive Haircut / Herbal Facial" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold mb-1">Category</label>
+                      <select value={serviceCategory} onChange={(e) => {
+                        setServiceCategory(e.target.value);
+                      }} className="w-full p-2.5 bg-brand-50 border rounded-xl font-semibold font-display">
+                        <option value="Haircut">Male/Female Haircut</option>
+                        <option value="Beard">Beard Styling</option>
+                        <option value="Facial">Facial Treatment</option>
+                        <option value="Hair Treatment">Hair Spa & Treatment</option>
+                        <option value="Hair Color">Hair Coloring & Highlights</option>
+                        <option value="Others">Other Grooming</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-semibold mb-1">Price (₹) *</label>
+                      <input type="number" required value={servicePrice} onChange={(e) => setServicePrice(e.target.value)} placeholder="350" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold mb-1">Duration (Minutes)</label>
+                      <input type="number" value={serviceDuration} onChange={(e) => setServiceDuration(e.target.value)} placeholder="30" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
+                    </div>
+                    <div>
+                      <label className="block font-semibold mb-1">Loyalty Points Reward</label>
+                      <input type="number" value={serviceLoyaltyPoints} onChange={(e) => setServiceLoyaltyPoints(e.target.value)} placeholder="e.g. 15 (optional)" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block font-semibold mb-1">Service Photo (S3 Bucket Upload)</label>
+                    <input type="file" accept="image/*" onChange={(e) => {
+                      setServiceFile(e.target.files[0]);
+                    }} className="w-full p-2 bg-brand-50 border rounded-xl" />
+                  </div>
+
+                  <button type="submit" className="w-full py-3 bg-accent-500 text-white font-bold rounded-xl shadow mt-2">
+                    Save Service
+                  </button>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* OFFLINE WALK-IN BOOKING MODAL */}
+        <AnimatePresence>
+          {offlineModal && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-brand-900 max-w-lg w-full p-6 rounded-3xl shadow-2xl border space-y-4 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center border-b pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 rounded-xl">
+                      <UserPlus className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-base font-display text-brand-900 dark:text-brand-50">Book Walk-In / Offline Customer</h3>
+                      <p className="text-[11px] text-brand-400">Instantly reserve time slots for offline customers arriving at your salon</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setOfflineModal(false)}><X className="w-5 h-5 text-brand-400" /></button>
+                </div>
+
+                <form onSubmit={handleConfirmOfflineBooking} className="space-y-4 text-xs">
+                  {/* Customer Details */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold mb-1 text-brand-700 dark:text-brand-300">Customer Name *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Ramesh Patil (Walk-in)"
+                        value={offlineCustName}
+                        onChange={(e) => setOfflineCustName(e.target.value)}
+                        className="w-full p-2.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold mb-1 text-brand-700 dark:text-brand-300">Phone Number (Optional)</label>
+                      <input
+                        type="tel"
+                        placeholder="e.g. 9876543210"
+                        value={offlineCustPhone}
+                        onChange={(e) => setOfflineCustPhone(e.target.value)}
+                        className="w-full p-2.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Date & Stylist Selection */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold mb-1 text-brand-700 dark:text-brand-300">Select Date *</label>
+                      <input
+                        type="date"
+                        required
+                        value={offlineDate}
+                        onChange={(e) => handleOfflineDateChange(e.target.value)}
+                        className="w-full p-2.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl font-bold font-mono text-brand-900 dark:text-brand-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold mb-1 text-brand-700 dark:text-brand-300">Select Assigned Barber / Stylist</label>
+                      <select
+                        value={offlineStaffId}
+                        onChange={(e) => handleOfflineStaffChange(e.target.value)}
+                        className="w-full p-2.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl font-semibold text-brand-900 dark:text-brand-50"
+                      >
+                        <option value="">Any Available Stylist</option>
+                        {staffList.map((st) => (
+                          <option key={st.id} value={st.id}>{st.name} ({st.role || 'Stylist'})</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Select Services Checklist */}
+                  <div>
+                    <label className="block font-semibold mb-1 text-brand-700 dark:text-brand-300">
+                      Select Services * ({offlineSelectedServices.length} selected)
+                    </label>
+                    <div className="p-3 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-2xl max-h-36 overflow-y-auto space-y-2">
+                      {hairstyles.length === 0 ? (
+                        <p className="text-brand-400">No services added to catalog yet.</p>
+                      ) : (
+                        hairstyles.map((hs) => {
+                          const isSelected = offlineSelectedServices.some(s => s.id === hs.id);
+                          return (
+                            <label
+                              key={hs.id}
+                              className={`flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${
+                                isSelected
+                                  ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-400 text-purple-900 dark:text-purple-200'
+                                  : 'bg-white dark:bg-brand-900 border-brand-200 dark:border-brand-800 text-brand-800 dark:text-brand-200'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleToggleOfflineService(hs)}
+                                  className="w-4 h-4 accent-purple-600 rounded"
+                                />
+                                <span className="font-bold">{hs.name}</span>
+                              </div>
+                              <div className="font-mono text-xs font-bold text-accent-600">
+                                ₹{hs.price} <span className="text-[10px] text-brand-400 font-normal">({hs.duration || 30}m)</span>
+                              </div>
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Slots Grid */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="font-semibold text-brand-700 dark:text-brand-300">Select Time Slot *</label>
+                      {offlineSlotsLoading && <span className="text-[10px] text-purple-600 font-bold flex items-center gap-1"><RefreshCw className="w-3 h-3 animate-spin" /> Checking live slots...</span>}
+                    </div>
+
+                    {offlineSelectedServices.length === 0 ? (
+                      <div className="p-4 bg-brand-50 dark:bg-brand-950 text-center text-brand-400 rounded-2xl border text-xs">
+                        Please select at least one service above to view available time slots.
+                      </div>
+                    ) : offlineSlotsLoading ? (
+                      <div className="p-4 bg-brand-50 text-center text-purple-600 rounded-2xl border text-xs font-bold animate-pulse">
+                        Loading available 1-hour time slots...
+                      </div>
+                    ) : offlineSlots.length === 0 ? (
+                      <div className="p-4 bg-brand-50 text-center text-brand-400 rounded-2xl border text-xs">
+                        No slots available for this date.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-36 overflow-y-auto p-1">
+                        {offlineSlots.map((s, idx) => {
+                          const isAvailable = s.available !== false;
+                          const isSelected = offlineSelectedSlot === s.displayTime || offlineSelectedSlot === s.time;
+                          return (
+                            <button
+                              type="button"
+                              key={idx}
+                              disabled={!isAvailable}
+                              onClick={() => setOfflineSelectedSlot(s.displayTime)}
+                              className={`p-2 rounded-xl text-xs font-extrabold border transition-all text-center ${
+                                !isAvailable
+                                  ? 'bg-red-50 text-red-500 border-red-200 cursor-not-allowed opacity-65'
+                                  : isSelected
+                                  ? 'bg-purple-600 text-white border-purple-600 shadow-md ring-2 ring-purple-300'
+                                  : 'bg-white dark:bg-brand-950 text-brand-900 dark:text-brand-50 border-brand-200 hover:border-purple-400'
+                              }`}
+                            >
+                              <div>{s.displayTime}</div>
+                              <div className="text-[9px] font-normal opacity-80">{!isAvailable ? 'BOOKED' : 'OPEN'}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Summary & Confirm Button */}
+                  {offlineSelectedServices.length > 0 && offlineSelectedSlot && (
+                    <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-2xl border border-purple-200/60 text-purple-900 dark:text-purple-200 space-y-1 text-xs">
+                      <div className="flex justify-between font-bold">
+                        <span>Total Services Amount:</span> <span>₹{offlineSelectedServices.reduce((acc, s) => acc + parseFloat(s.price || 0), 0)}</span>
+                      </div>
+                      <div className="flex justify-between font-medium text-[11px]">
+                        <span>Total Session Duration:</span> <span>⏱️ {offlineSelectedServices.reduce((acc, s) => acc + parseInt(s.duration || 30), 0)} mins</span>
+                      </div>
+                      <div className="flex justify-between font-medium text-[11px]">
+                        <span>Slot Reserved:</span> <span>{offlineDate} at {offlineSelectedSlot}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={offlineSubmitting || offlineSelectedServices.length === 0 || !offlineSelectedSlot}
+                    className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{offlineSubmitting ? 'Confirming Walk-In...' : 'Confirm Walk-In Offline Booking'}</span>
+                  </button>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
