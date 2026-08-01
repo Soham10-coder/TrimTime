@@ -219,7 +219,11 @@ def add_staff_member():
 
         name = data.get('name', '').strip()
         role = data.get('role', 'Barber & Stylist').strip()
-        shift = data.get('shift', '09:00 AM - 08:00 PM').strip()
+        shift_start = data.get('shift_start', '09:00 AM').strip()
+        shift_end = data.get('shift_end', '08:00 PM').strip()
+        break_start = data.get('break_start', '01:00 PM').strip()
+        break_end = data.get('break_end', '02:00 PM').strip()
+        shift = data.get('shift', f"{shift_start} - {shift_end}").strip()
         phone = data.get('phone', '').strip()
         holiday = data.get('holiday', 'Sunday').strip()
 
@@ -244,6 +248,10 @@ def add_staff_member():
             'name': name,
             'role': role,
             'shift': shift,
+            'shift_start': shift_start,
+            'shift_end': shift_end,
+            'break_start': break_start,
+            'break_end': break_end,
             'shifts': shifts_data,
             'phone': phone,
             'holiday': holiday,
@@ -273,7 +281,11 @@ def update_staff_member(staff_id):
 
         name = data.get('name', '').strip()
         role = data.get('role', 'Barber & Stylist').strip()
-        shift = data.get('shift', '09:00 AM - 08:00 PM').strip()
+        shift_start = data.get('shift_start', '09:00 AM').strip()
+        shift_end = data.get('shift_end', '08:00 PM').strip()
+        break_start = data.get('break_start', '01:00 PM').strip()
+        break_end = data.get('break_end', '02:00 PM').strip()
+        shift = data.get('shift', f"{shift_start} - {shift_end}").strip()
         phone = data.get('phone', '').strip()
         holiday = data.get('holiday', 'Sunday').strip()
         experience = int(data.get('experience', 0)) if data.get('experience') else 0
@@ -309,6 +321,10 @@ def update_staff_member(staff_id):
                     'staff.$.name': name,
                     'staff.$.role': role,
                     'staff.$.shift': shift,
+                    'staff.$.shift_start': shift_start,
+                    'staff.$.shift_end': shift_end,
+                    'staff.$.break_start': break_start,
+                    'staff.$.break_end': break_end,
                     'staff.$.shifts': shifts_data,
                     'staff.$.phone': phone,
                     'staff.$.holiday': holiday,
@@ -325,6 +341,10 @@ def update_staff_member(staff_id):
                 'name': name,
                 'role': role,
                 'shift': shift,
+                'shift_start': shift_start,
+                'shift_end': shift_end,
+                'break_start': break_start,
+                'break_end': break_end,
                 'shifts': shifts_data,
                 'phone': phone,
                 'holiday': holiday,

@@ -145,6 +145,10 @@ export default function BarberDashboard() {
   const [editingStaff, setEditingStaff] = useState(null);
   const [staffName, setStaffName] = useState('');
   const [staffRole, setStaffRole] = useState('Senior Barber & Stylist');
+  const [staffShiftStart, setStaffShiftStart] = useState('09:00 AM');
+  const [staffShiftEnd, setStaffShiftEnd] = useState('08:00 PM');
+  const [staffBreakStart, setStaffBreakStart] = useState('01:00 PM');
+  const [staffBreakEnd, setStaffBreakEnd] = useState('02:00 PM');
   const [staffShift, setStaffShift] = useState('09:00 AM - 08:00 PM');
   const [staffShifts, setStaffShifts] = useState([]);
   const [staffPhone, setStaffPhone] = useState('');
@@ -406,6 +410,10 @@ export default function BarberDashboard() {
     setEditingStaff(null);
     setStaffName('');
     setStaffRole('Senior Barber & Stylist');
+    setStaffShiftStart('09:00 AM');
+    setStaffShiftEnd('08:00 PM');
+    setStaffBreakStart('01:00 PM');
+    setStaffBreakEnd('02:00 PM');
     setStaffShift('09:00 AM - 08:00 PM');
     setStaffShifts([]);
     setStaffPhone('');
@@ -419,6 +427,10 @@ export default function BarberDashboard() {
     setEditingStaff(st);
     setStaffName(st.name);
     setStaffRole(st.role || 'Barber Stylist');
+    setStaffShiftStart(st.shift_start || st.shift?.split('-')[0]?.trim() || '09:00 AM');
+    setStaffShiftEnd(st.shift_end || st.shift?.split('-')[1]?.trim() || '08:00 PM');
+    setStaffBreakStart(st.break_start || '01:00 PM');
+    setStaffBreakEnd(st.break_end || '02:00 PM');
     setStaffShift(st.shift || '09:00 AM - 08:00 PM');
     setStaffShifts(st.shifts || []);
     setStaffPhone(st.phone || '');
@@ -433,8 +445,12 @@ export default function BarberDashboard() {
     const formData = new FormData();
     formData.append('name', staffName);
     formData.append('role', staffRole);
-    formData.append('shift', staffShift);
-    formData.append('shifts', JSON.stringify(staffShifts));
+    formData.append('shift_start', staffShiftStart);
+    formData.append('shift_end', staffShiftEnd);
+    formData.append('break_start', staffBreakStart);
+    formData.append('break_end', staffBreakEnd);
+    formData.append('shift', `${staffShiftStart} - ${staffShiftEnd}`);
+    formData.append('shifts', JSON.stringify([{ start: staffShiftStart, end: staffShiftEnd }]));
     formData.append('phone', staffPhone);
     formData.append('holiday', staffHoliday);
     formData.append('experience', staffExperience);
@@ -1629,36 +1645,59 @@ export default function BarberDashboard() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-semibold mb-1">Select Shifts *</label>
-                    {shifts && shifts.length > 0 ? (
-                      <div className="space-y-1.5 p-2.5 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-850 rounded-xl max-h-24 overflow-y-auto">
-                        {shifts.map((sh, idx) => {
-                          const isAssigned = staffShifts.some(s => s.start === sh.start && s.end === sh.end);
-                          return (
-                            <label key={idx} className="flex items-center gap-1.5 text-[10px] font-bold text-brand-700 dark:text-brand-350 cursor-pointer select-none">
-                              <input
-                                type="checkbox"
-                                checked={isAssigned}
-                                onChange={() => {
-                                  if (isAssigned) {
-                                    setStaffShifts(staffShifts.filter(s => !(s.start === sh.start && s.end === sh.end)));
-                                  } else {
-                                    setStaffShifts([...staffShifts, sh]);
-                                  }
-                                }}
-                                className="rounded text-accent-500"
-                              />
-                              <span>Shift {idx + 1} ({sh.start} - {sh.end})</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <input type="text" value={staffShift} onChange={(e) => setStaffShift(e.target.value)} placeholder="09:00 AM - 05:00 PM" className="w-full p-2.5 bg-brand-50 border rounded-xl font-mono" />
-                    )}
+                    <label className="block font-semibold mb-1">Shift Start Time *</label>
+                    <select value={staffShiftStart} onChange={(e) => setStaffShiftStart(e.target.value)} className="w-full p-2.5 bg-brand-50 border rounded-xl font-bold">
+                      <option value="07:00 AM">07:00 AM</option>
+                      <option value="08:00 AM">08:00 AM</option>
+                      <option value="09:00 AM">09:00 AM</option>
+                      <option value="10:00 AM">10:00 AM</option>
+                      <option value="11:00 AM">11:00 AM</option>
+                      <option value="12:00 PM">12:00 PM</option>
+                    </select>
                   </div>
                   <div>
-                    <label className="block font-semibold mb-1">Individual Holiday *</label>
+                    <label className="block font-semibold mb-1">Shift End Time *</label>
+                    <select value={staffShiftEnd} onChange={(e) => setStaffShiftEnd(e.target.value)} className="w-full p-2.5 bg-brand-50 border rounded-xl font-bold">
+                      <option value="04:00 PM">04:00 PM</option>
+                      <option value="05:00 PM">05:00 PM</option>
+                      <option value="06:00 PM">06:00 PM</option>
+                      <option value="07:00 PM">07:00 PM</option>
+                      <option value="08:00 PM">08:00 PM</option>
+                      <option value="09:00 PM">09:00 PM</option>
+                      <option value="10:00 PM">10:00 PM</option>
+                      <option value="11:00 PM">11:00 PM</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold mb-1">Lunch Break Start</label>
+                    <select value={staffBreakStart} onChange={(e) => setStaffBreakStart(e.target.value)} className="w-full p-2.5 bg-brand-50 border rounded-xl font-bold">
+                      <option value="None">No Break</option>
+                      <option value="12:00 PM">12:00 PM</option>
+                      <option value="01:00 PM">01:00 PM</option>
+                      <option value="02:00 PM">02:00 PM</option>
+                      <option value="03:00 PM">03:00 PM</option>
+                      <option value="04:00 PM">04:00 PM</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-semibold mb-1">Lunch Break End</label>
+                    <select value={staffBreakEnd} onChange={(e) => setStaffBreakEnd(e.target.value)} className="w-full p-2.5 bg-brand-50 border rounded-xl font-bold">
+                      <option value="None">No Break</option>
+                      <option value="01:00 PM">01:00 PM</option>
+                      <option value="02:00 PM">02:00 PM</option>
+                      <option value="03:00 PM">03:00 PM</option>
+                      <option value="04:00 PM">04:00 PM</option>
+                      <option value="05:00 PM">05:00 PM</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold mb-1">Weekly Holiday *</label>
                     <select value={staffHoliday} onChange={(e) => setStaffHoliday(e.target.value)} className="w-full p-2.5 bg-brand-50 border rounded-xl font-bold">
                       <option value="Monday">Monday</option>
                       <option value="Tuesday">Tuesday</option>
@@ -1667,12 +1706,13 @@ export default function BarberDashboard() {
                       <option value="Friday">Friday</option>
                       <option value="Saturday">Saturday</option>
                       <option value="Sunday">Sunday</option>
+                      <option value="None">No Weekly Holiday</option>
                     </select>
                   </div>
-                </div>
-                <div>
-                  <label className="block font-semibold mb-1">Experience (in Years)</label>
-                  <input type="number" min="0" value={staffExperience} onChange={(e) => setStaffExperience(e.target.value)} placeholder="e.g. 5" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
+                  <div>
+                    <label className="block font-semibold mb-1">Experience (in Years)</label>
+                    <input type="number" min="0" value={staffExperience} onChange={(e) => setStaffExperience(e.target.value)} placeholder="e.g. 5" className="w-full p-2.5 bg-brand-50 border rounded-xl" />
+                  </div>
                 </div>
                 <div>
                   <label className="block font-semibold mb-1">Staff Photo (S3 Bucket Upload)</label>

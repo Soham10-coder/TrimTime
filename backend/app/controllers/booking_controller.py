@@ -116,16 +116,57 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
         stylist_bookings = [b for b in all_bookings if str(b.get('staff_id')) == str(staff_member.get('id')) or b.get('staff_name') == staff_member.get('name')]
         booked_intervals = get_booked_intervals_for_bookings(stylist_bookings)
 
-        # Get shifts for this stylist
-        shifts = staff_member.get('shifts', [])
-        if not shifts:
-            shifts = [{'start': staff_member.get('shift', '09:00 AM - 08:00 PM').split('-')[0].strip(), 'end': staff_member.get('shift', '09:00 AM - 08:00 PM').split('-')[1].strip()}] if '-' in staff_member.get('shift', '') else []
-        if not shifts:
-            shifts = [{'start': '09:00', 'end': '20:00'}]
+        shift_start_str = staff_member.get('shift_start') or (staff_member.get('shift', '').split('-')[0].strip() if '-' in staff_member.get('shift', '') else '09:00 AM')
+        shift_end_str = staff_member.get('shift_end') or (staff_member.get('shift', '').split('-')[1].strip() if '-' in staff_member.get('shift', '') else '08:00 PM')
 
-        for sh in shifts:
-            open_mins = time_to_minutes(sh.get('start', '09:00'))
-            close_mins = time_to_minutes(sh.get('end', '20:00'))
+        open_mins = time_to_minutes(shift_start_str)
+        close_mins = time_to_minutes(shift_end_str)
+
+        break_start_str = staff_member.get('break_start')
+        break_end_str = staff_member.get('break_end')
+        break_start_mins = time_to_minutes(break_start_str) if break_start_str and break_start_str != 'None' else None
+        break_end_mins = time_to_minutes(break_end_str) if break_end_str and break_end_str != 'None' else None
+
+        for slot_start in range(open_mins, close_mins, SLOT_INTERVAL_MINS):
+            slot_end = slot_start + duration_mins
+            if slot_end > close_mins:
+                continue
+            if is_today and slot_start < current_mins_today:
+                continue
+
+            collides = False
+            new_interval_start = slot_start
+            new_interval_end = slot_start + duration_mins + BUFFER_TIME_MINS
+
+            # 1. Check Lunch Break Collision
+            if break_start_mins is not None and break_end_mins is not None:
+                if (new_interval_start < break_end_mins) and (new_interval_end > break_start_mins):
+                    collides = True
+
+            # 2. Check Booking Collision
+            if not collides:
+                for booked_start, booked_end in booked_intervals:
+                    if (new_interval_start < booked_end) and (new_interval_end > booked_start):
+                        collides = True
+                        break
+
+            slot_time_str = minutes_to_time(slot_start)
+            time_obj = datetime.datetime.strptime(slot_time_str, "%H:%M")
+            display_time = time_obj.strftime("%I:%M %p")
+
+            available_slots.append({
+                'time': slot_time_str,
+                'displayTime': display_time,
+                'available': not collides
+            })
+
+    else:
+        # 2) "Any Stylist" (or no stylist specified)
+        if not active_staff:
+            # Fallback if no staff list exists at all (owner is the only stylist)
+            booked_intervals = get_booked_intervals_for_bookings(all_bookings)
+            open_mins = time_to_minutes(barber_doc.get('opening_time', '09:00 AM'))
+            close_mins = time_to_minutes(barber_doc.get('closing_time', '08:00 PM'))
 
             for slot_start in range(open_mins, close_mins, SLOT_INTERVAL_MINS):
                 slot_end = slot_start + duration_mins
@@ -152,49 +193,8 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
                     'displayTime': display_time,
                     'available': not collides
                 })
-
-    else:
-        # 2) "Any Stylist" (or no stylist specified)
-        if not active_staff:
-            # Fallback if no staff list exists at all (owner is the only stylist)
-            booked_intervals = get_booked_intervals_for_bookings(all_bookings)
-            shifts = barber_doc.get('shifts', [])
-            if not shifts:
-                shifts = [{'start': barber_doc.get('opening_time', '09:00'), 'end': barber_doc.get('closing_time', '20:00')}]
-
-            for sh in shifts:
-                open_mins = time_to_minutes(sh.get('start', '09:00'))
-                close_mins = time_to_minutes(sh.get('end', '20:00'))
-
-                for slot_start in range(open_mins, close_mins, SLOT_INTERVAL_MINS):
-                    slot_end = slot_start + duration_mins
-                    if slot_end > close_mins:
-                        continue
-                    if is_today and slot_start < current_mins_today:
-                        continue
-
-                    collides = False
-                    new_interval_start = slot_start
-                    new_interval_end = slot_start + duration_mins + BUFFER_TIME_MINS
-
-                    for booked_start, booked_end in booked_intervals:
-                        if (new_interval_start < booked_end) and (new_interval_end > booked_start):
-                            collides = True
-                            break
-
-                    slot_time_str = minutes_to_time(slot_start)
-                    time_obj = datetime.datetime.strptime(slot_time_str, "%H:%M")
-                    display_time = time_obj.strftime("%I:%M %p")
-
-                    available_slots.append({
-                        'time': slot_time_str,
-                        'displayTime': display_time,
-                        'available': not collides
-                    })
         else:
             # Multi-stylist salon check:
-            # We determine availability of a slot if at least one stylist has a shift covering it and is free!
-            # Generate the union of all active stylists shifts to determine possible slot starting times
             all_possible_starts = set()
             stylist_schedules = []
 
@@ -203,30 +203,33 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
                 if stylist.get('holiday') and stylist.get('holiday').strip().lower() == current_weekday_name.lower():
                     continue
 
-                # Get shifts
-                st_shifts = stylist.get('shifts', [])
-                if not st_shifts:
-                    st_shifts = [{'start': stylist.get('shift', '09:00 AM - 08:00 PM').split('-')[0].strip(), 'end': stylist.get('shift', '09:00 AM - 08:00 PM').split('-')[1].strip()}] if '-' in stylist.get('shift', '') else []
-                if not st_shifts:
-                    st_shifts = [{'start': '09:00', 'end': '20:00'}]
+                sh_start_str = stylist.get('shift_start') or (stylist.get('shift', '').split('-')[0].strip() if '-' in stylist.get('shift', '') else '09:00 AM')
+                sh_end_str = stylist.get('shift_end') or (stylist.get('shift', '').split('-')[1].strip() if '-' in stylist.get('shift', '') else '08:00 PM')
+                
+                brk_start_str = stylist.get('break_start')
+                brk_end_str = stylist.get('break_end')
+                brk_start_m = time_to_minutes(brk_start_str) if brk_start_str and brk_start_str != 'None' else None
+                brk_end_m = time_to_minutes(brk_end_str) if brk_end_str and brk_end_str != 'None' else None
 
-                # Get bookings for this stylist
                 st_bookings = [b for b in all_bookings if str(b.get('staff_id')) == str(stylist.get('id')) or b.get('staff_name') == stylist.get('name')]
                 st_booked_intervals = get_booked_intervals_for_bookings(st_bookings)
 
+                open_m = time_to_minutes(sh_start_str)
+                close_m = time_to_minutes(sh_end_str)
+
                 stylist_schedules.append({
                     'stylist': stylist,
-                    'shifts': st_shifts,
+                    'open_m': open_m,
+                    'close_m': close_m,
+                    'brk_start_m': brk_start_m,
+                    'brk_end_m': brk_end_m,
                     'booked_intervals': st_booked_intervals
                 })
 
-                for sh in st_shifts:
-                    open_mins = time_to_minutes(sh.get('start', '09:00'))
-                    close_mins = time_to_minutes(sh.get('end', '20:00'))
-                    for start in range(open_mins, close_mins, SLOT_INTERVAL_MINS):
-                        if is_today and start < current_mins_today:
-                            continue
-                        all_possible_starts.add(start)
+                for start in range(open_m, close_m, SLOT_INTERVAL_MINS):
+                    if is_today and start < current_mins_today:
+                        continue
+                    all_possible_starts.add(start)
 
             # Check availability for each slot starting time
             for start in sorted(all_possible_starts):
@@ -234,31 +237,22 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
                 
                 # Check if at least one stylist is free for this slot
                 for sched in stylist_schedules:
-                    # Check if stylist shifts cover this slot
-                    covers = False
-                    for sh in sched['shifts']:
-                        sh_start = time_to_minutes(sh.get('start', '09:00'))
-                        sh_end = time_to_minutes(sh.get('end', '20:00'))
-                        if start >= sh_start and (start + duration_mins) <= sh_end:
-                            covers = True
+                    if start >= sched['open_m'] and (start + duration_mins) <= sched['close_m']:
+                        # Check lunch break collision
+                        if sched['brk_start_m'] is not None and sched['brk_end_m'] is not None:
+                            if (start < sched['brk_end_m']) and ((start + duration_mins + BUFFER_TIME_MINS) > sched['brk_start_m']):
+                                continue
+
+                        # Check booking collision
+                        collides_booking = False
+                        for booked_start, booked_end in sched['booked_intervals']:
+                            if (start < booked_end) and ((start + duration_mins + BUFFER_TIME_MINS) > booked_start):
+                                collides_booking = True
+                                break
+
+                        if not collides_booking:
+                            is_available = True
                             break
-
-                    if not covers:
-                        continue
-
-                    # Check collision
-                    collides = False
-                    new_interval_start = start
-                    new_interval_end = start + duration_mins + BUFFER_TIME_MINS
-
-                    for booked_start, booked_end in sched['booked_intervals']:
-                        if (new_interval_start < booked_end) and (new_interval_end > booked_start):
-                            collides = True
-                            break
-
-                    if not collides:
-                        is_available = True
-                        break
 
                 slot_time_str = minutes_to_time(start)
                 time_obj = datetime.datetime.strptime(slot_time_str, "%H:%M")
