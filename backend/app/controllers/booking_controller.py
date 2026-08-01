@@ -827,47 +827,33 @@ def create_offline_booking():
         staff_id = data.get('staffId')
         staff_name = data.get('staffName', 'Senior Stylist')
 
-        # Extract service IDs
-        hairstyle_ids = data.get('hairstyleIds', [])
-        if not hairstyle_ids and data.get('hairstyleId'):
-            hairstyle_ids = [data.get('hairstyleId')]
-
-        if not date_str or not time_slot or not hairstyle_ids:
-            return jsonify({'message': 'Date, time slot, and at least one service are required'}), 400
+        if not date_str or not time_slot:
+            return jsonify({'message': 'Date and time slot are required'}), 400
 
         # Validate barber
         barber = barbers_col.find_one({'_id': ObjectId(barber_id)})
         if not barber:
             return jsonify({'message': 'Barber salon not found'}), 404
 
-        # Validate services
-        valid_object_ids = [ObjectId(hid) for hid in hairstyle_ids if ObjectId.is_valid(hid)]
-        hairstyles = list(hairstyles_col.find({'_id': {'$in': valid_object_ids}, 'barber_id': ObjectId(barber_id)}))
-        if not hairstyles:
-            return jsonify({'message': 'No valid services found for this barber'}), 400
-
-        # Calculate price & duration
-        service_names = ", ".join([h.get('name', 'Service') for h in hairstyles])
-        total_service_price = sum([float(h.get('price', 0)) for h in hairstyles])
-        total_duration = sum([int(h.get('duration', 30)) for h in hairstyles])
+        # Default duration for walk-in slot: 60 minutes (1 hour)
+        duration_mins = 60
 
         # Validate slot collision
         staff_param = staff_id if staff_id else None
-        slots_data = generate_slots_for_barber(barber, date_str, total_duration, staff_param)
+        slots_data = generate_slots_for_barber(barber, date_str, duration_mins, staff_param)
         target_slot = next((s for s in slots_data if s['displayTime'] == time_slot or s['time'] == time_slot), None)
         if not target_slot or not target_slot.get('available', True):
             return jsonify({'message': 'Selected time slot is unavailable or already booked'}), 400
 
-        # Financial calculations
-        platform_fee_rate = barber.get('platform_fee_percent', 10.0)
-        platform_fee = round(total_service_price * (platform_fee_rate / 100.0), 2)
-        net_amount = round(total_service_price - platform_fee, 2)
-
         check_in_otp = str(random.randint(100000, 999999))
         booking_short_id = f"TT-WALK-{str(uuid.uuid4().int)[:6]}"
 
-        qr_data = f"TrimTime WalkIn:{booking_short_id}|Barber:{barber.get('shop_name')}|Services:{service_names}"
+        qr_data = f"TrimTime WalkIn:{booking_short_id}|Barber:{barber.get('shop_name')}|Time:{time_slot}"
         qr_base64 = generate_qr_code_base64(qr_data)
+
+        # Get first hairstyle if available for reference
+        first_hs = hairstyles_col.find_one({'barber_id': ObjectId(barber_id)})
+        hairstyle_id = first_hs['_id'] if first_hs else ObjectId()
 
         booking_doc = {
             'booking_id': booking_short_id,
@@ -876,29 +862,29 @@ def create_offline_booking():
             'customer_name': customer_name,
             'customer_phone': customer_phone,
             'barber_id': ObjectId(barber_id),
-            'hairstyle_id': hairstyles[0]['_id'],
+            'hairstyle_id': hairstyle_id,
             'services': [
                 {
-                    'id': str(h['_id']),
-                    'name': h.get('name'),
-                    'price': float(h.get('price', 0)),
-                    'duration': h.get('duration', 30)
-                } for h in hairstyles
+                    'id': str(hairstyle_id),
+                    'name': 'Walk-in Customer Slot',
+                    'price': 0.0,
+                    'duration': duration_mins
+                }
             ],
             'staff_id': staff_id,
             'staff_name': staff_name,
             'date': date_str,
             'time_slot': time_slot,
-            'price': total_service_price,
+            'price': 0.0,
             'discount': 0.0,
-            'service_final_price': total_service_price,
-            'platform_fee_percent': platform_fee_rate,
-            'platform_fee': platform_fee,
-            'net_amount': net_amount,
-            'total_amount': total_service_price,
+            'service_final_price': 0.0,
+            'platform_fee_percent': 0.0,
+            'platform_fee': 0.0,
+            'net_amount': 0.0,
+            'total_amount': 0.0,
             'status': 'confirmed',
             'payment_status': 'paid',
-            'payment_method': 'Walk-in (Cash/UPI)',
+            'payment_method': 'Walk-in (Offline)',
             'is_offline': True,
             'qr_code': qr_base64,
             'created_at': datetime.datetime.utcnow()
@@ -906,25 +892,8 @@ def create_offline_booking():
 
         result = bookings_col.insert_one(booking_doc)
 
-        payment_doc = {
-            'booking_id': result.inserted_id,
-            'razorpay_order_id': f"order_walkin_{str(uuid.uuid4().int)[:10]}",
-            'razorpay_payment_id': f"pay_walkin_{str(uuid.uuid4().int)[:10]}",
-            'razorpay_signature': 'offline_walkin_payment',
-            'amount': total_service_price,
-            'status': 'captured',
-            'method': 'cash_walkin',
-            'created_at': datetime.datetime.utcnow()
-        }
-        payment_insert = payments_col.insert_one(payment_doc)
-
-        bookings_col.update_one(
-            {'_id': result.inserted_id},
-            {'$set': {'payment_id': payment_insert.inserted_id}}
-        )
-
         return jsonify({
-            'message': 'Walk-in offline booking created successfully!',
+            'message': 'Walk-in time slot booked successfully!',
             'bookingId': booking_short_id,
             'id': str(result.inserted_id)
         }), 201

@@ -180,21 +180,20 @@ export default function BarberDashboard() {
     setOfflineDate(todayStr);
     setOfflineStaffId('');
     setOfflineStaffName('');
-    setOfflineSelectedServices([]);
     setOfflineSlots([]);
     setOfflineSelectedSlot('');
     setOfflineModal(true);
+    fetchOfflineSlots(todayStr, '');
   };
 
-  const fetchOfflineSlots = async (dateStr, staffIdVal, selectedServicesList) => {
-    if (!dateStr || selectedServicesList.length === 0) {
+  const fetchOfflineSlots = async (dateStr, staffIdVal) => {
+    if (!dateStr) {
       setOfflineSlots([]);
       return;
     }
     setOfflineSlotsLoading(true);
     try {
-      const hairstyleParam = selectedServicesList.map(s => s.id).join(',');
-      let url = `/booking/slots?barberId=${user.id}&date=${dateStr}&hairstyleId=${hairstyleParam}`;
+      let url = `/booking/slots?barberId=${user.id}&date=${dateStr}`;
       if (staffIdVal) {
         url += `&staffId=${staffIdVal}`;
       }
@@ -212,22 +211,10 @@ export default function BarberDashboard() {
     }
   };
 
-  const handleToggleOfflineService = (service) => {
-    let updated;
-    if (offlineSelectedServices.some(s => s.id === service.id)) {
-      updated = offlineSelectedServices.filter(s => s.id !== service.id);
-    } else {
-      updated = [...offlineSelectedServices, service];
-    }
-    setOfflineSelectedServices(updated);
-    setOfflineSelectedSlot('');
-    fetchOfflineSlots(offlineDate, offlineStaffId, updated);
-  };
-
   const handleOfflineDateChange = (newDate) => {
     setOfflineDate(newDate);
     setOfflineSelectedSlot('');
-    fetchOfflineSlots(newDate, offlineStaffId, offlineSelectedServices);
+    fetchOfflineSlots(newDate, offlineStaffId);
   };
 
   const handleOfflineStaffChange = (staffIdVal) => {
@@ -235,15 +222,11 @@ export default function BarberDashboard() {
     const staffObj = staffList.find(st => String(st.id) === String(staffIdVal));
     setOfflineStaffName(staffObj ? staffObj.name : 'Senior Stylist');
     setOfflineSelectedSlot('');
-    fetchOfflineSlots(offlineDate, staffIdVal, offlineSelectedServices);
+    fetchOfflineSlots(offlineDate, staffIdVal);
   };
 
   const handleConfirmOfflineBooking = async (e) => {
     e.preventDefault();
-    if (offlineSelectedServices.length === 0) {
-      alert("Please select at least one service!");
-      return;
-    }
     if (!offlineSelectedSlot) {
       alert("Please pick an available time slot!");
       return;
@@ -257,23 +240,22 @@ export default function BarberDashboard() {
         date: offlineDate,
         timeSlot: offlineSelectedSlot,
         staffId: offlineStaffId || null,
-        staffName: offlineStaffName || 'Senior Stylist',
-        hairstyleIds: offlineSelectedServices.map(s => s.id)
+        staffName: offlineStaffName || 'Senior Stylist'
       };
 
       const res = await api.post('/booking/create-offline', payload);
       const data = await res.json();
 
       if (res.ok) {
-        alert("✅ Walk-in offline booking confirmed successfully!");
+        alert("✅ Walk-in time slot booked successfully!");
         setOfflineModal(false);
         fetchBarberDashboardData();
       } else {
-        alert(data.message || "Failed to create walk-in booking.");
+        alert(data.message || "Failed to book walk-in slot.");
       }
     } catch (e) {
       console.error("Error creating offline booking:", e);
-      alert("Error creating walk-in booking.");
+      alert("Error booking walk-in slot.");
     } finally {
       setOfflineSubmitting(false);
     }
@@ -1839,45 +1821,6 @@ export default function BarberDashboard() {
                     </div>
                   </div>
 
-                  {/* Select Services Checklist */}
-                  <div>
-                    <label className="block font-semibold mb-1 text-brand-700 dark:text-brand-300">
-                      Select Services * ({offlineSelectedServices.length} selected)
-                    </label>
-                    <div className="p-3 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-2xl max-h-36 overflow-y-auto space-y-2">
-                      {hairstyles.length === 0 ? (
-                        <p className="text-brand-400">No services added to catalog yet.</p>
-                      ) : (
-                        hairstyles.map((hs) => {
-                          const isSelected = offlineSelectedServices.some(s => s.id === hs.id);
-                          return (
-                            <label
-                              key={hs.id}
-                              className={`flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${
-                                isSelected
-                                  ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-400 text-purple-900 dark:text-purple-200'
-                                  : 'bg-white dark:bg-brand-900 border-brand-200 dark:border-brand-800 text-brand-800 dark:text-brand-200'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={() => handleToggleOfflineService(hs)}
-                                  className="w-4 h-4 accent-purple-600 rounded"
-                                />
-                                <span className="font-bold">{hs.name}</span>
-                              </div>
-                              <div className="font-mono text-xs font-bold text-accent-600">
-                                ₹{hs.price} <span className="text-[10px] text-brand-400 font-normal">({hs.duration || 30}m)</span>
-                              </div>
-                            </label>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-
                   {/* Slots Grid */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
@@ -1885,11 +1828,7 @@ export default function BarberDashboard() {
                       {offlineSlotsLoading && <span className="text-[10px] text-purple-600 font-bold flex items-center gap-1"><RefreshCw className="w-3 h-3 animate-spin" /> Checking live slots...</span>}
                     </div>
 
-                    {offlineSelectedServices.length === 0 ? (
-                      <div className="p-4 bg-brand-50 dark:bg-brand-950 text-center text-brand-400 rounded-2xl border text-xs">
-                        Please select at least one service above to view available time slots.
-                      </div>
-                    ) : offlineSlotsLoading ? (
+                    {offlineSlotsLoading ? (
                       <div className="p-4 bg-brand-50 text-center text-purple-600 rounded-2xl border text-xs font-bold animate-pulse">
                         Loading available 1-hour time slots...
                       </div>
@@ -1898,7 +1837,7 @@ export default function BarberDashboard() {
                         No slots available for this date.
                       </div>
                     ) : (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-36 overflow-y-auto p-1">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
                         {offlineSlots.map((s, idx) => {
                           const isAvailable = s.available !== false;
                           const isSelected = offlineSelectedSlot === s.displayTime || offlineSelectedSlot === s.time;
@@ -1908,7 +1847,7 @@ export default function BarberDashboard() {
                               key={idx}
                               disabled={!isAvailable}
                               onClick={() => setOfflineSelectedSlot(s.displayTime)}
-                              className={`p-2 rounded-xl text-xs font-extrabold border transition-all text-center ${
+                              className={`p-2.5 rounded-xl text-xs font-extrabold border transition-all text-center ${
                                 !isAvailable
                                   ? 'bg-red-50 text-red-500 border-red-200 cursor-not-allowed opacity-65'
                                   : isSelected
@@ -1925,28 +1864,13 @@ export default function BarberDashboard() {
                     )}
                   </div>
 
-                  {/* Summary & Confirm Button */}
-                  {offlineSelectedServices.length > 0 && offlineSelectedSlot && (
-                    <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-2xl border border-purple-200/60 text-purple-900 dark:text-purple-200 space-y-1 text-xs">
-                      <div className="flex justify-between font-bold">
-                        <span>Total Services Amount:</span> <span>₹{offlineSelectedServices.reduce((acc, s) => acc + parseFloat(s.price || 0), 0)}</span>
-                      </div>
-                      <div className="flex justify-between font-medium text-[11px]">
-                        <span>Total Session Duration:</span> <span>⏱️ {offlineSelectedServices.reduce((acc, s) => acc + parseInt(s.duration || 30), 0)} mins</span>
-                      </div>
-                      <div className="flex justify-between font-medium text-[11px]">
-                        <span>Slot Reserved:</span> <span>{offlineDate} at {offlineSelectedSlot}</span>
-                      </div>
-                    </div>
-                  )}
-
                   <button
                     type="submit"
-                    disabled={offlineSubmitting || offlineSelectedServices.length === 0 || !offlineSelectedSlot}
-                    className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                    disabled={offlineSubmitting || !offlineSelectedSlot}
+                    className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-2"
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>{offlineSubmitting ? 'Confirming Walk-In...' : 'Confirm Walk-In Offline Booking'}</span>
+                    <span>{offlineSubmitting ? 'Reserving Slot...' : 'Book Walk-In Slot'}</span>
                   </button>
                 </form>
               </motion.div>
