@@ -5,7 +5,7 @@ import MapLocationPicker from '../../components/MapLocationPicker';
 import { 
   Calendar, Clock, DollarSign, Users, Scissors, Star, ToggleLeft, ToggleRight, 
   Edit, Trash2, Plus, Settings, Sparkles, Check, X, ClipboardList, ShieldCheck, 
-  MapPin, ExternalLink, CheckCircle2, AlertCircle, Image as ImageIcon, UserCheck, Locate, Save, RefreshCw, UserPlus
+  MapPin, ExternalLink, CheckCircle2, AlertCircle, Image as ImageIcon, UserCheck, Locate, Save, RefreshCw, UserPlus, ZoomIn
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 const categoryDefaultImages = {
@@ -139,6 +139,7 @@ export default function BarberDashboard() {
   const [serviceFile, setServiceFile] = useState(null);
   const [selectedDefaultImage, setSelectedDefaultImage] = useState('');
   const [selectedDashboardCategory, setSelectedDashboardCategory] = useState('All');
+  const [previewImage, setPreviewImage] = useState(null);
 
   // Barber Staff CRUD form states
   const [staffModal, setStaffModal] = useState(false);
@@ -985,9 +986,21 @@ export default function BarberDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {customServices.map((s) => (
                     <div key={s.id} className="bg-white dark:bg-brand-900 rounded-2xl border border-brand-200 dark:border-brand-800 shadow-sm overflow-hidden flex flex-col justify-between">
-                      <div className="relative h-32 bg-brand-100">
-                        <img src={s.imageUrl || getServiceFallbackImage(s.category)} alt={s.name} className="w-full h-full object-cover" />
-                        <span className="absolute top-2.5 right-2.5 bg-accent-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      <div 
+                        className="relative h-32 bg-brand-100 group cursor-pointer overflow-hidden"
+                        onClick={() => setPreviewImage({
+                          url: s.imageUrl || getServiceFallbackImage(s.category),
+                          title: s.name,
+                          category: s.category,
+                          price: s.price,
+                          duration: s.duration
+                        })}
+                      >
+                        <img src={s.imageUrl || getServiceFallbackImage(s.category)} alt={s.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 text-xs font-bold backdrop-blur-[1px]">
+                          <ZoomIn className="w-4 h-4" /> View Full Image
+                        </div>
+                        <span className="absolute top-2.5 right-2.5 bg-accent-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10">
                           Custom
                         </span>
                       </div>
@@ -1098,9 +1111,21 @@ export default function BarberDashboard() {
                     >
                       <div>
                         {/* Service Card Image */}
-                        <div className="w-full h-40 relative bg-brand-100">
-                          <img src={currentImage} alt={s.name} className="w-full h-full object-cover" />
-                          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white uppercase tracking-wider">
+                        <div 
+                          className="w-full h-40 relative bg-brand-100 group cursor-pointer overflow-hidden"
+                          onClick={() => setPreviewImage({
+                            url: currentImage,
+                            title: s.name,
+                            category: s.category,
+                            price: localPrice,
+                            duration: localDuration
+                          })}
+                        >
+                          <img src={currentImage} alt={s.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 text-xs font-bold backdrop-blur-[1px] z-10">
+                            <ZoomIn className="w-4 h-4" /> View Full Image
+                          </div>
+                          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white uppercase tracking-wider z-20">
                             {s.category}
                           </div>
                           
@@ -1913,6 +1938,60 @@ export default function BarberDashboard() {
                     <span>{offlineSubmitting ? 'Reserving Slot...' : 'Book Walk-In Slot'}</span>
                   </button>
                 </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* FULL-SCREEN IMAGE LIGHTBOX MODAL */}
+        <AnimatePresence>
+          {previewImage && (
+            <div 
+              className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
+              onClick={() => setPreviewImage(null)}
+            >
+              <motion.div 
+                initial={{ scale: 0.85, opacity: 0 }} 
+                animate={{ scale: 1, opacity: 1 }} 
+                exit={{ scale: 0.85, opacity: 0 }} 
+                className="relative max-w-3xl w-full bg-brand-950 text-white rounded-3xl overflow-hidden shadow-2xl border border-white/10"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button 
+                  onClick={() => setPreviewImage(null)} 
+                  className="absolute top-4 right-4 p-2.5 bg-black/60 hover:bg-black/80 text-white rounded-full transition-all z-10 border border-white/20"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+
+                <div className="w-full max-h-[70vh] bg-black flex items-center justify-center overflow-hidden">
+                  <img 
+                    src={previewImage.url} 
+                    alt={previewImage.title} 
+                    className="w-full h-full object-contain max-h-[70vh]" 
+                  />
+                </div>
+
+                <div className="p-6 bg-gradient-to-t from-brand-950 to-brand-900 flex justify-between items-center border-t border-white/10">
+                  <div>
+                    <span className="px-3 py-1 bg-accent-500/20 text-accent-400 text-[10px] font-bold rounded-full uppercase tracking-wider">
+                      {previewImage.category || 'Service'}
+                    </span>
+                    <h3 className="text-xl font-extrabold font-display mt-1 text-white">{previewImage.title}</h3>
+                    {previewImage.duration && (
+                      <p className="text-xs text-brand-400 mt-1 flex items-center gap-1">
+                        ⏱️ {previewImage.duration} mins session
+                      </p>
+                    )}
+                  </div>
+                  {previewImage.price !== undefined && previewImage.price !== '' && (
+                    <div className="text-right">
+                      <span className="text-2xl font-black text-emerald-400 font-mono">
+                        ₹{previewImage.price}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </motion.div>
             </div>
           )}

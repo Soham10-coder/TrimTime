@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import PaymentModal from '../../components/PaymentModal';
-import { Scissors, Clock, Calendar, Check, ArrowRight, User, Sparkles, Receipt, AlertCircle, ShieldCheck, MapPin, UserCheck, ExternalLink, Lock, AlertTriangle, LogIn } from 'lucide-react';
+import { Scissors, Clock, Calendar, Check, ArrowRight, User, Sparkles, Receipt, AlertCircle, ShieldCheck, MapPin, UserCheck, ExternalLink, Lock, AlertTriangle, LogIn, ZoomIn, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
@@ -23,6 +23,9 @@ export default function BookAppointment() {
   const { barberId } = useParams();
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  // Full-screen Image Lightbox Preview state
+  const [previewImage, setPreviewImage] = useState(null);
 
   // Stepper state: 1 -> Select Barber Staff, 2 -> Select Service, 3 -> Select Date, 4 -> Select Time Slot, 5 -> Checkout
   const [step, setStep] = useState(1);
@@ -488,8 +491,23 @@ export default function BookAppointment() {
                         <Check className="w-3.5 h-3.5 stroke-[3]" />
                       </div>
                     )}
-                    <div className="w-full h-32 rounded-2xl overflow-hidden bg-brand-100 mb-2">
-                      <img src={hs.imageUrl || getServiceFallbackImage(hs.category)} alt={hs.name} className="w-full h-full object-cover" />
+                    <div 
+                      className="w-full h-32 rounded-2xl overflow-hidden bg-brand-100 mb-2 relative group cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewImage({
+                          url: hs.imageUrl || getServiceFallbackImage(hs.category),
+                          title: hs.name,
+                          category: hs.category,
+                          price: hs.price,
+                          duration: hs.duration
+                        });
+                      }}
+                    >
+                      <img src={hs.imageUrl || getServiceFallbackImage(hs.category)} alt={hs.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 text-xs font-bold backdrop-blur-[1px]">
+                        <ZoomIn className="w-4 h-4" /> View Full Image
+                      </div>
                     </div>
                     <div className="flex justify-between items-start">
                       <span className="px-2.5 py-0.5 bg-accent-100 text-accent-700 text-[10px] font-bold rounded-full uppercase">{hs.category || 'Grooming'}</span>
@@ -761,6 +779,60 @@ export default function BookAppointment() {
         } : null}
         onPaymentSuccess={handleFinalizeBookingAfterPayment}
       />
+
+      {/* FULL-SCREEN IMAGE LIGHTBOX MODAL */}
+      <AnimatePresence>
+        {previewImage && (
+          <div 
+            className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
+            onClick={() => setPreviewImage(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.85, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.85, opacity: 0 }} 
+              className="relative max-w-3xl w-full bg-brand-950 text-white rounded-3xl overflow-hidden shadow-2xl border border-white/10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setPreviewImage(null)} 
+                className="absolute top-4 right-4 p-2.5 bg-black/60 hover:bg-black/80 text-white rounded-full transition-all z-10 border border-white/20"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <div className="w-full max-h-[70vh] bg-black flex items-center justify-center overflow-hidden">
+                <img 
+                  src={previewImage.url} 
+                  alt={previewImage.title} 
+                  className="w-full h-full object-contain max-h-[70vh]" 
+                />
+              </div>
+
+              <div className="p-6 bg-gradient-to-t from-brand-950 to-brand-900 flex justify-between items-center border-t border-white/10">
+                <div>
+                  <span className="px-3 py-1 bg-accent-500/20 text-accent-400 text-[10px] font-bold rounded-full uppercase tracking-wider">
+                    {previewImage.category || 'Service'}
+                  </span>
+                  <h3 className="text-xl font-extrabold font-display mt-1 text-white">{previewImage.title}</h3>
+                  {previewImage.duration && (
+                    <p className="text-xs text-brand-400 mt-1 flex items-center gap-1">
+                      ⏱️ {previewImage.duration} mins session
+                    </p>
+                  )}
+                </div>
+                {previewImage.price !== undefined && previewImage.price !== '' && (
+                  <div className="text-right">
+                    <span className="text-2xl font-black text-emerald-400 font-mono">
+                      ₹{previewImage.price}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
