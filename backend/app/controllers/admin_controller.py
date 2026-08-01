@@ -134,16 +134,7 @@ def get_admin_analytics():
                 'bookingsCount': md['count']
             })
 
-        # If empty chart data, mock some values for demo representation
-        if not chart_data:
-            chart_data = [
-                {'month': 'Jan 2026', 'revenue': 4500.0, 'bookingsCount': 15},
-                {'month': 'Feb 2026', 'revenue': 8200.0, 'bookingsCount': 28},
-                {'month': 'Mar 2026', 'revenue': 12500.0, 'bookingsCount': 42},
-                {'month': 'Apr 2026', 'revenue': 18900.0, 'bookingsCount': 60},
-                {'month': 'May 2026', 'revenue': 25000.0, 'bookingsCount': 85},
-                {'month': 'Jun 2026', 'revenue': 34200.0, 'bookingsCount': 110}
-            ]
+
 
         # Barber booking statistics (bookings count and revenue per salon)
         barber_stats_pipeline = [
