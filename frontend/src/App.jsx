@@ -84,6 +84,14 @@ export default function App() {
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="barber/dashboard" 
+              element={
+                <ProtectedRoute allowedRoles={['barber']}>
+                  <BarberDashboard />
+                </ProtectedRoute>
+              } 
+            />
 
             {/* Secured Admin Routes */}
             <Route 

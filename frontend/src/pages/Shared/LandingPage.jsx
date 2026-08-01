@@ -283,7 +283,7 @@ export default function LandingPage() {
             <div className="mt-10 space-y-8 max-w-3xl mx-auto">
               <div className="flex justify-center">
                 <Link 
-                  to={user.role === 'admin' ? '/admin' : user.role === 'barber' ? '/barber/dashboard' : '/dashboard'} 
+                  to={user.role === 'admin' ? '/admin' : user.role === 'barber' ? '/barber' : '/dashboard'} 
                   className="px-8 py-4 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-xl font-bold shadow-lg shadow-accent-500/10 hover:shadow-accent-500/25 transition-all text-base transform hover:-translate-y-0.5 flex items-center gap-2"
                 >
                   <Award className="w-5 h-5 text-yellow-300" /> Go to Your Dashboard
