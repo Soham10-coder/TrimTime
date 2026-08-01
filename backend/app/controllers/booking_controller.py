@@ -67,6 +67,20 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
     weekday_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     current_weekday_name = weekday_names[target_date.weekday()]
 
+    # Auto-expire online pending bookings older than 15 minutes
+    try:
+        fifteen_mins_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=15)
+        bookings_col.update_many(
+            {
+                'status': 'pending',
+                'is_offline': {'$ne': True},
+                'created_at': {'$lt': fifteen_mins_ago}
+            },
+            {'$set': {'status': 'cancelled', 'payment_status': 'expired'}}
+        )
+    except Exception:
+        pass
+
     # Get all active bookings for this date and barber
     query = {
         'barber_id': barber_doc['_id'],
