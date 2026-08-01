@@ -59,3 +59,6 @@ def create_app():
         return {"status": "healthy", "service": "TrimTime Backend API"}, 200
 
     return app
+
+# Expose module-level app instance so both `gunicorn app:app` and `gunicorn run:app` work out of the box
+app = create_app()
