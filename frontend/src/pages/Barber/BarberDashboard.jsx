@@ -941,7 +941,10 @@ export default function BarberDashboard() {
 
                   <div className="pt-2 border-t text-xs space-y-1">
                     <p className="flex justify-between text-brand-600 dark:text-brand-400">
-                      <span>Shift Hours:</span> <span className="font-mono font-bold text-brand-900 dark:text-brand-50">{s.shift || '09:00 AM - 08:00 PM'}</span>
+                      <span>Shift Hours:</span> <span className="font-mono font-bold text-brand-900 dark:text-brand-50">{s.shift_start && s.shift_end ? `${s.shift_start} - ${s.shift_end}` : (s.shift || '09:00 AM - 08:00 PM')}</span>
+                    </p>
+                    <p className="flex justify-between text-brand-600 dark:text-brand-400">
+                      <span>Lunch / Rest Break:</span> <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{s.break_start && s.break_start !== 'None' ? `${s.break_start} - ${s.break_end}` : 'No Break'}</span>
                     </p>
                     <p className="flex justify-between text-brand-600 dark:text-brand-400">
                       <span>Weekly Holiday:</span> <span className="font-bold text-amber-600">{s.holiday || 'Sunday'}</span>
