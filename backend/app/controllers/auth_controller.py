@@ -71,7 +71,7 @@ def register_customer():
             'gender': gender,
             'password': hashed_pass,
             'role': role,
-            'verified': False,
+            'verified': True,
             'loyalty_points': 0,
             'favorites': [],
             'created_at': datetime.datetime.utcnow()

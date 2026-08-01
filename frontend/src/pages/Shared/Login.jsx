@@ -71,13 +71,11 @@ export default function Login({ defaultRole = 'customer' }) {
         navigate('/admin');
       }
     } else {
-      if (res.code === 'UNVERIFIED') {
-        navigate('/verify-otp', { state: { email } });
-      } else {
-        setError(res.message || 'Invalid email/mobile or password');
-      }
+      setError(res.message || 'Invalid email/mobile or password');
     }
   };
+
+  const successMsg = location.state?.successMsg || '';
 
   // Define themes dynamically based on active tab
   const getTheme = () => {
@@ -179,6 +177,13 @@ export default function Login({ defaultRole = 'customer' }) {
           <p className="text-xs text-brand-500 dark:text-brand-455 mt-2">{theme.subtitle}</p>
         </div>
 
+        {successMsg && (
+          <div className="flex items-center gap-2 p-4 mb-6 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 text-xs rounded-xl border border-green-200 dark:border-green-800/40 font-semibold">
+            <CheckCircle2 className="w-4.5 h-4.5 flex-shrink-0 text-green-600" />
+            <span>{successMsg}</span>
+          </div>
+        )}
+
         {error && (
           <div className="flex items-center gap-2 p-4 mb-6 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 text-xs rounded-xl border border-red-200 dark:border-red-800/40 font-semibold">
             <AlertCircle className="w-4.5 h-4.5 flex-shrink-0" />
@@ -253,20 +258,12 @@ export default function Login({ defaultRole = 'customer' }) {
         {/* CUSTOM DE-CLUTTERED FOOTERS PER ROLE */}
         <div className="mt-6 pt-4 border-t border-brand-200/50 dark:border-brand-800 text-center text-xs space-y-2">
           {activeRole === 'customer' && (
-            <>
-              <div className="text-brand-500 dark:text-brand-400">
-                Need to verify your email?{' '}
-                <Link to="/verify-otp" className="font-bold text-accent-600 dark:text-accent-400 hover:underline inline-flex items-center gap-1">
-                  <KeyRound className="w-3.5 h-3.5" /> Verify OTP Here
-                </Link>
-              </div>
-              <div className="text-brand-500 dark:text-brand-400">
-                New to TrimTime?{' '}
-                <Link to="/signup" className="font-bold text-accent-600 dark:text-accent-400 hover:underline">
-                  Create Customer Account
-                </Link>
-              </div>
-            </>
+            <div className="text-brand-500 dark:text-brand-400">
+              New to TrimTime?{' '}
+              <Link to="/signup" className="font-bold text-accent-600 dark:text-accent-400 hover:underline">
+                Create Customer Account
+              </Link>
+            </div>
           )}
 
           {activeRole === 'barber' && (
