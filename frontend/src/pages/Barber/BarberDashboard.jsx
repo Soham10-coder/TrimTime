@@ -1457,70 +1457,7 @@ export default function BarberDashboard() {
             </div>
           </div>
 
-          {/* CARD 3: OPERATING SHIFTS */}
-          <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm space-y-4">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h4 className="font-bold text-xs uppercase tracking-wider text-accent-500 flex items-center gap-1.5">
-                ⏱️ Operating Shifts (Business Hours)
-              </h4>
-              <button
-                type="button"
-                onClick={() => setShifts([...shifts, { start: '09:00', end: '13:00' }])}
-                className="px-2.5 py-1 bg-accent-500 hover:bg-accent-600 text-white font-bold rounded-lg text-[10px] shadow transition-all"
-              >
-                + Add Shift Interval
-              </button>
-            </div>
-            
-            <p className="text-[11px] text-brand-400">
-              Create one or more time slots when the salon is open. Split shifts (e.g. morning shift and afternoon shift) are supported.
-            </p>
 
-            <div className="space-y-2">
-              {shifts.map((sh, idx) => (
-                <div key={idx} className="flex items-center gap-3 bg-brand-50/30 dark:bg-brand-950/10 p-2.5 rounded-2xl border border-brand-100 dark:border-brand-850">
-                  <span className="text-[10px] font-bold text-brand-400 font-mono w-14">Shift #{idx + 1}:</span>
-                  <div className="flex-1 grid grid-cols-2 gap-3">
-                    <div>
-                      <span className="text-[9px] text-brand-400 font-bold block mb-0.5">Start Time</span>
-                      <input
-                        type="time"
-                        value={sh.start}
-                        onChange={(e) => {
-                          const updated = [...shifts];
-                          updated[idx].start = e.target.value;
-                          setShifts(updated);
-                        }}
-                        className="w-full p-2 bg-white dark:bg-brand-900 border rounded-xl text-xs font-mono font-bold"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-[9px] text-brand-400 font-bold block mb-0.5">End Time</span>
-                      <input
-                        type="time"
-                        value={sh.end}
-                        onChange={(e) => {
-                          const updated = [...shifts];
-                          updated[idx].end = e.target.value;
-                          setShifts(updated);
-                        }}
-                        className="w-full p-2 bg-white dark:bg-brand-900 border rounded-xl text-xs font-mono font-bold"
-                      />
-                    </div>
-                  </div>
-                  {shifts.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setShifts(shifts.filter((_, i) => i !== idx))}
-                      className="p-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-all self-end"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* CARD 4: HOLIDAYS & VACATION DAYS */}
           <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm space-y-4">
