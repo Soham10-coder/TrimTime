@@ -279,34 +279,30 @@ def get_available_slots():
         hairstyle_id = request.args.get('hairstyleId')
         staff_id = request.args.get('staffId')
 
-        if not barber_id or not date_str or not hairstyle_id:
-            return jsonify({'message': 'BarberId, date (YYYY-MM-DD), and hairstyleId are required'}), 400
+        if not barber_id or not date_str:
+            return jsonify({'message': 'BarberId and date (YYYY-MM-DD) are required'}), 400
 
         if not ObjectId.is_valid(barber_id):
             return jsonify({'message': 'Invalid barber ID format'}), 400
-
-        # Support multiple comma-separated hairstyle IDs
-        hairstyle_ids = [i.strip() for i in hairstyle_id.split(',') if i.strip()]
-        for h_id in hairstyle_ids:
-            if not ObjectId.is_valid(h_id):
-                return jsonify({'message': 'Invalid hairstyle ID format'}), 400
 
         barber = barbers_col.find_one({'_id': ObjectId(barber_id)})
         if not barber:
             return jsonify({'message': 'Barber shop not found'}), 404
 
-        # Retrieve all hairstyles and calculate total duration
-        hairstyles = list(hairstyles_col.find({'_id': {'$in': [ObjectId(h_id) for h_id in hairstyle_ids]}}))
-        if not hairstyles:
-            return jsonify({'message': 'No hairstyle services found'}), 404
-
-        total_duration = sum([h.get('duration', 30) for h in hairstyles])
+        total_duration = 60
+        if hairstyle_id:
+            hairstyle_ids = [i.strip() for i in hairstyle_id.split(',') if i.strip()]
+            valid_hids = [ObjectId(h_id) for h_id in hairstyle_ids if ObjectId.is_valid(h_id)]
+            if valid_hids:
+                hairstyles = list(hairstyles_col.find({'_id': {'$in': valid_hids}}))
+                if hairstyles:
+                    total_duration = sum([int(h.get('duration', 30)) for h in hairstyles])
 
         slots = generate_slots_for_barber(barber, date_str, total_duration, staff_id)
         return jsonify(slots), 200
 
     except Exception as e:
-        logger.error(f"Error fetching slots: {e}")
+        logger.error(f"Error fetching available slots: {e}")
         return jsonify({'message': 'Internal Server Error'}), 500
 
 def generate_qr_code_base64(data_str):
@@ -599,25 +595,41 @@ def get_customer_bookings():
 
 def get_barber_bookings():
     try:
-        barber_id = g.current_user_id
+        user_id = g.current_user_id
         date_filter = request.args.get('date')
         
-        query = {'barber_id': ObjectId(barber_id)}
+        target_barber_ids = []
+        if ObjectId.is_valid(user_id):
+            target_barber_ids.append(ObjectId(user_id))
+
+        barber = barbers_col.find_one({'$or': [
+            {'_id': ObjectId(user_id) if ObjectId.is_valid(user_id) else None},
+            {'user_id': ObjectId(user_id) if ObjectId.is_valid(user_id) else None}
+        ]})
+        if barber:
+            if barber['_id'] not in target_barber_ids:
+                target_barber_ids.append(barber['_id'])
+            if barber.get('user_id') and barber['user_id'] not in target_barber_ids:
+                target_barber_ids.append(barber['user_id'])
+
+        query = {'barber_id': {'$in': target_barber_ids}}
         if date_filter:
             query['date'] = date_filter
 
-        bookings = list(bookings_col.find(query).sort([('date', -1), ('time_slot', 1)]))
+        bookings = list(bookings_col.find(query).sort([('created_at', -1), ('date', -1)]))
         
         results = []
         for b in bookings:
-            customer = users_col.find_one({'_id': b['customer_id']}, {'name': 1, 'phone': 1, 'email': 1})
+            customer = None
+            if b.get('customer_id'):
+                customer = users_col.find_one({'_id': b['customer_id']}, {'name': 1, 'phone': 1, 'email': 1})
             
             services_list = b.get('services', [])
             if services_list:
                 hairstyle_name = ", ".join([s.get('name', 'Service') for s in services_list])
                 hairstyle_duration = sum([int(s.get('duration', 30)) for s in services_list])
             else:
-                hairstyle = hairstyles_col.find_one({'_id': b['hairstyle_id']}, {'name': 1, 'duration': 1})
+                hairstyle = hairstyles_col.find_one({'_id': b.get('hairstyle_id')}, {'name': 1, 'duration': 1}) if b.get('hairstyle_id') else None
                 hairstyle_name = hairstyle.get('name') if hairstyle else 'Service'
                 hairstyle_duration = hairstyle.get('duration', 30) if hairstyle else 30
 
@@ -637,8 +649,8 @@ def get_barber_bookings():
                 'isOffline': b.get('is_offline', False),
                 'paymentMethod': b.get('payment_method', 'Online'),
                 'customer': {
-                    'name': customer.get('name') if customer else b.get('customer_name', 'Guest'),
-                    'phone': customer.get('phone') if customer else '',
+                    'name': customer.get('name') if customer else b.get('customer_name', 'Walk-in Customer'),
+                    'phone': customer.get('phone') if customer else b.get('customer_phone', ''),
                     'email': customer.get('email') if customer else ''
                 },
                 'hairstyle': {
