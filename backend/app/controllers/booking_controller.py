@@ -89,7 +89,7 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
     }
     all_bookings = list(bookings_col.find(query))
 
-    # Helper to calculate booked intervals
+    # Helper to calculate booked intervals with document reference
     def get_booked_intervals_for_bookings(bookings):
         intervals = []
         for b in bookings:
@@ -103,7 +103,7 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
                 if hs:
                     duration = hs.get('duration', 30)
             end_m = start_m + duration + BUFFER_TIME_MINS
-            intervals.append((start_m, end_m))
+            intervals.append((start_m, end_m, b))
         return intervals
 
     current_time = datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
@@ -149,6 +149,8 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
                 continue
 
             collides = False
+            colliding_booking = None
+            is_break = False
             new_interval_start = slot_start
             new_interval_end = slot_start + duration_mins + BUFFER_TIME_MINS
 
@@ -156,23 +158,43 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
             if break_start_mins is not None and break_end_mins is not None:
                 if (new_interval_start < break_end_mins) and (new_interval_end > break_start_mins):
                     collides = True
+                    is_break = True
 
             # 2. Check Booking Collision
             if not collides:
-                for booked_start, booked_end in booked_intervals:
+                for booked_start, booked_end, b_doc in booked_intervals:
                     if (new_interval_start < booked_end) and (new_interval_end > booked_start):
                         collides = True
+                        colliding_booking = b_doc
                         break
 
             slot_time_str = minutes_to_time(slot_start)
             time_obj = datetime.datetime.strptime(slot_time_str, "%H:%M")
             display_time = time_obj.strftime("%I:%M %p")
 
-            available_slots.append({
+            slot_info = {
                 'time': slot_time_str,
                 'displayTime': display_time,
                 'available': not collides
-            })
+            }
+
+            if collides:
+                if colliding_booking:
+                    slot_info['bookedBy'] = colliding_booking.get('customer_name') or colliding_booking.get('customerName') or 'Booked Customer'
+                    slot_info['customerPhone'] = colliding_booking.get('customer_phone') or colliding_booking.get('customerPhone') or 'N/A'
+                    serv_names = []
+                    if colliding_booking.get('services'):
+                        serv_names = [s.get('name') for s in colliding_booking.get('services') if s.get('name')]
+                    elif colliding_booking.get('hairstyle_name'):
+                        serv_names = [colliding_booking.get('hairstyle_name')]
+                    slot_info['serviceName'] = ', '.join(serv_names) if serv_names else 'Service'
+                    slot_info['isOffline'] = bool(colliding_booking.get('is_offline'))
+                    slot_info['status'] = colliding_booking.get('status', 'confirmed')
+                elif is_break:
+                    slot_info['bookedBy'] = 'Lunch Break'
+                    slot_info['isBreak'] = True
+
+            available_slots.append(slot_info)
 
     else:
         # 2) "Any Stylist" (or no stylist specified)
@@ -190,23 +212,39 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
                     continue
 
                 collides = False
+                colliding_booking = None
                 new_interval_start = slot_start
                 new_interval_end = slot_start + duration_mins + BUFFER_TIME_MINS
 
-                for booked_start, booked_end in booked_intervals:
+                for booked_start, booked_end, b_doc in booked_intervals:
                     if (new_interval_start < booked_end) and (new_interval_end > booked_start):
                         collides = True
+                        colliding_booking = b_doc
                         break
 
                 slot_time_str = minutes_to_time(slot_start)
                 time_obj = datetime.datetime.strptime(slot_time_str, "%H:%M")
                 display_time = time_obj.strftime("%I:%M %p")
 
-                available_slots.append({
+                slot_info = {
                     'time': slot_time_str,
                     'displayTime': display_time,
                     'available': not collides
-                })
+                }
+
+                if collides and colliding_booking:
+                    slot_info['bookedBy'] = colliding_booking.get('customer_name') or colliding_booking.get('customerName') or 'Booked Customer'
+                    slot_info['customerPhone'] = colliding_booking.get('customer_phone') or colliding_booking.get('customerPhone') or 'N/A'
+                    serv_names = []
+                    if colliding_booking.get('services'):
+                        serv_names = [s.get('name') for s in colliding_booking.get('services') if s.get('name')]
+                    elif colliding_booking.get('hairstyle_name'):
+                        serv_names = [colliding_booking.get('hairstyle_name')]
+                    slot_info['serviceName'] = ', '.join(serv_names) if serv_names else 'Service'
+                    slot_info['isOffline'] = bool(colliding_booking.get('is_offline'))
+                    slot_info['status'] = colliding_booking.get('status', 'confirmed')
+
+                available_slots.append(slot_info)
         else:
             # Multi-stylist salon check:
             all_possible_starts = set()
@@ -248,6 +286,8 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
             # Check availability for each slot starting time
             for start in sorted(all_possible_starts):
                 is_available = False
+                first_colliding_booking = None
+                is_break_slot = False
                 
                 # Check if at least one stylist is free for this slot
                 for sched in stylist_schedules:
@@ -255,13 +295,16 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
                         # Check lunch break collision
                         if sched['brk_start_m'] is not None and sched['brk_end_m'] is not None:
                             if (start < sched['brk_end_m']) and ((start + duration_mins + BUFFER_TIME_MINS) > sched['brk_start_m']):
+                                is_break_slot = True
                                 continue
 
                         # Check booking collision
                         collides_booking = False
-                        for booked_start, booked_end in sched['booked_intervals']:
+                        for booked_start, booked_end, b_doc in sched['booked_intervals']:
                             if (start < booked_end) and ((start + duration_mins + BUFFER_TIME_MINS) > booked_start):
                                 collides_booking = True
+                                if not first_colliding_booking:
+                                    first_colliding_booking = b_doc
                                 break
 
                         if not collides_booking:
@@ -272,11 +315,29 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
                 time_obj = datetime.datetime.strptime(slot_time_str, "%H:%M")
                 display_time = time_obj.strftime("%I:%M %p")
 
-                available_slots.append({
+                slot_info = {
                     'time': slot_time_str,
                     'displayTime': display_time,
                     'available': is_available
-                })
+                }
+
+                if not is_available:
+                    if first_colliding_booking:
+                        slot_info['bookedBy'] = first_colliding_booking.get('customer_name') or first_colliding_booking.get('customerName') or 'Booked Customer'
+                        slot_info['customerPhone'] = first_colliding_booking.get('customer_phone') or first_colliding_booking.get('customerPhone') or 'N/A'
+                        serv_names = []
+                        if first_colliding_booking.get('services'):
+                            serv_names = [s.get('name') for s in first_colliding_booking.get('services') if s.get('name')]
+                        elif first_colliding_booking.get('hairstyle_name'):
+                            serv_names = [first_colliding_booking.get('hairstyle_name')]
+                        slot_info['serviceName'] = ', '.join(serv_names) if serv_names else 'Service'
+                        slot_info['isOffline'] = bool(first_colliding_booking.get('is_offline'))
+                        slot_info['status'] = first_colliding_booking.get('status', 'confirmed')
+                    elif is_break_slot:
+                        slot_info['bookedBy'] = 'Lunch Break'
+                        slot_info['isBreak'] = True
+
+                available_slots.append(slot_info)
 
     return available_slots
 

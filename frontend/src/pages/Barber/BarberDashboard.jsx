@@ -1842,7 +1842,7 @@ export default function BarberDashboard() {
                         No slots available for this date.
                       </div>
                     ) : (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-56 overflow-y-auto p-1">
                         {offlineSlots.map((s, idx) => {
                           const isAvailable = s.available !== false;
                           const isSelected = offlineSelectedSlot === s.displayTime || offlineSelectedSlot === s.time;
@@ -1850,18 +1850,54 @@ export default function BarberDashboard() {
                             <button
                               type="button"
                               key={idx}
-                              disabled={!isAvailable}
-                              onClick={() => setOfflineSelectedSlot(s.displayTime)}
-                              className={`p-2.5 rounded-xl text-xs font-extrabold border transition-all text-center ${
+                              onClick={() => {
+                                if (!isAvailable) {
+                                  if (s.isBreak) {
+                                    alert(`Slot Timing: ${s.displayTime}\nStatus: Lunch / Rest Break`);
+                                  } else {
+                                    alert(`Slot Timing: ${s.displayTime}\n\n• Booked By: ${s.bookedBy || 'Customer'}\n• Phone: ${s.customerPhone || 'N/A'}\n• Service: ${s.serviceName || 'Hair & Grooming'}\n• Booking Type: ${s.isOffline ? 'Walk-In Customer' : 'Online Customer'}`);
+                                  }
+                                } else {
+                                  setOfflineSelectedSlot(s.displayTime);
+                                }
+                              }}
+                              className={`p-2.5 rounded-xl text-xs font-extrabold border transition-all text-center relative group ${
                                 !isAvailable
-                                  ? 'bg-red-50 text-red-500 border-red-200 cursor-not-allowed opacity-65'
+                                  ? 'bg-red-50 text-red-700 border-red-200 cursor-pointer hover:bg-red-100 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800'
                                   : isSelected
                                   ? 'bg-purple-600 text-white border-purple-600 shadow-md ring-2 ring-purple-300'
                                   : 'bg-white dark:bg-brand-950 text-brand-900 dark:text-brand-50 border-brand-200 hover:border-purple-400'
                               }`}
                             >
-                              <div>{s.displayTime}</div>
-                              <div className="text-[9px] font-normal opacity-80">{!isAvailable ? 'BOOKED' : 'OPEN'}</div>
+                              <div className="font-mono">{s.displayTime}</div>
+                              <div className="text-[9px] font-bold truncate max-w-full px-0.5 mt-0.5">
+                                {!isAvailable ? (s.bookedBy ? `🔒 ${s.bookedBy}` : '🔒 BOOKED') : '✨ OPEN'}
+                              </div>
+
+                              {/* Hover Floating Details Tooltip for Booked Slots */}
+                              {!isAvailable && (
+                                <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1 p-2.5 bg-brand-950 text-white text-[10px] font-semibold rounded-xl shadow-2xl z-30 min-w-44 border border-brand-800 pointer-events-none text-left">
+                                  {s.isBreak ? (
+                                    <div className="text-amber-400 font-bold">☕ Staff Lunch / Rest Break</div>
+                                  ) : (
+                                    <>
+                                      <div className="font-bold text-xs text-purple-300 border-b border-brand-800 pb-1 mb-1">
+                                        👤 {s.bookedBy || 'Customer'}
+                                      </div>
+                                      {s.customerPhone && s.customerPhone !== 'N/A' && (
+                                        <div className="text-brand-300">📞 {s.customerPhone}</div>
+                                      )}
+                                      {s.serviceName && (
+                                        <div className="text-brand-300 truncate">✂️ {s.serviceName}</div>
+                                      )}
+                                      <div className="mt-1 pt-1 border-t border-brand-800 flex justify-between items-center text-[9px]">
+                                        <span className="text-accent-400 font-bold">{s.isOffline ? 'Walk-In' : 'Online Client'}</span>
+                                        <span className="bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-mono uppercase">{s.status || 'Booked'}</span>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              )}
                             </button>
                           );
                         })}
