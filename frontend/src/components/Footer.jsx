@@ -1,98 +1,91 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Scissors, Mail, Phone, MapPin } from 'lucide-react';
+import { Scissors, Mail, Phone, MapPin, ShieldCheck, Lock, ExternalLink } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="bg-white text-brand-600 border-t border-brand-200 transition-colors">
+    <footer className="bg-white dark:bg-brand-950 text-brand-600 dark:text-brand-400 border-t border-brand-200 dark:border-brand-850 transition-colors">
       <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           
           {/* Brand Info */}
           <div className="space-y-4">
-            <div className="flex items-center space-x-2 text-brand-900">
-              <div className="p-2 bg-accent-500 rounded-lg text-white">
+            <div className="flex items-center space-x-2 text-brand-900 dark:text-brand-50">
+              <div className="p-2 bg-gradient-to-r from-accent-600 to-accent-500 rounded-xl text-white shadow-md">
                 <Scissors className="h-5 w-5" />
               </div>
-              <span className="font-display text-xl font-bold tracking-tight">
+              <span className="font-display text-2xl font-black tracking-tight">
                 Trim<span className="text-accent-500">Time</span>
               </span>
             </div>
-            <p className="text-sm text-brand-500">
-              Premium online booking experience for modern haircut shops and groomers. Elevate your schedule, simplify bookings, and enjoy styling.
+            <p className="text-xs text-brand-500 dark:text-brand-400 leading-relaxed font-medium">
+              India's premier salon & grooming booking platform. Book top-rated barbers, pick open slots, and enjoy 0 wait time.
             </p>
-            <div className="flex space-x-4">
-              <a href="#" className="hover:text-accent-500 transition-colors">
-                <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                </svg>
-              </a>
-              <a href="#" className="hover:text-accent-500 transition-colors">
-                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                  <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1V12h3v3h-3v6.8c4.56-.93 8-4.96 8-9.8z"/>
-                </svg>
-              </a>
-              <a href="#" className="hover:text-accent-500 transition-colors">
-                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                  <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-                </svg>
-              </a>
+            
+            <div className="flex items-center gap-2 text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800 w-fit">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span>Razorpay Secured Payments</span>
             </div>
           </div>
- 
+
           {/* Quick Links */}
           <div>
-            <h3 className="text-sm font-semibold text-brand-900 uppercase tracking-wider mb-4">Discover</h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/#barbers" className="hover:text-accent-500 transition-colors">Browse Barbers</Link></li>
-              <li><Link to="/" className="hover:text-accent-500 transition-colors">Featured Hairstyles</Link></li>
-              <li><Link to="/#why-choose-us" className="hover:text-accent-500 transition-colors">Why Choose Us</Link></li>
-              <li><Link to="/#pricing" className="hover:text-accent-500 transition-colors">Subscription Pricing</Link></li>
+            <h3 className="text-xs font-black text-brand-900 dark:text-brand-100 uppercase tracking-wider mb-4">Discover</h3>
+            <ul className="space-y-2.5 text-xs font-semibold">
+              <li><a href="/#search-barber" className="hover:text-accent-500 transition-colors">Browse Partner Salons</a></li>
+              <li><a href="/#how-it-works" className="hover:text-accent-500 transition-colors">How TrimTime Works</a></li>
+              <li><a href="/#why-choose-us" className="hover:text-accent-500 transition-colors">Why Choose Us</a></li>
+              <li><Link to="/login" className="hover:text-accent-500 transition-colors">Customer Portal Login</Link></li>
             </ul>
           </div>
- 
-          {/* Business Links */}
+
+          {/* Business & Partner Links */}
           <div>
-            <h3 className="text-sm font-semibold text-brand-900 uppercase tracking-wider mb-4">For Partners</h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/barber/signup" className="hover:text-accent-500 transition-colors">Register as Barber Shop</Link></li>
-              <li><Link to="/barber/login" className="hover:text-accent-500 transition-colors">Barber Dashboard Access</Link></li>
-              <li><Link to="/" className="hover:text-accent-500 transition-colors">Merchant Guidelines</Link></li>
-              <li><Link to="/" className="hover:text-accent-500 transition-colors">Partner FAQ</Link></li>
+            <h3 className="text-xs font-black text-brand-900 dark:text-brand-100 uppercase tracking-wider mb-4">For Salon Partners</h3>
+            <ul className="space-y-2.5 text-xs font-semibold">
+              <li>
+                <Link to="/barber/signup" className="hover:text-accent-500 transition-colors flex items-center gap-1">
+                  <span>List Your Salon Shop</span>
+                  <ExternalLink className="w-3 h-3 text-accent-500" />
+                </Link>
+              </li>
+              <li><Link to="/login" className="hover:text-accent-500 transition-colors">Partner Dashboard Access</Link></li>
+              <li><Link to="/partner-policy" className="hover:text-accent-500 transition-colors">Salon Partner Terms & Policy</Link></li>
             </ul>
           </div>
- 
+
           {/* Contact Details */}
           <div>
-            <h3 className="text-sm font-semibold text-brand-900 uppercase tracking-wider mb-4">Get in Touch</h3>
-            <ul className="space-y-3 text-sm">
+            <h3 className="text-xs font-black text-brand-900 dark:text-brand-100 uppercase tracking-wider mb-4">Get in Touch</h3>
+            <ul className="space-y-3 text-xs font-semibold">
               <li className="flex items-start gap-2.5">
-                <MapPin className="w-4 h-4 text-accent-500 mt-0.5" />
-                <span>101 Grooming Blvd, Suite 200, Mumbai, MH</span>
+                <MapPin className="w-4 h-4 text-accent-500 flex-shrink-0 mt-0.5" />
+                <span>TrimTime Tech HQ, MG Road, Pune, Maharashtra 411001</span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Phone className="w-4 h-4 text-accent-500" />
-                <span>+91 93077 94669</span>
+                <Phone className="w-4 h-4 text-accent-500 flex-shrink-0" />
+                <span>+91 98765 43210</span>
               </li>
               <li className="flex items-center gap-2.5">
-                <Mail className="w-4 h-4 text-accent-500" />
-                <span>support@trimtime.com</span>
+                <Mail className="w-4 h-4 text-accent-500 flex-shrink-0" />
+                <a href="mailto:support@trimtime.in" className="hover:text-accent-500 transition-colors">
+                  support@trimtime.in
+                </a>
               </li>
             </ul>
           </div>
- 
+
         </div>
         
-        <hr className="border-brand-200 my-8"/>
+        <hr className="border-brand-200 dark:border-brand-850 my-8"/>
         
-        <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-brand-500 space-y-4 sm:space-y-0">
+        <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-brand-500 dark:text-brand-400 space-y-4 sm:space-y-0 font-medium">
           <p>&copy; 2026 TrimTime Inc. All rights reserved.</p>
-          <div className="flex space-x-6">
-            <a href="#" className="hover:text-accent-500 transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-accent-500 transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-accent-500 transition-colors">Cookie settings</a>
+          <div className="flex flex-wrap justify-center gap-6 text-xs font-bold">
+            <Link to="/terms" className="hover:text-accent-500 transition-colors">Terms & Conditions</Link>
+            <Link to="/privacy" className="hover:text-accent-500 transition-colors">Privacy Policy</Link>
+            <Link to="/refund-policy" className="hover:text-accent-500 transition-colors">Cancellation & Refund Policy</Link>
+            <Link to="/partner-policy" className="hover:text-accent-500 transition-colors">Partner Policy</Link>
           </div>
         </div>
       </div>

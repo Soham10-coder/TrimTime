@@ -10,6 +10,10 @@ import Signup from './pages/Shared/Signup';
 import VerifyOtp from './pages/Shared/VerifyOtp';
 import ForgotPassword from './pages/Shared/ForgotPassword';
 import ResetPassword from './pages/Shared/ResetPassword';
+import TermsAndConditions from './pages/Shared/TermsAndConditions';
+import PrivacyPolicy from './pages/Shared/PrivacyPolicy';
+import RefundPolicy from './pages/Shared/RefundPolicy';
+import PartnerPolicy from './pages/Shared/PartnerPolicy';
 
 // Customer Pages
 import BookAppointment from './pages/Customer/BookAppointment';
@@ -58,6 +62,10 @@ export default function App() {
             <Route path="verify-otp" element={<VerifyOtp />} />
             <Route path="forgot-password" element={<ForgotPassword />} />
             <Route path="reset-password" element={<ResetPassword />} />
+            <Route path="terms" element={<TermsAndConditions />} />
+            <Route path="privacy" element={<PrivacyPolicy />} />
+            <Route path="refund-policy" element={<RefundPolicy />} />
+            <Route path="partner-policy" element={<PartnerPolicy />} />
             <Route path="barber/signup" element={<BarberSignup />} />
             <Route path="barber/login" element={<Login defaultRole="barber" />} />
             <Route path="admin/login" element={<Login defaultRole="admin" />} />

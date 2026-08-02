@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   Search, MapPin, Star, Scissors, Clock, Calendar, CheckCircle2, ChevronDown, Award, 
   ExternalLink, Map as MapIcon, ChevronLeft, ChevronRight, Store, ShieldCheck, Sparkles, 
-  Zap, Users, ArrowRight, Navigation, Flame
+  Zap, Users, ArrowRight, Navigation, Flame, Shield, Lock, Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../utils/api';
@@ -31,6 +31,45 @@ const POPULAR_CATEGORIES = [
   { id: 'Spa', name: 'Massage & Spa', icon: '💆‍♂️' },
   { id: 'Nails', name: 'Nails & Care', icon: '💅' },
   { id: 'Bridal', name: 'Groom & Bridal', icon: '🤵' }
+];
+
+const HERO_SLIDES = [
+  {
+    badge: '⚡ ZERO WAITING TIME GUARANTEE',
+    title: 'Skip The Salon Waiting Queue.',
+    subtitle: 'Book real-time open 1-hour slots, select your favorite barber staff member, and walk right in at your appointment time.',
+    ctaText: 'Book Appointment Now',
+    ctaLink: '#search-barber',
+    type: 'customer',
+    bgGradient: 'from-accent-600 via-accent-500 to-amber-500'
+  },
+  {
+    badge: '📍 LIVE GPS MAP NAVIGATION',
+    title: 'Find Nearby Verified Salons & Stylists.',
+    subtitle: 'Explore real shop photos, verified portfolios, transparent service pricing, and navigate right to the shop entrance.',
+    ctaText: 'Explore City Salons Map',
+    ctaLink: '#city-map',
+    type: 'customer',
+    bgGradient: 'from-purple-600 via-accent-600 to-indigo-600'
+  },
+  {
+    badge: '💈 SALON PARTNER MANAGEMENT',
+    title: 'Grow Your Salon Business & Sync Walk-Ins.',
+    subtitle: 'Manage staff shift hours, lunch breaks, reserve offline walk-in slots, and receive automated weekly payouts with 0 setup fee.',
+    ctaText: 'List Your Salon Shop',
+    ctaLink: '/barber/signup',
+    type: 'barber',
+    bgGradient: 'from-emerald-600 via-teal-600 to-accent-600'
+  },
+  {
+    badge: '🛡️ REVOLUTIONARY CHECK-IN OTP',
+    title: 'Verified 6-Digit OTP & 100% Safe UPI Checkouts.',
+    subtitle: 'Show your 6-digit Check-In OTP code at salon entry. Enjoy 100% full automated refunds if cancelled 24+ hours in advance.',
+    ctaText: 'View Refund & Terms Policy',
+    ctaLink: '/refund-policy',
+    type: 'everyone',
+    bgGradient: 'from-amber-600 via-accent-600 to-brand-900'
+  }
 ];
 
 function BarberCard({ b, navigate }) {
@@ -190,12 +229,16 @@ export default function LandingPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showGuide, setShowGuide] = useState(true);
   
+  // Slide state & How it works tab state
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [howItWorksTab, setHowItWorksTab] = useState('customer'); // 'customer' | 'salon'
+
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchBarbers();
     
-    // Automatically prompt browser geolocation permission
+    // Geolocation permission
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -206,6 +249,13 @@ export default function LandingPage() {
         }
       );
     }
+
+    // Auto-advance hero slideshow every 5 seconds
+    const slideTimer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+    }, 5000);
+
+    return () => clearInterval(slideTimer);
   }, []);
 
   const fetchBarbers = async (city = '', shop = '', category = '', salonType = '', maxPriceVal = '') => {
@@ -251,7 +301,7 @@ export default function LandingPage() {
 
   const faqs = [
     { q: "How do I book an appointment on TrimTime?", a: "Simply browse our list of verified partner salons, choose your favorite shop and styling services, pick an available real-time time slot, pay securely via Razorpay, and receive your instant check-in OTP code!" },
-    { q: "Can I cancel or reschedule my booking?", a: "Yes! You can cancel your appointment up to 24 hours prior to the slot through your Customer Dashboard for an automated 100% full refund." },
+    { q: "Can I cancel or reschedule my booking?", a: "Yes! You can cancel your appointment up to 24 hours prior to the slot through your Customer Dashboard for an automated 100% full refund credited within 24 hours." },
     { q: "How do salon owners register their shop?", a: "Click on 'List Your Salon' in the header navigation or the Partner Banner below. Fill in your shop details, photos, and staff roster. Once verified, your salon shop goes live to thousands of nearby customers!" },
     { q: "Is online payment safe?", a: "100% safe. All transactions are routed securely through Razorpay supporting UPI (GPay, PhonePe, Paytm), Credit/Debit cards, and Net Banking." }
   ];
@@ -261,80 +311,124 @@ export default function LandingPage() {
     ? userCoords
     : (barbers.length > 0 && barbers[0].lat ? [barbers[0].lat, barbers[0].lng] : [18.5204, 73.8567]);
 
+  const currentSlide = HERO_SLIDES[activeSlide];
+
   return (
     <div className="relative overflow-hidden bg-brand-50/50 dark:bg-brand-950 transition-colors">
       
-      {/* 1. HERO SECTION (Fresha & Airbnb Style) */}
-      <section className="relative pt-12 pb-24 lg:pt-20 lg:pb-36 flex flex-col items-center text-center px-4 bg-gradient-to-b from-accent-50/80 via-brand-50/50 to-transparent dark:from-brand-900/80 dark:via-brand-950/50 dark:to-transparent">
+      {/* 1. HERO SLIDESHOW SECTION (Customer & Salon Dual Value) */}
+      <section className="relative pt-10 pb-24 lg:pt-16 lg:pb-32 px-4 bg-gradient-to-b from-accent-50/70 via-brand-50/40 to-transparent dark:from-brand-900/80 dark:via-brand-950/40 dark:to-transparent">
         {/* Background Ambient Glows */}
         <div className="absolute top-10 left-1/4 w-96 h-96 bg-accent-400/20 dark:bg-accent-600/10 rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
         <div className="absolute top-20 right-1/4 w-96 h-96 bg-amber-400/20 dark:bg-amber-600/10 rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
 
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="max-w-4xl mx-auto z-10"
-        >
-          {/* Startup Pill Tag */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 shadow-md rounded-full mb-6">
-            <span className="flex h-2 w-2 rounded-full bg-accent-500 animate-ping" />
-            <Sparkles className="w-4 h-4 text-accent-500" />
-            <span className="text-xs font-extrabold text-brand-900 dark:text-brand-50 tracking-wide uppercase">
-              India's Premier Salon & Grooming Marketplace
-            </span>
+        <div className="max-w-5xl mx-auto z-10 relative">
+          
+          {/* SLIDESHOW CONTAINER */}
+          <div className="relative min-h-[340px] sm:min-h-[300px] flex flex-col justify-center items-center text-center">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeSlide}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.4 }}
+                className="space-y-6 max-w-4xl"
+              >
+                {/* Slide Pill Badge */}
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 shadow-md rounded-full">
+                  <span className="flex h-2.5 w-2.5 rounded-full bg-accent-500 animate-ping" />
+                  <Sparkles className="w-4 h-4 text-accent-500" />
+                  <span className="text-xs font-black text-brand-900 dark:text-brand-50 tracking-wider uppercase">
+                    {currentSlide.badge}
+                  </span>
+                </div>
+
+                <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-black text-brand-900 dark:text-brand-50 leading-[1.1] tracking-tight">
+                  {currentSlide.title.split('. ')[0]}. <br/>
+                  <span className={`text-transparent bg-clip-text bg-gradient-to-r ${currentSlide.bgGradient}`}>
+                    {currentSlide.title.split('. ')[1] || ''}
+                  </span>
+                </h1>
+
+                <p className="text-base sm:text-xl text-brand-600 dark:text-brand-300 max-w-2xl mx-auto font-medium leading-relaxed">
+                  {currentSlide.subtitle}
+                </p>
+
+                <div className="flex flex-wrap justify-center gap-4 pt-2">
+                  {currentSlide.ctaLink.startsWith('#') ? (
+                    <a
+                      href={currentSlide.ctaLink}
+                      className="px-8 py-4 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-2xl font-extrabold shadow-xl shadow-accent-500/25 transition-all text-xs uppercase tracking-wider transform hover:-translate-y-0.5 flex items-center gap-2"
+                    >
+                      <span>{currentSlide.ctaText}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </a>
+                  ) : (
+                    <Link
+                      to={currentSlide.ctaLink}
+                      className="px-8 py-4 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-2xl font-extrabold shadow-xl shadow-accent-500/25 transition-all text-xs uppercase tracking-wider transform hover:-translate-y-0.5 flex items-center gap-2"
+                    >
+                      <span>{currentSlide.ctaText}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  )}
+
+                  {!user && (
+                    <Link
+                      to="/barber/signup"
+                      className="px-8 py-4 bg-white dark:bg-brand-900 hover:bg-brand-100 dark:hover:bg-brand-850 text-brand-900 dark:text-brand-100 border border-brand-200 dark:border-brand-750 rounded-2xl font-extrabold transition-all text-xs uppercase tracking-wider transform hover:-translate-y-0.5 shadow-md flex items-center gap-2"
+                    >
+                      <Store className="w-4 h-4 text-accent-500" />
+                      <span>List Your Salon Shop</span>
+                    </Link>
+                  )}
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Slide Navigation Arrows */}
+            <button
+              onClick={() => setActiveSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
+              className="absolute left-0 top-1/2 -translate-y-1/2 p-3 bg-white/80 dark:bg-brand-900/80 hover:bg-white dark:hover:bg-brand-850 backdrop-blur-md rounded-2xl text-brand-800 dark:text-brand-200 border border-brand-200 dark:border-brand-800 shadow-md transition-all hidden sm:flex"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length)}
+              className="absolute right-0 top-1/2 -translate-y-1/2 p-3 bg-white/80 dark:bg-brand-900/80 hover:bg-white dark:hover:bg-brand-850 backdrop-blur-md rounded-2xl text-brand-800 dark:text-brand-200 border border-brand-200 dark:border-brand-800 shadow-md transition-all hidden sm:flex"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
           </div>
 
-          {user ? (
-            <h1 className="font-display text-3xl sm:text-5xl font-extrabold text-brand-900 dark:text-brand-50 tracking-tight leading-tight">
-              Welcome Back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-600 to-accent-400">{user.name}</span>!
-            </h1>
-          ) : (
-            <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-black text-brand-900 dark:text-brand-50 leading-[1.1] tracking-tight">
-              Book Top Salons & Stylists. <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-600 via-accent-500 to-amber-500">Zero Wait Time.</span>
-            </h1>
-          )}
+          {/* Slide Progress Dots */}
+          <div className="flex justify-center items-center gap-2 mt-8">
+            {HERO_SLIDES.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveSlide(idx)}
+                className={`h-2.5 rounded-full transition-all duration-300 ${
+                  idx === activeSlide
+                    ? 'w-8 bg-accent-500'
+                    : 'w-2.5 bg-brand-300 dark:bg-brand-700 hover:bg-brand-400'
+                }`}
+              />
+            ))}
+          </div>
 
-          {user ? (
-            <p className="mt-3 text-sm sm:text-base text-brand-600 dark:text-brand-400 max-w-xl mx-auto font-medium">
-              Manage your hair sessions, explore nearby salons, or access your active dashboard.
-            </p>
-          ) : (
-            <p className="mt-6 text-base sm:text-xl text-brand-600 dark:text-brand-300 max-w-2xl mx-auto font-medium leading-relaxed">
-              Discover top-rated barbers, pick customized grooming services, select real-time open slots, and confirm appointments instantly.
-            </p>
-          )}
-
-          {!user ? (
-            <div className="mt-8 flex flex-wrap justify-center gap-4">
-              <a 
-                href="#search-barber" 
-                className="px-8 py-4 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-2xl font-extrabold shadow-xl shadow-accent-500/25 transition-all text-sm uppercase tracking-wider transform hover:-translate-y-0.5 flex items-center gap-2"
-              >
-                <span>Book Appointment Now</span>
-                <ArrowRight className="w-4 h-4" />
-              </a>
-              <Link 
-                to="/barber/signup" 
-                className="px-8 py-4 bg-white dark:bg-brand-900 hover:bg-brand-100 dark:hover:bg-brand-850 text-brand-900 dark:text-brand-100 border border-brand-200 dark:border-brand-750 rounded-2xl font-extrabold transition-all text-sm uppercase tracking-wider transform hover:-translate-y-0.5 shadow-md flex items-center gap-2"
-              >
-                <Store className="w-4 h-4 text-accent-500" />
-                <span>List Your Salon</span>
-              </Link>
-            </div>
-          ) : (
+          {/* POST-LOGIN INTERACTIVE STEP GUIDES */}
+          {user && (
             <div className="mt-8 space-y-6 max-w-3xl mx-auto">
               <div className="flex justify-center">
                 <Link 
                   to={user.role === 'admin' ? '/admin' : user.role === 'barber' ? '/barber' : '/dashboard'} 
-                  className="px-8 py-4 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-2xl font-extrabold shadow-xl shadow-accent-500/25 transition-all text-sm uppercase tracking-wider transform hover:-translate-y-0.5 flex items-center gap-2"
+                  className="px-8 py-4 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-2xl font-extrabold shadow-xl shadow-accent-500/25 transition-all text-xs uppercase tracking-wider transform hover:-translate-y-0.5 flex items-center gap-2"
                 >
                   <Award className="w-5 h-5 text-yellow-300" /> Go to Your Dashboard
                 </Link>
               </div>
 
-              {/* POST-LOGIN INTERACTIVE STEP GUIDES */}
               <div className="text-left bg-white/80 dark:bg-brand-900/80 backdrop-blur-md border border-brand-200 dark:border-brand-800 p-6 sm:p-8 rounded-3xl space-y-6 shadow-xl">
                 <div className="flex justify-between items-center border-b border-brand-100 dark:border-brand-800 pb-4">
                   <h3 className="text-lg font-extrabold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
@@ -392,10 +486,11 @@ export default function LandingPage() {
               </div>
             </div>
           )}
-        </motion.div>
+
+        </div>
       </section>
 
-      {/* 2. TRUST STATS & PROOF BAR (Fresha & Booksy Style) */}
+      {/* 2. TRUST STATS & PROOF BAR */}
       <section className="max-w-7xl mx-auto px-4 -mt-12 mb-12 relative z-20">
         <div className="bg-white dark:bg-brand-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-brand-200/80 dark:border-brand-800/80 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           <div className="space-y-1 border-r border-brand-100 dark:border-brand-800 last:border-0">
@@ -429,7 +524,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 3. DYNAMIC SEARCH & FILTERS BOX (Booksy / Airbnb Style) */}
+      {/* 3. DYNAMIC SEARCH & FILTERS BOX */}
       <section id="search-barber" className="max-w-7xl mx-auto px-4 py-6 relative z-10">
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
@@ -565,7 +660,7 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* 4. POPULAR CATEGORIES CAROUSEL (Urban Company & Airbnb Style) */}
+      {/* 4. POPULAR CATEGORIES CAROUSEL */}
       <section className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -680,7 +775,7 @@ export default function LandingPage() {
 
       {/* 6. INTERACTIVE SALONS MAP SECTION */}
       {barbers.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 pb-12">
+        <section className="max-w-7xl mx-auto px-4 pb-12" id="city-map">
           <div className="bg-white dark:bg-brand-900 rounded-3xl border border-brand-200/80 dark:border-brand-800/80 p-6 sm:p-8 shadow-lg space-y-4">
             <div className="flex justify-between items-center border-b border-brand-100 dark:border-brand-850 pb-4">
               <div>
@@ -739,52 +834,130 @@ export default function LandingPage() {
         </section>
       )}
 
-      {/* 7. HOW IT WORKS 3-STEP BREAKDOWN (Urban Company Style) */}
+      {/* 7. DUAL-TAB "HOW IT WORKS" SWITCHER (For Customers vs For Salons) */}
       <section className="bg-gradient-to-b from-brand-100/60 to-brand-50/20 dark:from-brand-900/40 dark:to-brand-950 py-20 transition-colors" id="how-it-works">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center max-w-2xl mx-auto mb-16">
+          
+          <div className="text-center max-w-2xl mx-auto mb-12">
             <span className="px-3.5 py-1 bg-accent-100 dark:bg-accent-950 text-accent-600 dark:text-accent-400 text-[10px] font-extrabold uppercase tracking-wider rounded-full">
-              Seamless 3-Step Process
+              Interactive 3-Step Process
             </span>
             <h2 className="text-3.5xl font-black font-display text-brand-900 dark:text-brand-50 mt-3">How TrimTime Works</h2>
-            <p className="mt-3 text-brand-600 dark:text-brand-400 text-sm font-medium">Book top-rated grooming sessions in less than 60 seconds.</p>
+            <p className="mt-2 text-brand-600 dark:text-brand-400 text-sm font-medium">Select your view to see how simple it is for both customers and salon partners.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-            <div className="bg-white dark:bg-brand-900 p-8 rounded-3xl shadow-sm border border-brand-200/80 dark:border-brand-800/80 text-center space-y-4 relative">
-              <div className="w-14 h-14 bg-accent-500 text-white rounded-2xl flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-accent-500/20">
-                1
-              </div>
-              <h3 className="text-xl font-extrabold text-brand-900 dark:text-brand-50 font-display">Discover Salons</h3>
-              <p className="text-brand-600 dark:text-brand-400 text-xs leading-relaxed">
-                Browse verified local salons by city, reviews, services, or distance. Explore shop photos and customer ratings.
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-brand-900 p-8 rounded-3xl shadow-sm border border-brand-200/80 dark:border-brand-800/80 text-center space-y-4 relative">
-              <div className="w-14 h-14 bg-amber-500 text-white rounded-2xl flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-amber-500/20">
-                2
-              </div>
-              <h3 className="text-xl font-extrabold text-brand-900 dark:text-brand-50 font-display">Choose Stylist & Slot</h3>
-              <p className="text-brand-600 dark:text-brand-400 text-xs leading-relaxed">
-                Select your favorite stylist, pick your preferred services, and choose an open 1-hour time slot on the live calendar.
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-brand-900 p-8 rounded-3xl shadow-sm border border-brand-200/80 dark:border-brand-800/80 text-center space-y-4 relative">
-              <div className="w-14 h-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-emerald-500/20">
-                3
-              </div>
-              <h3 className="text-xl font-extrabold text-brand-900 dark:text-brand-50 font-display">Zero-Wait Check-In</h3>
-              <p className="text-brand-600 dark:text-brand-400 text-xs leading-relaxed">
-                Pay securely via Razorpay, receive your instant 6-digit OTP code, and walk straight into your haircut session!
-              </p>
+          {/* DUAL TAB SWITCHER BUTTONS */}
+          <div className="flex justify-center mb-12">
+            <div className="p-1.5 bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 rounded-2xl shadow-md inline-flex gap-2">
+              <button
+                type="button"
+                onClick={() => setHowItWorksTab('customer')}
+                className={`px-6 py-3 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 ${
+                  howItWorksTab === 'customer'
+                    ? 'bg-accent-500 text-white shadow-lg shadow-accent-500/20 scale-105'
+                    : 'text-brand-600 dark:text-brand-400 hover:text-brand-900'
+                }`}
+              >
+                <span>🧑‍🦱 For Customers</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setHowItWorksTab('salon')}
+                className={`px-6 py-3 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 ${
+                  howItWorksTab === 'salon'
+                    ? 'bg-accent-500 text-white shadow-lg shadow-accent-500/20 scale-105'
+                    : 'text-brand-600 dark:text-brand-400 hover:text-brand-900'
+                }`}
+              >
+                <span>💈 For Salon Owners</span>
+              </button>
             </div>
           </div>
+
+          {/* TAB 1: CUSTOMER VIEW */}
+          {howItWorksTab === 'customer' && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-8"
+            >
+              <div className="bg-white dark:bg-brand-900 p-8 rounded-3xl shadow-sm border border-brand-200/80 dark:border-brand-800/80 text-center space-y-4">
+                <div className="w-14 h-14 bg-accent-500 text-white rounded-2xl flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-accent-500/20">
+                  1
+                </div>
+                <h3 className="text-xl font-extrabold text-brand-900 dark:text-brand-50 font-display">Discover Salons & Services</h3>
+                <p className="text-brand-600 dark:text-brand-400 text-xs leading-relaxed">
+                  Search nearby verified salons by city, shop name, salon type (Men/Women/Unisex), or maximum price. Inspect real shop photos and customer ratings.
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-brand-900 p-8 rounded-3xl shadow-sm border border-brand-200/80 dark:border-brand-800/80 text-center space-y-4">
+                <div className="w-14 h-14 bg-amber-500 text-white rounded-2xl flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-amber-500/20">
+                  2
+                </div>
+                <h3 className="text-xl font-extrabold text-brand-900 dark:text-brand-50 font-display">Select Stylist & Time Slot</h3>
+                <p className="text-brand-600 dark:text-brand-400 text-xs leading-relaxed">
+                  Pick your favorite haircut, beard trim, or facial package. Select your preferred barber staff member and open 1-hour time slot.
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-brand-900 p-8 rounded-3xl shadow-sm border border-brand-200/80 dark:border-brand-800/80 text-center space-y-4">
+                <div className="w-14 h-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-emerald-500/20">
+                  3
+                </div>
+                <h3 className="text-xl font-extrabold text-brand-900 dark:text-brand-50 font-display">Zero-Wait Check-In OTP</h3>
+                <p className="text-brand-600 dark:text-brand-400 text-xs leading-relaxed">
+                  Pay securely via Razorpay UPI or card. Receive your 6-digit Check-In OTP code and walk straight into the salon with zero waiting time!
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* TAB 2: SALON OWNER VIEW */}
+          {howItWorksTab === 'salon' && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-8"
+            >
+              <div className="bg-white dark:bg-brand-900 p-8 rounded-3xl shadow-sm border border-brand-200/80 dark:border-brand-800/80 text-center space-y-4">
+                <div className="w-14 h-14 bg-purple-600 text-white rounded-2xl flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-purple-600/20">
+                  1
+                </div>
+                <h3 className="text-xl font-extrabold text-brand-900 dark:text-brand-50 font-display">List Salon & Staff Roster</h3>
+                <p className="text-brand-600 dark:text-brand-400 text-xs leading-relaxed">
+                  Register your shop with 0 setup fee. Upload shop photos, set service pricing from master catalog, and configure staff shift hours & lunch breaks.
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-brand-900 p-8 rounded-3xl shadow-sm border border-brand-200/80 dark:border-brand-800/80 text-center space-y-4">
+                <div className="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-indigo-600/20">
+                  2
+                </div>
+                <h3 className="text-xl font-extrabold text-brand-900 dark:text-brand-50 font-display">Sync Online & Walk-In Slots</h3>
+                <p className="text-brand-600 dark:text-brand-400 text-xs leading-relaxed">
+                  Accept online customer reservations in real-time. Use the "Book Walk-In" tool to block slots for offline walk-in clients with 0% commission!
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-brand-900 p-8 rounded-3xl shadow-sm border border-brand-200/80 dark:border-brand-800/80 text-center space-y-4">
+                <div className="w-14 h-14 bg-teal-600 text-white rounded-2xl flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-teal-600/20">
+                  3
+                </div>
+                <h3 className="text-xl font-extrabold text-brand-900 dark:text-brand-50 font-display">Verify Check-In OTP & Payouts</h3>
+                <p className="text-brand-600 dark:text-brand-400 text-xs leading-relaxed">
+                  Verify the customer's 6-digit Check-In OTP upon arrival. Track completed appointments and receive weekly automated bank payouts.
+                </p>
+              </div>
+            </motion.div>
+          )}
+
         </div>
       </section>
 
-      {/* 8. SALON PARTNER GROWTH BANNER (Fresha Partner & Booksy Vibe) */}
+      {/* 8. SALON PARTNER GROWTH BANNER */}
       <section className="max-w-7xl mx-auto px-4 py-16">
         <div className="relative overflow-hidden bg-gradient-to-r from-brand-900 via-brand-950 to-brand-900 text-white rounded-3xl p-8 sm:p-12 shadow-2xl border border-brand-800 flex flex-col lg:flex-row items-center justify-between gap-8">
           <div className="absolute top-0 right-0 w-96 h-96 bg-accent-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -802,7 +975,7 @@ export default function LandingPage() {
             <div className="flex flex-wrap gap-4 text-xs font-bold text-brand-300 justify-center lg:justify-start pt-2">
               <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Free Setup & Listing</span>
               <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Walk-In & Online Sync</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Instant UPI Payouts</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Automated Payouts</span>
             </div>
           </div>
 
