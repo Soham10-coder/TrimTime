@@ -773,64 +773,92 @@ export default function LandingPage() {
         )}
       </section>
 
-      {/* 6. INTERACTIVE SALONS MAP SECTION */}
+      {/* 6. INTERACTIVE SALONS MAP SECTION (Requires Login) */}
       {barbers.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 pb-12" id="city-map">
-          <div className="bg-white dark:bg-brand-900 rounded-3xl border border-brand-200/80 dark:border-brand-800/80 p-6 sm:p-8 shadow-lg space-y-4">
-            <div className="flex justify-between items-center border-b border-brand-100 dark:border-brand-850 pb-4">
-              <div>
-                <h3 className="text-xl font-extrabold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
-                  <MapIcon className="w-5 h-5 text-accent-500" /> Interactive City Salons Map
-                </h3>
-                <p className="text-xs text-brand-500 mt-0.5">Click any map marker to view shop photos, full address, and GPS directions.</p>
+          {user ? (
+            <div className="bg-white dark:bg-brand-900 rounded-3xl border border-brand-200/80 dark:border-brand-800/80 p-6 sm:p-8 shadow-lg space-y-4">
+              <div className="flex justify-between items-center border-b border-brand-100 dark:border-brand-850 pb-4">
+                <div>
+                  <h3 className="text-xl font-extrabold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
+                    <MapIcon className="w-5 h-5 text-accent-500" /> Interactive City Salons Map
+                  </h3>
+                  <p className="text-xs text-brand-500 mt-0.5">Click any map marker to view shop photos, full address, and GPS directions.</p>
+                </div>
+                <button
+                  onClick={() => setShowMapView(!showMapView)}
+                  className="px-4 py-2 bg-brand-100 dark:bg-brand-800 hover:bg-brand-200 text-brand-800 dark:text-brand-200 text-xs font-bold rounded-xl transition-all"
+                >
+                  {showMapView ? 'Hide Map' : 'Show Map'}
+                </button>
               </div>
-              <button
-                onClick={() => setShowMapView(!showMapView)}
-                className="px-4 py-2 bg-brand-100 dark:bg-brand-800 hover:bg-brand-200 text-brand-800 dark:text-brand-200 text-xs font-bold rounded-xl transition-all"
-              >
-                {showMapView ? 'Hide Map' : 'Show Map'}
-              </button>
-            </div>
 
-            {showMapView && (
-              <div className="w-full h-96 rounded-2xl overflow-hidden border border-brand-200 dark:border-brand-800 shadow-inner relative z-0">
-                <MapContainer center={defaultCenter} zoom={12} scrollWheelZoom={true} className="w-full h-full">
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  {barbers.map((b) => (
-                    b.lat && b.lng && (
-                      <Marker key={b.id} position={[b.lat, b.lng]}>
-                        <Popup>
-                          <div className="p-1 text-xs space-y-1.5 font-sans">
-                            <strong className="block font-bold text-sm text-brand-900">{b.shopName}</strong>
-                            <p className="text-brand-600">{b.address}, {b.city}</p>
-                            <div className="pt-2 flex gap-2">
-                              <button
-                                onClick={() => navigate(`/book/${b.id}`)}
-                                className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[10px] font-bold shadow-sm"
-                              >
-                                Book Appointment
-                              </button>
-                              <a
-                                href={b.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${b.lat},${b.lng}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="px-3 py-1 bg-stone-800 hover:bg-stone-900 text-white rounded-lg text-[10px] font-bold flex items-center gap-1"
-                              >
-                                GPS Maps <ExternalLink className="w-2.5 h-2.5" />
-                              </a>
+              {showMapView && (
+                <div className="w-full h-96 rounded-2xl overflow-hidden border border-brand-200 dark:border-brand-800 shadow-inner relative z-0">
+                  <MapContainer center={defaultCenter} zoom={12} scrollWheelZoom={true} className="w-full h-full">
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    {barbers.map((b) => (
+                      b.lat && b.lng && (
+                        <Marker key={b.id} position={[b.lat, b.lng]}>
+                          <Popup>
+                            <div className="p-1 text-xs space-y-1.5 font-sans">
+                              <strong className="block font-bold text-sm text-brand-900">{b.shopName}</strong>
+                              <p className="text-brand-600">{b.address}, {b.city}</p>
+                              <div className="pt-2 flex gap-2">
+                                <button
+                                  onClick={() => navigate(`/book/${b.id}`)}
+                                  className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[10px] font-bold shadow-sm"
+                                >
+                                  Book Appointment
+                                </button>
+                                <a
+                                  href={b.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${b.lat},${b.lng}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="px-3 py-1 bg-stone-800 hover:bg-stone-900 text-white rounded-lg text-[10px] font-bold flex items-center gap-1"
+                                >
+                                  GPS Maps <ExternalLink className="w-2.5 h-2.5" />
+                                </a>
+                              </div>
                             </div>
-                          </div>
-                        </Popup>
-                      </Marker>
-                    )
-                  ))}
-                </MapContainer>
+                          </Popup>
+                        </Marker>
+                      )
+                    ))}
+                  </MapContainer>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-gradient-to-r from-brand-900 via-brand-950 to-brand-900 text-white rounded-3xl p-8 sm:p-10 shadow-xl border border-brand-800 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+              <div className="space-y-2 max-w-xl">
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs font-bold uppercase tracking-wider border border-amber-500/30">
+                  <Lock className="w-3.5 h-3.5" /> Log In Required For Live Map
+                </div>
+                <h3 className="text-2xl font-black font-display">Unlock Interactive City Salons GPS Map</h3>
+                <p className="text-xs text-brand-300 leading-relaxed">
+                  Log in to your TrimTime account to view real-time salon map locations, navigate directly to shop entrances via Google Maps, and inspect nearby barber coordinates.
+                </p>
               </div>
-            )}
-          </div>
+              <div className="flex gap-3">
+                <Link
+                  to="/login"
+                  className="px-6 py-3.5 bg-accent-500 hover:bg-accent-600 text-white font-extrabold rounded-2xl text-xs uppercase tracking-wider shadow-md transition-all"
+                >
+                  Log In Now
+                </Link>
+                <Link
+                  to="/signup"
+                  className="px-6 py-3.5 bg-white/10 hover:bg-white/20 text-white font-extrabold rounded-2xl text-xs uppercase tracking-wider border border-white/20 transition-all"
+                >
+                  Register Free
+                </Link>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
