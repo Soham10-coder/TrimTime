@@ -41,34 +41,42 @@ const HERO_SLIDES = [
     ctaText: 'Book Appointment Now',
     ctaLink: '#search-barber',
     type: 'customer',
-    bgGradient: 'from-accent-600 via-accent-500 to-amber-500'
+    bgGradient: 'from-accent-600 via-accent-500 to-indigo-600',
+    image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=1200&auto=format&fit=crop',
+    tag: 'Luxury Barber Lounge'
   },
   {
     badge: '📍 LIVE GPS MAP NAVIGATION',
     title: 'Find Nearby Verified Salons & Stylists.',
     subtitle: 'Explore real shop photos, verified portfolios, transparent service pricing, and navigate right to the shop entrance.',
-    ctaText: 'Explore City Salons Map',
-    ctaLink: '#city-map',
+    ctaText: 'Explore City Salons',
+    ctaLink: '#search-barber',
     type: 'customer',
-    bgGradient: 'from-purple-600 via-accent-600 to-indigo-600'
+    bgGradient: 'from-purple-600 via-accent-600 to-pink-600',
+    image: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=1200&auto=format&fit=crop',
+    tag: 'Precision Hair Fades'
   },
   {
     badge: '💈 SALON PARTNER MANAGEMENT',
     title: 'Grow Your Salon Business & Sync Walk-Ins.',
-    subtitle: 'Manage staff shift hours, lunch breaks, reserve offline walk-in slots, and receive automated weekly payouts with 0 setup fee.',
+    subtitle: 'Manage staff shift hours, lunch breaks, reserve offline walk-in slots, and receive automated direct payouts with 0 setup fee.',
     ctaText: 'List Your Salon Shop',
     ctaLink: '/barber/signup',
     type: 'barber',
-    bgGradient: 'from-emerald-600 via-teal-600 to-accent-600'
+    bgGradient: 'from-emerald-600 via-teal-600 to-accent-600',
+    image: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=1200&auto=format&fit=crop',
+    tag: 'Beard Trimming & Spa'
   },
   {
     badge: '🛡️ REVOLUTIONARY CHECK-IN OTP',
-    title: 'Verified 6-Digit OTP & 100% Safe UPI Checkouts.',
+    title: 'Verified 6-Digit OTP & Safe UPI Checkouts.',
     subtitle: 'Show your 6-digit Check-In OTP code at salon entry. Enjoy 100% full automated refunds if cancelled 24+ hours in advance.',
     ctaText: 'View Refund & Terms Policy',
     ctaLink: '/refund-policy',
     type: 'everyone',
-    bgGradient: 'from-amber-600 via-accent-600 to-brand-900'
+    bgGradient: 'from-accent-600 via-purple-600 to-indigo-700',
+    image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=1200&auto=format&fit=crop',
+    tag: 'Facial & Glow Therapy'
   }
 ];
 
@@ -231,7 +239,7 @@ export default function LandingPage() {
   
   // Slide state & How it works tab state
   const [activeSlide, setActiveSlide] = useState(0);
-  const [howItWorksTab, setHowItWorksTab] = useState('customer'); // 'customer' | 'salon'
+  const [howItWorksTab, setHowItWorksTab] = useState('customer');
 
   const navigate = useNavigate();
 
@@ -250,10 +258,10 @@ export default function LandingPage() {
       );
     }
 
-    // Auto-advance hero slideshow every 5 seconds
+    // Auto-advance hero slideshow every 4.5 seconds
     const slideTimer = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length);
-    }, 5000);
+    }, 4500);
 
     return () => clearInterval(slideTimer);
   }, []);
@@ -316,110 +324,167 @@ export default function LandingPage() {
   return (
     <div className="relative overflow-hidden bg-brand-50/50 dark:bg-brand-950 transition-colors">
       
-      {/* 1. HERO SLIDESHOW SECTION (Customer & Salon Dual Value) */}
-      <section className="relative pt-10 pb-24 lg:pt-16 lg:pb-32 px-4 bg-gradient-to-b from-accent-50/70 via-brand-50/40 to-transparent dark:from-brand-900/80 dark:via-brand-950/40 dark:to-transparent">
-        {/* Background Ambient Glows */}
-        <div className="absolute top-10 left-1/4 w-96 h-96 bg-accent-400/20 dark:bg-accent-600/10 rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
-        <div className="absolute top-20 right-1/4 w-96 h-96 bg-amber-400/20 dark:bg-amber-600/10 rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
+      {/* 1. HERO SLIDESHOW SHOWCASE SECTION */}
+      <section className="relative pt-10 pb-20 lg:pt-16 lg:pb-28 px-4 bg-gradient-to-b from-accent-500/5 via-brand-50/20 to-transparent dark:from-accent-600/10 dark:via-brand-950/40 dark:to-transparent">
+        
+        {/* Subtle Violet/Purple Ambient Glow (No Yellow) */}
+        <div className="absolute top-10 left-1/3 w-[500px] h-[500px] bg-accent-500/10 dark:bg-accent-600/10 rounded-full blur-[120px] pointer-events-none" />
 
-        <div className="max-w-5xl mx-auto z-10 relative">
+        <div className="max-w-7xl mx-auto z-10 relative">
           
-          {/* SLIDESHOW CONTAINER */}
-          <div className="relative min-h-[340px] sm:min-h-[300px] flex flex-col justify-center items-center text-center">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeSlide}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.4 }}
-                className="space-y-6 max-w-4xl"
-              >
-                {/* Slide Pill Badge */}
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 shadow-md rounded-full">
-                  <span className="flex h-2.5 w-2.5 rounded-full bg-accent-500 animate-ping" />
-                  <Sparkles className="w-4 h-4 text-accent-500" />
-                  <span className="text-xs font-black text-brand-900 dark:text-brand-50 tracking-wider uppercase">
-                    {currentSlide.badge}
-                  </span>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            
+            {/* LEFT COLUMN: HEADLINE & CTAs */}
+            <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
+              
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeSlide}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.4 }}
+                  className="space-y-6"
+                >
+                  {/* Slide Pill Badge */}
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 shadow-sm rounded-full">
+                    <span className="flex h-2.5 w-2.5 rounded-full bg-accent-500 animate-ping" />
+                    <Sparkles className="w-4 h-4 text-accent-500" />
+                    <span className="text-xs font-black text-brand-900 dark:text-brand-50 tracking-wider uppercase">
+                      {currentSlide.badge}
+                    </span>
+                  </div>
+
+                  <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-black text-brand-900 dark:text-brand-50 leading-[1.1] tracking-tight">
+                    {currentSlide.title.split('. ')[0]}. <br/>
+                    <span className={`text-transparent bg-clip-text bg-gradient-to-r ${currentSlide.bgGradient}`}>
+                      {currentSlide.title.split('. ')[1] || ''}
+                    </span>
+                  </h1>
+
+                  <p className="text-base sm:text-lg text-brand-600 dark:text-brand-300 max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed">
+                    {currentSlide.subtitle}
+                  </p>
+
+                  <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-2">
+                    {currentSlide.ctaLink.startsWith('#') ? (
+                      <a
+                        href={currentSlide.ctaLink}
+                        className="px-8 py-4 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-2xl font-extrabold shadow-xl shadow-accent-500/25 transition-all text-xs uppercase tracking-wider transform hover:-translate-y-0.5 flex items-center gap-2"
+                      >
+                        <span>{currentSlide.ctaText}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </a>
+                    ) : (
+                      <Link
+                        to={currentSlide.ctaLink}
+                        className="px-8 py-4 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-2xl font-extrabold shadow-xl shadow-accent-500/25 transition-all text-xs uppercase tracking-wider transform hover:-translate-y-0.5 flex items-center gap-2"
+                      >
+                        <span>{currentSlide.ctaText}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    )}
+
+                    {!user && (
+                      <Link
+                        to="/barber/signup"
+                        className="px-8 py-4 bg-white dark:bg-brand-900 hover:bg-brand-100 dark:hover:bg-brand-850 text-brand-900 dark:text-brand-100 border border-brand-200 dark:border-brand-750 rounded-2xl font-extrabold transition-all text-xs uppercase tracking-wider transform hover:-translate-y-0.5 shadow-md flex items-center gap-2"
+                      >
+                        <Store className="w-4 h-4 text-accent-500" />
+                        <span>List Your Salon</span>
+                      </Link>
+                    )}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* SLIDE PROGRESS DOTS & CONTROLS */}
+              <div className="flex items-center justify-center lg:justify-start gap-4 pt-4">
+                <button
+                  onClick={() => setActiveSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
+                  className="p-2.5 bg-white dark:bg-brand-900 hover:bg-brand-100 dark:hover:bg-brand-800 rounded-xl text-brand-800 dark:text-brand-200 border border-brand-200 dark:border-brand-800 shadow-sm transition-all"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                
+                <div className="flex gap-2">
+                  {HERO_SLIDES.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveSlide(idx)}
+                      className={`h-2.5 rounded-full transition-all duration-300 ${
+                        idx === activeSlide
+                          ? 'w-8 bg-accent-500'
+                          : 'w-2.5 bg-brand-300 dark:bg-brand-700 hover:bg-brand-400'
+                      }`}
+                    />
+                  ))}
                 </div>
 
-                <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-black text-brand-900 dark:text-brand-50 leading-[1.1] tracking-tight">
-                  {currentSlide.title.split('. ')[0]}. <br/>
-                  <span className={`text-transparent bg-clip-text bg-gradient-to-r ${currentSlide.bgGradient}`}>
-                    {currentSlide.title.split('. ')[1] || ''}
-                  </span>
-                </h1>
+                <button
+                  onClick={() => setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length)}
+                  className="p-2.5 bg-white dark:bg-brand-900 hover:bg-brand-100 dark:hover:bg-brand-800 rounded-xl text-brand-800 dark:text-brand-200 border border-brand-200 dark:border-brand-800 shadow-sm transition-all"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
 
-                <p className="text-base sm:text-xl text-brand-600 dark:text-brand-300 max-w-2xl mx-auto font-medium leading-relaxed">
-                  {currentSlide.subtitle}
-                </p>
+            </div>
 
-                <div className="flex flex-wrap justify-center gap-4 pt-2">
-                  {currentSlide.ctaLink.startsWith('#') ? (
-                    <a
-                      href={currentSlide.ctaLink}
-                      className="px-8 py-4 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-2xl font-extrabold shadow-xl shadow-accent-500/25 transition-all text-xs uppercase tracking-wider transform hover:-translate-y-0.5 flex items-center gap-2"
-                    >
-                      <span>{currentSlide.ctaText}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </a>
-                  ) : (
-                    <Link
-                      to={currentSlide.ctaLink}
-                      className="px-8 py-4 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-2xl font-extrabold shadow-xl shadow-accent-500/25 transition-all text-xs uppercase tracking-wider transform hover:-translate-y-0.5 flex items-center gap-2"
-                    >
-                      <span>{currentSlide.ctaText}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                  )}
+            {/* RIGHT COLUMN: HIGH-RES INTERACTIVE IMAGE SLIDESHOW FRAME */}
+            <div className="lg:col-span-5">
+              <div className="relative mx-auto max-w-md lg:max-w-none">
+                
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeSlide}
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    transition={{ duration: 0.4 }}
+                    className="relative h-[380px] sm:h-[440px] rounded-3xl overflow-hidden shadow-2xl border-2 border-white/40 dark:border-brand-800/80 group"
+                  >
+                    <img
+                      src={currentSlide.image}
+                      alt={currentSlide.tag}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
 
-                  {!user && (
-                    <Link
-                      to="/barber/signup"
-                      className="px-8 py-4 bg-white dark:bg-brand-900 hover:bg-brand-100 dark:hover:bg-brand-850 text-brand-900 dark:text-brand-100 border border-brand-200 dark:border-brand-750 rounded-2xl font-extrabold transition-all text-xs uppercase tracking-wider transform hover:-translate-y-0.5 shadow-md flex items-center gap-2"
-                    >
-                      <Store className="w-4 h-4 text-accent-500" />
-                      <span>List Your Salon Shop</span>
-                    </Link>
-                  )}
-                </div>
-              </motion.div>
-            </AnimatePresence>
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-            {/* Slide Navigation Arrows */}
-            <button
-              onClick={() => setActiveSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
-              className="absolute left-0 top-1/2 -translate-y-1/2 p-3 bg-white/80 dark:bg-brand-900/80 hover:bg-white dark:hover:bg-brand-850 backdrop-blur-md rounded-2xl text-brand-800 dark:text-brand-200 border border-brand-200 dark:border-brand-800 shadow-md transition-all hidden sm:flex"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length)}
-              className="absolute right-0 top-1/2 -translate-y-1/2 p-3 bg-white/80 dark:bg-brand-900/80 hover:bg-white dark:hover:bg-brand-850 backdrop-blur-md rounded-2xl text-brand-800 dark:text-brand-200 border border-brand-200 dark:border-brand-800 shadow-md transition-all hidden sm:flex"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
+                    {/* Top Floating Badge */}
+                    <div className="absolute top-4 left-4 px-3.5 py-1.5 bg-black/60 backdrop-blur-md rounded-full text-xs font-extrabold text-white border border-white/20 flex items-center gap-1.5 shadow-lg">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>{currentSlide.tag}</span>
+                    </div>
 
-          {/* Slide Progress Dots */}
-          <div className="flex justify-center items-center gap-2 mt-8">
-            {HERO_SLIDES.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveSlide(idx)}
-                className={`h-2.5 rounded-full transition-all duration-300 ${
-                  idx === activeSlide
-                    ? 'w-8 bg-accent-500'
-                    : 'w-2.5 bg-brand-300 dark:bg-brand-700 hover:bg-brand-400'
-                }`}
-              />
-            ))}
+                    {/* Top Right Rating Badge */}
+                    <div className="absolute top-4 right-4 px-3 py-1.5 bg-white/90 dark:bg-brand-900/90 backdrop-blur-md rounded-full text-xs font-bold text-brand-900 dark:text-brand-50 border border-white/20 shadow-lg flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      <span>4.9★ Top Rated</span>
+                    </div>
+
+                    {/* Bottom Image Info Card */}
+                    <div className="absolute bottom-6 left-6 right-6 p-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white space-y-1">
+                      <div className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-wider text-accent-300">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Verified Salon Showcase</span>
+                      </div>
+                      <h4 className="text-base font-bold font-display line-clamp-1">{currentSlide.title}</h4>
+                      <p className="text-xs text-gray-200 line-clamp-1">{currentSlide.subtitle}</p>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+
+              </div>
+            </div>
+
           </div>
 
           {/* POST-LOGIN INTERACTIVE STEP GUIDES */}
           {user && (
-            <div className="mt-8 space-y-6 max-w-3xl mx-auto">
+            <div className="mt-12 space-y-6 max-w-3xl mx-auto">
               <div className="flex justify-center">
                 <Link 
                   to={user.role === 'admin' ? '/admin' : user.role === 'barber' ? '/barber' : '/dashboard'} 
@@ -491,7 +556,7 @@ export default function LandingPage() {
       </section>
 
       {/* 2. TRUST STATS & PROOF BAR */}
-      <section className="max-w-7xl mx-auto px-4 -mt-12 mb-12 relative z-20">
+      <section className="max-w-7xl mx-auto px-4 -mt-8 mb-12 relative z-20">
         <div className="bg-white dark:bg-brand-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-brand-200/80 dark:border-brand-800/80 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           <div className="space-y-1 border-r border-brand-100 dark:border-brand-800 last:border-0">
             <div className="flex justify-center text-accent-500 mb-1">
@@ -835,7 +900,7 @@ export default function LandingPage() {
           ) : (
             <div className="bg-gradient-to-r from-brand-900 via-brand-950 to-brand-900 text-white rounded-3xl p-8 sm:p-10 shadow-xl border border-brand-800 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
               <div className="space-y-2 max-w-xl">
-                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs font-bold uppercase tracking-wider border border-amber-500/30">
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-accent-500/20 text-accent-300 rounded-full text-xs font-bold uppercase tracking-wider border border-accent-500/30">
                   <Lock className="w-3.5 h-3.5" /> Log In Required For Live Map
                 </div>
                 <h3 className="text-2xl font-black font-display">Unlock Interactive City Salons GPS Map</h3>
@@ -862,7 +927,7 @@ export default function LandingPage() {
         </section>
       )}
 
-      {/* 7. DUAL-TAB "HOW IT WORKS" SWITCHER (For Customers vs For Salons) */}
+      {/* 7. DUAL-TAB "HOW IT WORKS" SWITCHER */}
       <section className="bg-gradient-to-b from-brand-100/60 to-brand-50/20 dark:from-brand-900/40 dark:to-brand-950 py-20 transition-colors" id="how-it-works">
         <div className="max-w-7xl mx-auto px-4">
           
@@ -921,7 +986,7 @@ export default function LandingPage() {
               </div>
 
               <div className="bg-white dark:bg-brand-900 p-8 rounded-3xl shadow-sm border border-brand-200/80 dark:border-brand-800/80 text-center space-y-4">
-                <div className="w-14 h-14 bg-amber-500 text-white rounded-2xl flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-amber-500/20">
+                <div className="w-14 h-14 bg-accent-600 text-white rounded-2xl flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-accent-600/20">
                   2
                 </div>
                 <h3 className="text-xl font-extrabold text-brand-900 dark:text-brand-50 font-display">Select Stylist & Time Slot</h3>

@@ -36,6 +36,7 @@ export default function BarberSignup() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const navigate = useNavigate();
 
@@ -68,6 +69,12 @@ export default function BarberSignup() {
     setError('');
     setSuccess('');
     setLoading(true);
+
+    if (!acceptedTerms) {
+      setError('You must accept the Salon Partner Policy and Terms of Service to register your salon.');
+      setLoading(false);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -299,6 +306,31 @@ export default function BarberSignup() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Terms & Partner Policy Disclaimer */}
+          <div className="flex items-start gap-2.5 p-4 bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 rounded-2xl">
+            <input
+              type="checkbox"
+              id="partnerTerms"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-0.5 rounded text-accent-500 focus:ring-accent-500 cursor-pointer"
+              required
+            />
+            <label htmlFor="partnerTerms" className="text-xs text-brand-600 dark:text-brand-400 font-medium leading-relaxed">
+              By registering your salon, you agree to TrimTime's{' '}
+              <Link to="/partner-policy" target="_blank" className="text-accent-600 dark:text-accent-400 font-bold hover:underline">
+                Salon Partner Policy
+              </Link>{', '}
+              <Link to="/terms" target="_blank" className="text-accent-600 dark:text-accent-400 font-bold hover:underline">
+                Terms of Service
+              </Link>{' '}
+              and{' '}
+              <Link to="/privacy" target="_blank" className="text-accent-600 dark:text-accent-400 font-bold hover:underline">
+                Privacy Policy
+              </Link>.
+            </label>
           </div>
 
           {/* Submit */}

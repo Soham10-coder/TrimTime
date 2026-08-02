@@ -200,10 +200,17 @@ export default function Signup() {
               id="terms"
               checked={acceptedTerms}
               onChange={(e) => setAcceptedTerms(e.target.checked)}
-              className="mt-1 rounded text-accent-500 focus:ring-accent-500"
+              className="mt-1 rounded text-accent-500 focus:ring-accent-500 cursor-pointer"
             />
-            <label htmlFor="terms" className="text-xs text-brand-600 dark:text-brand-400">
-              I agree to the <a href="#" className="text-accent-600 hover:underline">Terms of Service</a> and <a href="#" className="text-accent-600 hover:underline">Privacy Policy</a>
+            <label htmlFor="terms" className="text-xs text-brand-600 dark:text-brand-400 font-medium">
+              I agree to TrimTime's{' '}
+              <Link to="/terms" target="_blank" className="text-accent-600 dark:text-accent-400 font-bold hover:underline">
+                Terms of Service
+              </Link>{' '}
+              and{' '}
+              <Link to="/privacy" target="_blank" className="text-accent-600 dark:text-accent-400 font-bold hover:underline">
+                Privacy Policy
+              </Link>
             </label>
           </div>
 
