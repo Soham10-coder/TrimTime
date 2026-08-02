@@ -40,56 +40,49 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Nav Items */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link to="/" className="text-brand-600 dark:text-brand-300 hover:text-accent-500 font-medium transition-colors">
-              Home
-            </Link>
-            <Link to="/#barbers" className="text-brand-600 dark:text-brand-300 hover:text-accent-500 font-medium transition-colors">
-              Browse Barbers
-            </Link>
-            
+          <div className="hidden md:flex items-center space-x-6">
             {/* Conditional dashboard route depending on role */}
             {user && (
               <Link 
                 to={user.role === 'admin' ? '/admin' : user.role === 'barber' ? '/barber' : '/dashboard'} 
-                className="text-brand-600 dark:text-brand-300 hover:text-accent-500 font-medium flex items-center gap-1.5 transition-colors"
+                className="text-brand-700 dark:text-brand-300 hover:text-accent-500 font-extrabold flex items-center gap-1.5 transition-colors text-xs uppercase tracking-wider bg-brand-100/60 dark:bg-brand-800/60 px-3.5 py-2 rounded-xl"
               >
-                <LayoutDashboard className="w-4 h-4" />
-                Dashboard
-              </Link>
-            )}
-
-            {!user && (
-              <Link to="/barber/signup" className="text-brand-600 dark:text-brand-300 hover:text-accent-500 font-medium transition-colors">
-                List Your Shop
+                <LayoutDashboard className="w-4 h-4 text-accent-500" />
+                <span>Dashboard</span>
               </Link>
             )}
           </div>
 
           {/* Action Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-
-
             {user ? (
               <div className="flex items-center space-x-4">
-                <span className="text-sm font-medium text-brand-700 dark:text-brand-300">
+                <span className="text-xs font-extrabold text-brand-900 dark:text-brand-50">
                   Hi, {user.name}
                 </span>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 px-4 py-2 border border-brand-200 dark:border-brand-700 rounded-lg text-sm font-medium text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-800 hover:text-accent-500 transition-all"
+                  className="flex items-center gap-1.5 px-4 py-2 border border-brand-200 dark:border-brand-700 rounded-xl text-xs font-extrabold text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-800 hover:text-accent-500 transition-all"
                 >
-                  <LogOut className="w-4 h-4" />
-                  Logout
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Logout</span>
                 </button>
               </div>
             ) : (
-              <Link
-                to="/login"
-                className="px-5 py-2.5 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-lg text-sm font-semibold shadow-md hover:shadow-lg transition-all"
-              >
-                Log In / Register
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/barber/signup"
+                  className="px-4 py-2.5 bg-brand-100 hover:bg-brand-200 dark:bg-brand-850 dark:hover:bg-brand-800 text-brand-900 dark:text-brand-100 rounded-xl text-xs font-extrabold border border-brand-200 dark:border-brand-750 transition-all"
+                >
+                  Partner Sign Up
+                </Link>
+                <Link
+                  to="/login"
+                  className="px-6 py-2.5 bg-gradient-to-r from-accent-600 to-accent-500 hover:from-accent-500 hover:to-accent-600 text-white rounded-xl text-xs font-extrabold shadow-md hover:shadow-lg transition-all uppercase tracking-wider"
+                >
+                  Log In / Register
+                </Link>
+              </div>
             )}
           </div>
 
