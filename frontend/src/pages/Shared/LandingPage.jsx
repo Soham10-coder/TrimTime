@@ -295,6 +295,17 @@ export default function LandingPage() {
     fetchBarbers(searchCity, searchShop, newCat, filterSalonType, maxPrice);
   };
 
+  const handleResetFilters = () => {
+    setSearchCity('');
+    setSearchShop('');
+    setFilterCategory('');
+    setFilterSalonType('');
+    setMaxPrice('');
+    setSortBy('');
+    setCurrentPage(1);
+    fetchBarbers('', '', '', '', '');
+  };
+
   const getSortedBarbers = () => {
     let list = [...barbers];
     if (sortBy === 'rating') {
@@ -712,10 +723,16 @@ export default function LandingPage() {
             ))}
           </div>
         ) : barbers.length === 0 ? (
-          <div className="text-center py-20 bg-white dark:bg-brand-900 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm space-y-3">
+          <div className="text-center py-20 bg-white dark:bg-brand-900 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm space-y-4">
             <Scissors className="w-12 h-12 text-brand-300 dark:text-brand-700 mx-auto" />
             <h3 className="text-lg font-bold text-brand-800 dark:text-brand-200">No Partner Salons Found</h3>
-            <p className="text-xs text-brand-500 dark:text-brand-400 max-w-sm mx-auto">Try resetting your filters or searching for a different city.</p>
+            <p className="text-xs text-brand-500 dark:text-brand-400 max-w-sm mx-auto">Try resetting your active filters or city search query.</p>
+            <button
+              onClick={handleResetFilters}
+              className="px-6 py-3 bg-accent-500 hover:bg-accent-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-md transition-all inline-flex items-center gap-2"
+            >
+              <span>Clear All Filters & Show Salons</span>
+            </button>
           </div>
         ) : (
           <div className="space-y-8">
