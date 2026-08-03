@@ -517,14 +517,17 @@ def get_barber_profile(barber_id):
 
         # Fetch active hairstyles joined with master services details
         salon_hairstyles = list(hairstyles_col.find({'barber_id': ObjectId(barber_id), 'enabled': {'$ne': False}}))
-        master_ids = [hs.get('master_service_id') for hs in salon_hairstyles if hs.get('master_service_id')]
         from app.db import master_services_col
-        master_services = {str(ms['_id']): ms for ms in master_services_col.find({'_id': {'$in': master_ids}})}
+        all_master_services = list(master_services_col.find())
+        master_services_by_id = {str(ms['_id']): ms for ms in all_master_services}
+        master_services_by_name = {ms.get('name', '').strip().lower(): ms for ms in all_master_services if ms.get('name')}
         
         active_services = []
         for hs in salon_hairstyles:
             ms_id = hs.get('master_service_id')
-            ms = master_services.get(str(ms_id)) if ms_id else None
+            ms = master_services_by_id.get(str(ms_id)) if ms_id else None
+            if not ms and hs.get('name'):
+                ms = master_services_by_name.get(hs.get('name', '').strip().lower())
             
             name = ms.get('name') if ms else hs.get('name', 'Service')
             category = ms.get('category') if ms else hs.get('category', 'Others')
@@ -725,14 +728,17 @@ def get_barber_hairstyles(barber_id):
 
         hairstyles = list(hairstyles_col.find({'barber_id': ObjectId(barber_id), 'enabled': {'$ne': False}}))
         
-        master_ids = [hs.get('master_service_id') for hs in hairstyles if hs.get('master_service_id')]
         from app.db import master_services_col
-        master_services = {str(ms['_id']): ms for ms in master_services_col.find({'_id': {'$in': master_ids}})}
+        all_master_services = list(master_services_col.find())
+        master_services_by_id = {str(ms['_id']): ms for ms in all_master_services}
+        master_services_by_name = {ms.get('name', '').strip().lower(): ms for ms in all_master_services if ms.get('name')}
         
         results = []
         for hs in hairstyles:
             ms_id = hs.get('master_service_id')
-            ms = master_services.get(str(ms_id)) if ms_id else None
+            ms = master_services_by_id.get(str(ms_id)) if ms_id else None
+            if not ms and hs.get('name'):
+                ms = master_services_by_name.get(hs.get('name', '').strip().lower())
             
             name = ms.get('name') if ms else hs.get('name', 'Service')
             category = ms.get('category') if ms else hs.get('category', 'Others')
