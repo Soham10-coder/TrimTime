@@ -129,3 +129,16 @@ class ApiClient {
 }
 
 export const api = new ApiClient();
+
+export const formatImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  const cleanPath = url.startsWith('/api') ? url : `/api${url.startsWith('/') ? url : `/${url}`}`;
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return `http://localhost:5000${cleanPath}`;
+  }
+  return cleanPath;
+};

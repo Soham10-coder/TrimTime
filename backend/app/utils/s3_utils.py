@@ -61,7 +61,7 @@ def upload_to_s3(file_obj, folder='general'):
         file_obj.seek(0)
         file_obj.save(local_path)
 
-        local_url = f"/uploads/{folder}/{filename}"
+        local_url = f"/api/uploads/{folder}/{filename}"
         logger.info(f"Saved file locally: {local_url}")
         return local_url
     except Exception as e:

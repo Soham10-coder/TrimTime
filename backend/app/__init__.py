@@ -35,6 +35,7 @@ def create_app():
 
     # Serve uploaded files route
     @app.route('/uploads/<path:filename>')
+    @app.route('/api/uploads/<path:filename>')
     def serve_uploads(filename):
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         upload_path = os.path.join(base_dir, 'uploads')

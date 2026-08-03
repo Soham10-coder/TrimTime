@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { api } from '../../utils/api';
+import { api, formatImageUrl } from '../../utils/api';
 import PaymentModal from '../../components/PaymentModal';
 import { Scissors, Clock, Calendar, Check, ArrowRight, User, Sparkles, Receipt, AlertCircle, ShieldCheck, MapPin, UserCheck, ExternalLink, Lock, AlertTriangle, LogIn, ZoomIn, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,11 +9,17 @@ import confetti from 'canvas-confetti';
 
 const getServiceFallbackImage = (category) => {
   const fallbacks = {
+    "Men's Hair Services": 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=500&auto=format&fit=crop&q=60',
+    "Women's Hair Services": 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500&auto=format&fit=crop&q=60',
+    "Men Grooming": 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=500&auto=format&fit=crop&q=60',
+    "Skin & Facial": 'https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=500&auto=format&fit=crop&q=60',
+    "Hair Color": 'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=500&auto=format&fit=crop&q=60',
+    "Spa": 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=500&auto=format&fit=crop&q=60',
+    "Nails": 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=500&auto=format&fit=crop&q=60',
+    "Bridal": 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500&auto=format&fit=crop&q=60',
     'Haircut': 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=500&auto=format&fit=crop&q=60',
     'Beard': 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=500&auto=format&fit=crop&q=60',
     'Facial': 'https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=500&auto=format&fit=crop&q=60',
-    'Hair Treatment': 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500&auto=format&fit=crop&q=60',
-    'Hair Color': 'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=500&auto=format&fit=crop&q=60',
     'Others': 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=60'
   };
   return fallbacks[category] || fallbacks['Others'];
@@ -496,7 +502,7 @@ export default function BookAppointment() {
                       onClick={(e) => {
                         e.stopPropagation();
                         setPreviewImage({
-                          url: hs.imageUrl || getServiceFallbackImage(hs.category),
+                          url: formatImageUrl(hs.imageUrl) || getServiceFallbackImage(hs.category),
                           title: hs.name,
                           category: hs.category,
                           price: hs.price,
@@ -504,7 +510,7 @@ export default function BookAppointment() {
                         });
                       }}
                     >
-                      <img src={hs.imageUrl || getServiceFallbackImage(hs.category)} alt={hs.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <img src={formatImageUrl(hs.imageUrl) || getServiceFallbackImage(hs.category)} alt={hs.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 text-xs font-bold backdrop-blur-[1px]">
                         <ZoomIn className="w-4 h-4" /> View Full Image
                       </div>
