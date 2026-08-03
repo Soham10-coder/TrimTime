@@ -587,12 +587,21 @@ SERVICES = [
 ]
 
 def seed():
-    print("Flushing existing master services catalog...")
-    master_services_col.delete_many({})
-    
-    print(f"Seeding {len(SERVICES)} master services with split categories...")
-    result = master_services_col.insert_many(SERVICES)
-    print(f"Successfully seeded {len(result.inserted_ids)} master services into database!")
+    print(f"Ensuring {len(SERVICES)} default master services exist without overwriting admin custom uploads...")
+    inserted_count = 0
+    updated_count = 0
+    for service in SERVICES:
+        res = master_services_col.update_one(
+            {'name': service['name']},
+            {'$setOnInsert': service},
+            upsert=True
+        )
+        if res.upserted_id:
+            inserted_count += 1
+        else:
+            updated_count += 1
+            
+    print(f"Successfully preserved admin catalog! Seeded {inserted_count} new master services ({updated_count} existing master services preserved).")
 
 if __name__ == '__main__':
     seed()

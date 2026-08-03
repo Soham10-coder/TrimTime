@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../utils/api';
+import { api, formatImageUrl } from '../../utils/api';
 import { ShieldCheck, Users, Store, DollarSign, ClipboardList, Check, X, Plus, AlertCircle, TrendingUp, Percent, FileText, Bell, Scissors, Edit, Trash } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
@@ -742,7 +742,7 @@ export default function AdminDashboard() {
                       <tr key={s.id} className="hover:bg-brand-50/30 dark:hover:bg-brand-800/10">
                         <td className="py-3.5 pr-4">
                           <img
-                            src={s.cover_image || s.coverImage || 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=60'}
+                            src={formatImageUrl(s.cover_image || s.coverImage) || 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=60'}
                             alt={s.name}
                             className="w-12 h-8 rounded-lg object-cover border"
                           />
