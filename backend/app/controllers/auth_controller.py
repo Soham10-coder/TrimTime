@@ -128,12 +128,12 @@ def verify_otp():
         if record['otp'] != otp:
             return jsonify({'message': 'Invalid OTP code'}), 400
 
-        otps_col.delete_one({'_id': record['_id']})
-
         if otp_type == 'signup':
+            otps_col.delete_one({'_id': record['_id']})
             users_col.update_one({'email': email}, {'$set': {'verified': True}})
             return jsonify({'message': 'Email verified successfully. You can now log in.'}), 200
         elif otp_type == 'reset':
+            otps_col.update_one({'_id': record['_id']}, {'$set': {'verified': True}})
             return jsonify({'message': 'OTP verified successfully. Proceed to reset password.'}), 200
 
         return jsonify({'message': 'OTP verified'}), 200
@@ -358,9 +358,12 @@ def reset_password():
         if not val_pwd:
             return jsonify({'message': msg_pwd}), 400
 
-        record = otps_col.find_one({'email': email, 'otp': otp, 'type': 'reset'})
+        record = otps_col.find_one({'email': email, 'type': 'reset'})
         if not record:
-            return jsonify({'message': 'Invalid or expired OTP code'}), 400
+            return jsonify({'message': 'No OTP reset request found for this email'}), 400
+
+        if record.get('otp') != otp:
+            return jsonify({'message': 'Invalid OTP code'}), 400
 
         now = datetime.datetime.utcnow()
         if (now - record['created_at']).total_seconds() > 600:

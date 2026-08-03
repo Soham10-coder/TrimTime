@@ -152,6 +152,38 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const forgotPassword = async (email) => {
+    try {
+      const res = await api.post('/auth/forgot-password', { email });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Forgot password request failed');
+      }
+
+      return { success: true, message: data.message, devOtp: data.devOtp };
+    } catch (error) {
+      console.error("Forgot Password Error:", error);
+      return { success: false, message: error.message };
+    }
+  };
+
+  const resetPassword = async (email, otp, newPassword) => {
+    try {
+      const res = await api.post('/auth/reset-password', { email, otp, newPassword });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Reset password failed');
+      }
+
+      return { success: true, message: data.message };
+    } catch (error) {
+      console.error("Reset Password Error:", error);
+      return { success: false, message: error.message };
+    }
+  };
+
   const logout = async () => {
     try {
       await api.post('/auth/logout');
@@ -171,6 +203,8 @@ export const AuthProvider = ({ children }) => {
       registerBarber,
       verifyOtp,
       resendOtp,
+      forgotPassword,
+      resetPassword,
       updateProfile,
       logout
     }}>

@@ -42,8 +42,16 @@ export default function ResetPassword() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters long');
+    const pwdCriteria = {
+      length: newPassword.length >= 8,
+      uppercase: /[A-Z]/.test(newPassword),
+      lowercase: /[a-z]/.test(newPassword),
+      number: /[0-9]/.test(newPassword),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(newPassword)
+    };
+
+    if (Object.values(pwdCriteria).some(v => !v)) {
+      setError('Password must be at least 8 characters long, contain uppercase, lowercase, number, and special character');
       setLoading(false);
       return;
     }
@@ -55,7 +63,7 @@ export default function ResetPassword() {
       setSuccess('Password has been updated successfully! Redirecting to login...');
       setTimeout(() => {
         navigate('/login');
-      }, 2500);
+      }, 2000);
     } else {
       setError(res.message || 'Failed to reset password. Try again.');
     }

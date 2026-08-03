@@ -31,8 +31,8 @@ export default function ForgotPassword() {
       setSuccess('If the email exists, a password reset OTP has been sent.');
       setTimeout(() => {
         // Redirect to OTP page with reset type
-        navigate('/verify-otp', { state: { email, type: 'reset' } });
-      }, 2000);
+        navigate('/verify-otp', { state: { email, type: 'reset', devOtp: res.devOtp } });
+      }, 1500);
     } else {
       setError(res.message || 'Request failed. Please try again.');
     }
