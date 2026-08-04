@@ -81,7 +81,9 @@ export default function App() {
             <Route path="partner-policy" element={<PartnerPolicy />} />
             <Route path="barber/signup" element={<BarberSignup />} />
             <Route path="barber/login" element={<Login defaultRole="barber" />} />
-            <Route path="admin/login" element={<Login defaultRole="admin" />} />
+
+            {/* Secret Hidden Administrative Route (Invisible to Bot Scanners & Public Users) */}
+            <Route path="trimtime-secret-admin-portal-x97k2/login" element={<Login defaultRole="admin" />} />
             
             {/* Booking Flow (Public browse/select, locks inside checkout) */}
             <Route path="book/:barberId" element={<BookAppointment />} />
@@ -114,15 +116,27 @@ export default function App() {
               } 
             />
 
-            {/* Secured Admin Routes */}
+            {/* Secured Secret Admin Routes */}
             <Route 
-              path="admin" 
+              path="trimtime-secret-admin-portal-x97k2" 
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminDashboard />
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="trimtime-secret-admin-portal-x97k2/dashboard" 
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Trap predictable admin URLs -> 404 Not Found Fallback */}
+            <Route path="admin" element={<Navigate to="/" replace />} />
+            <Route path="admin/*" element={<Navigate to="/" replace />} />
 
             {/* Fallback route */}
             <Route path="*" element={<Navigate to="/" replace />} />

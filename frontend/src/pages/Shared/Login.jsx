@@ -169,7 +169,7 @@ export default function Login({ defaultRole = 'customer' }) {
         {[
           { key: 'customer', label: 'Customer', icon: Scissors },
           { key: 'barber', label: 'Barber Partner', icon: Store },
-          { key: 'admin', label: 'Admin', icon: ShieldCheck }
+          ...(defaultRole === 'admin' ? [{ key: 'admin', label: 'Admin Console', icon: ShieldCheck }] : [])
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeRole === tab.key;
