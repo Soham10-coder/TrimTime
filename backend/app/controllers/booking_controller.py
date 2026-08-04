@@ -154,9 +154,9 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
             new_interval_start = slot_start
             new_interval_end = slot_start + duration_mins + BUFFER_TIME_MINS
 
-            # 1. Check Lunch Break Collision
+            # 1. Check Lunch Break Collision (Strict range without buffer bleed into next hour)
             if break_start_mins is not None and break_end_mins is not None:
-                if (new_interval_start < break_end_mins) and (new_interval_end > break_start_mins):
+                if (slot_start < break_end_mins) and ((slot_start + duration_mins) > break_start_mins):
                     collides = True
                     is_break = True
 
@@ -294,7 +294,7 @@ def generate_slots_for_barber(barber_doc, date_str, duration_mins, staff_id=None
                     if start >= sched['open_m'] and (start + duration_mins) <= sched['close_m']:
                         # Check lunch break collision
                         if sched['brk_start_m'] is not None and sched['brk_end_m'] is not None:
-                            if (start < sched['brk_end_m']) and ((start + duration_mins + BUFFER_TIME_MINS) > sched['brk_start_m']):
+                            if (start < sched['brk_end_m']) and ((start + duration_mins) > sched['brk_start_m']):
                                 is_break_slot = True
                                 continue
 

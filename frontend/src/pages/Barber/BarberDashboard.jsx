@@ -1872,15 +1872,17 @@ export default function BarberDashboard() {
                               }}
                               className={`p-2.5 rounded-xl text-xs font-extrabold border transition-all text-center relative group ${
                                 !isAvailable
-                                  ? 'bg-red-50 text-red-700 border-red-200 cursor-pointer hover:bg-red-100 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800'
+                                  ? s.isBreak
+                                    ? 'bg-amber-50 text-amber-900 border-amber-300 cursor-pointer hover:bg-amber-100'
+                                    : 'bg-red-50 text-red-700 border-red-200 cursor-pointer hover:bg-red-100'
                                   : isSelected
                                   ? 'bg-purple-600 text-white border-purple-600 shadow-md ring-2 ring-purple-300'
-                                  : 'bg-white dark:bg-brand-950 text-brand-900 dark:text-brand-50 border-brand-200 hover:border-purple-400'
+                                  : 'bg-white text-brand-900 border-brand-200 hover:border-purple-400'
                               }`}
                             >
                               <div className="font-mono">{s.displayTime}</div>
                               <div className="text-[9px] font-bold truncate max-w-full px-0.5 mt-0.5">
-                                {!isAvailable ? (s.bookedBy ? `🔒 ${s.bookedBy}` : '🔒 BOOKED') : '✨ OPEN'}
+                                {!isAvailable ? (s.isBreak ? '☕ LUNCH BREAK' : s.bookedBy ? `🔒 ${s.bookedBy}` : '🔒 BOOKED') : '✨ OPEN'}
                               </div>
 
                               {/* Hover Floating Details Tooltip for Booked Slots */}

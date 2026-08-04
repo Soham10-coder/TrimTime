@@ -814,15 +814,24 @@ export default function BookAppointment() {
                   key={s.time}
                   disabled={s.available === false}
                   onClick={() => handleSlotSelect(s)}
-                  className={`p-3 rounded-2xl border text-xs font-bold transition-all ${
+                  className={`p-3 rounded-2xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 ${
                     s.available === false
-                      ? 'bg-red-50 dark:bg-red-950/25 border-red-200 dark:border-red-900/60 text-red-500 dark:text-red-400 cursor-not-allowed opacity-65'
+                      ? s.isBreak
+                        ? 'bg-amber-50 border-amber-300 text-amber-900 cursor-not-allowed opacity-80'
+                        : 'bg-red-50 border-red-200 text-red-500 cursor-not-allowed opacity-65'
                       : selectedSlot?.time === s.time
                       ? 'bg-accent-500 text-white border-accent-600 shadow'
-                      : 'bg-white dark:bg-brand-900 hover:border-accent-400 text-brand-900 dark:text-brand-50'
+                      : 'bg-white hover:border-accent-400 text-brand-900'
                   }`}
                 >
-                  {s.displayTime}
+                  <span>{s.displayTime}</span>
+                  {s.available === false && (
+                    <span className={`text-[9px] font-extrabold uppercase tracking-tight ${
+                      s.isBreak ? 'text-amber-800' : 'text-red-500'
+                    }`}>
+                      {s.isBreak ? '☕ Lunch Break' : 'Booked'}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
