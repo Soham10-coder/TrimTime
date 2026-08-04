@@ -103,7 +103,7 @@ export default function BookAppointment() {
     if (selectedHairstyles.length === 0) return;
     setSlotsLoading(true);
     try {
-      const staffParam = staff ? `&staffId=${staff.id || staff.name}` : '';
+      const staffParam = staff && staff.name && staff.name !== 'Any Available Stylist' ? `&staffId=${staff.id || staff.name}` : '';
       const serviceIds = selectedHairstyles.map(h => h.id).join(',');
       const res = await api.get(`/booking/slots?barberId=${barberId}&date=${date}&hairstyleId=${serviceIds}${staffParam}`);
       if (res.ok) {
@@ -639,6 +639,29 @@ export default function BookAppointment() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* ANY AVAILABLE STYLIST CARD */}
+            <div 
+              onClick={() => handleStaffSelect({ id: null, name: 'Any Available Stylist', role: 'First Available Professional Stylist' })} 
+              className={`p-5 bg-gradient-to-br from-white to-accent-50/20 border-2 rounded-3xl cursor-pointer transition-all flex items-center justify-between ${
+                !selectedStaff || selectedStaff?.name === 'Any Available Stylist' ? 'border-accent-500 shadow-md ring-2 ring-accent-500/20 bg-accent-50/30' : 'hover:border-brand-300'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-accent-600 to-accent-500 text-white font-bold flex items-center justify-center text-lg shadow-sm flex-shrink-0">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-brand-900 flex items-center gap-1.5">
+                    <span>Any Available Stylist</span>
+                    <span className="text-[9px] bg-accent-500 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Fastest</span>
+                  </h3>
+                  <p className="text-xs text-accent-600 font-semibold">Assign First Available Stylist</p>
+                  <p className="text-[10px] text-brand-500 font-medium">Maximum slot availability</p>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-accent-500" />
+            </div>
+
             {staffList.length === 0 ? (
               <div 
                 onClick={() => handleStaffSelect({ name: barber?.ownerName || 'Senior Barber', role: 'Owner & Master Stylist' })} 
