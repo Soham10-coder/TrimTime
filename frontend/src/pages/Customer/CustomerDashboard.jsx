@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { api } from '../../utils/api';
-import { Calendar, Clock, MapPin, Receipt, Star, X, AlertTriangle, ShieldCheck, StarOff, ExternalLink, UserCheck } from 'lucide-react';
+import { Calendar, Clock, MapPin, Receipt, Star, X, AlertTriangle, ShieldCheck, StarOff, ExternalLink, UserCheck, Trophy, Gift, Sparkles, Scissors, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CustomerDashboard() {
@@ -223,13 +223,16 @@ export default function CustomerDashboard() {
           </div>
         </div>
         
-        <div className="bg-brand-900 dark:bg-brand-800 text-white p-4 rounded-2xl flex items-center gap-4 border border-brand-800">
-          <div className="p-2.5 bg-accent-500/20 text-accent-500 rounded-xl">
-            <ShieldCheck className="w-6 h-6" />
+        <div className="bg-brand-900 text-white p-4 px-6 rounded-2xl flex items-center gap-4 border border-brand-800 shadow-lg">
+          <div className="p-3 bg-gradient-to-tr from-amber-500 to-accent-500 text-white rounded-xl shadow-md">
+            <Trophy className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-brand-400 font-bold uppercase tracking-wider block">Loyalty Points Balance</span>
-            <span className="text-2xl font-extrabold font-display text-accent-400">{getPointsBalance()} pts</span>
+            <span className="text-[10px] text-brand-300 font-extrabold uppercase tracking-widest block">Loyalty Points Balance</span>
+            <span className="text-2xl font-extrabold font-display text-amber-400 flex items-center gap-1.5">
+              <span>{getPointsBalance()}</span>
+              <span className="text-xs font-bold text-brand-300 uppercase tracking-wider">pts</span>
+            </span>
           </div>
         </div>
       </div>
@@ -409,12 +412,15 @@ export default function CustomerDashboard() {
             ) : (
               <div className="space-y-4 pt-2">
                 {/* 1. Bronze Tier */}
-                <div className="space-y-1.5 border border-brand-100 dark:border-brand-800/80 p-3 rounded-2xl">
+                <div className="space-y-1.5 border border-brand-200 p-3.5 rounded-2xl bg-white shadow-xs">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-amber-700 dark:text-amber-500 flex items-center gap-1">🥉 Bronze Reward (10% Off)</span>
+                    <span className="font-bold text-amber-700 flex items-center gap-1.5">
+                      <Award className="w-4 h-4 text-amber-600" />
+                      <span>Bronze Reward (10% Off)</span>
+                    </span>
                     <span className="text-[10px] font-mono text-brand-500">Min. ₹300</span>
                   </div>
-                  <div className="w-full h-2 bg-brand-100 dark:bg-brand-800 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-brand-100 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-amber-500 rounded-full transition-all duration-300"
                       style={{ width: `${Math.min(100, (getPointsBalance() / 50) * 100)}%` }}
@@ -432,20 +438,26 @@ export default function CustomerDashboard() {
                         Redeem 50 pts
                       </button>
                     ) : (
-                      <span className="text-[9px] text-brand-400 font-bold bg-brand-100 dark:bg-brand-800 px-2 py-0.5 rounded">🔒 Needs {50 - getPointsBalance()} pts</span>
+                      <span className="text-[9px] text-brand-500 font-bold bg-brand-100 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                        <Gift className="w-3 h-3 text-brand-400" />
+                        <span>Needs {50 - getPointsBalance()} pts</span>
+                      </span>
                     )}
                   </div>
                 </div>
 
                 {/* 2. Silver Tier */}
-                <div className="space-y-1.5 border border-brand-100 dark:border-brand-800/80 p-3 rounded-2xl">
+                <div className="space-y-1.5 border border-brand-200 p-3.5 rounded-2xl bg-white shadow-xs">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1">🥈 Silver Reward (20% Off)</span>
+                    <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                      <Gift className="w-4 h-4 text-slate-500" />
+                      <span>Silver Reward (20% Off)</span>
+                    </span>
                     <span className="text-[10px] font-mono text-brand-500">Min. ₹500</span>
                   </div>
-                  <div className="w-full h-2 bg-brand-100 dark:bg-brand-800 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-brand-100 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-gray-500 rounded-full transition-all duration-300"
+                      className="h-full bg-slate-500 rounded-full transition-all duration-300"
                       style={{ width: `${Math.min(100, (getPointsBalance() / 100) * 100)}%` }}
                     ></div>
                   </div>
@@ -456,25 +468,31 @@ export default function CustomerDashboard() {
                         type="button"
                         onClick={() => handleRedeemPoints('silver')}
                         disabled={redemptionLoading}
-                        className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-[10px] font-bold rounded-lg transition-all"
+                        className="px-3 py-1 bg-slate-600 hover:bg-slate-700 text-white text-[10px] font-bold rounded-lg transition-all"
                       >
                         Redeem 100 pts
                       </button>
                     ) : (
-                      <span className="text-[9px] text-brand-400 font-bold bg-brand-100 dark:bg-brand-800 px-2 py-0.5 rounded">🔒 Needs {100 - getPointsBalance()} pts</span>
+                      <span className="text-[9px] text-brand-500 font-bold bg-brand-100 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                        <Gift className="w-3 h-3 text-brand-400" />
+                        <span>Needs {100 - getPointsBalance()} pts</span>
+                      </span>
                     )}
                   </div>
                 </div>
 
                 {/* 3. Gold Tier */}
-                <div className="space-y-1.5 border border-brand-100 dark:border-brand-800/80 p-3 rounded-2xl">
+                <div className="space-y-1.5 border border-brand-200 p-3.5 rounded-2xl bg-white shadow-xs">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-yellow-600 dark:text-yellow-500 flex items-center gap-1">🥇 Gold Reward (30% Off)</span>
+                    <span className="font-bold text-amber-600 flex items-center gap-1.5">
+                      <Trophy className="w-4 h-4 text-amber-500" />
+                      <span>Gold Reward (30% Off)</span>
+                    </span>
                     <span className="text-[10px] font-mono text-brand-500">Min. ₹800</span>
                   </div>
-                  <div className="w-full h-2 bg-brand-100 dark:bg-brand-800 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-brand-100 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-yellow-500 rounded-full transition-all duration-300"
+                      className="h-full bg-amber-500 rounded-full transition-all duration-300"
                       style={{ width: `${Math.min(100, (getPointsBalance() / 150) * 100)}%` }}
                     ></div>
                   </div>
@@ -485,12 +503,15 @@ export default function CustomerDashboard() {
                         type="button"
                         onClick={() => handleRedeemPoints('gold')}
                         disabled={redemptionLoading}
-                        className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white text-[10px] font-bold rounded-lg transition-all"
+                        className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold rounded-lg transition-all"
                       >
                         Redeem 150 pts
                       </button>
                     ) : (
-                      <span className="text-[9px] text-brand-400 font-bold bg-brand-100 dark:bg-brand-800 px-2 py-0.5 rounded">🔒 Needs {150 - getPointsBalance()} pts</span>
+                      <span className="text-[9px] text-brand-500 font-bold bg-brand-100 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                        <Gift className="w-3 h-3 text-brand-400" />
+                        <span>Needs {150 - getPointsBalance()} pts</span>
+                      </span>
                     )}
                   </div>
                 </div>
@@ -502,11 +523,12 @@ export default function CustomerDashboard() {
             )}
           </div>
 
-          <div className="bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 space-y-4">
-            <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50">Quick Location Navigation</h3>
-            <p className="text-xs text-brand-500">Clicking "Navigate on Google Maps" opens live GPS turn-by-turn directions directly to your booked salon's door.</p>
-            <div className="p-4 bg-accent-50 dark:bg-brand-950 rounded-2xl border border-accent-200 text-xs font-bold text-accent-700">
-              📍 Automatic Distance Engine: Calculates real-time distance from your current location to all salons.
+          <div className="bg-white p-6 rounded-3xl border border-brand-200 space-y-4 shadow-xs">
+            <h3 className="text-lg font-bold font-display text-brand-900">Quick Location Navigation</h3>
+            <p className="text-xs text-brand-600 font-medium">Clicking "Navigate on Google Maps" opens live GPS turn-by-turn directions directly to your booked salon's door.</p>
+            <div className="p-4 bg-accent-50 rounded-2xl border border-accent-200 text-xs font-bold text-accent-800 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-accent-600 flex-shrink-0" />
+              <span>Automatic Distance Engine: Calculates real-time distance from your current location to all salons.</span>
             </div>
           </div>
         </div>

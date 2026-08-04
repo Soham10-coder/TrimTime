@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   Search, MapPin, Star, Scissors, Clock, Calendar, CheckCircle2, ChevronDown, Award, 
   ExternalLink, Map as MapIcon, ChevronLeft, ChevronRight, Store, ShieldCheck, Sparkles, 
-  Zap, Users, ArrowRight, Navigation, Flame, Shield, Lock, Check
+  Zap, Users, ArrowRight, Navigation, Flame, Shield, Lock, Check, Smile, Droplet, Crown, Heart, Wand2 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../utils/api';
@@ -23,14 +23,14 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 const POPULAR_CATEGORIES = [
-  { id: 'Men\'s Hair Services', name: 'Haircut & Fades', icon: '✂️' },
-  { id: 'Men Grooming', name: 'Beard & Shave', icon: '🧔' },
-  { id: 'Women\'s Hair Services', name: 'Women Styling', icon: '💇‍♀️' },
-  { id: 'Skin & Facial', name: 'Facials & Glow', icon: '✨' },
-  { id: 'Hair Color', name: 'Hair Color', icon: '🧪' },
-  { id: 'Spa', name: 'Massage & Spa', icon: '💆‍♂️' },
-  { id: 'Nails', name: 'Nails & Care', icon: '💅' },
-  { id: 'Bridal', name: 'Groom & Bridal', icon: '🤵' }
+  { id: 'Men\'s Hair Services', name: 'Haircut & Fades', icon: Scissors, color: 'text-accent-600 bg-accent-500/10' },
+  { id: 'Men Grooming', name: 'Beard & Shave', icon: Flame, color: 'text-amber-600 bg-amber-500/10' },
+  { id: 'Women\'s Hair Services', name: 'Women Styling', icon: Sparkles, color: 'text-purple-600 bg-purple-500/10' },
+  { id: 'Skin & Facial', name: 'Facials & Glow', icon: Smile, color: 'text-emerald-600 bg-emerald-500/10' },
+  { id: 'Hair Color', name: 'Hair Color', icon: Wand2, color: 'text-indigo-600 bg-indigo-500/10' },
+  { id: 'Spa', name: 'Massage & Spa', icon: Droplet, color: 'text-blue-600 bg-blue-500/10' },
+  { id: 'Nails', name: 'Nails & Care', icon: Crown, color: 'text-pink-600 bg-pink-500/10' },
+  { id: 'Bridal', name: 'Groom & Bridal', icon: Heart, color: 'text-rose-600 bg-rose-500/10' }
 ];
 
 const HERO_SLIDES = [
@@ -683,19 +683,22 @@ export default function LandingPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
           {POPULAR_CATEGORIES.map((cat) => {
             const isSelected = filterCategory === cat.id;
+            const IconComponent = cat.icon;
             return (
               <button
                 key={cat.id}
                 type="button"
                 onClick={() => handleCategoryClick(cat.id)}
-                className={`p-4 rounded-3xl border text-center transition-all duration-300 flex flex-col items-center justify-between space-y-2 cursor-pointer ${
+                className={`p-3.5 rounded-3xl border text-center transition-all duration-300 flex flex-col items-center justify-between space-y-2 cursor-pointer ${
                   isSelected
                     ? 'bg-accent-500 text-white border-accent-500 shadow-xl scale-105 ring-2 ring-accent-300'
-                    : 'bg-white dark:bg-brand-900 border-brand-200/80 dark:border-brand-800 hover:border-accent-400 hover:shadow-md text-brand-900 dark:text-brand-50'
+                    : 'bg-white border-brand-200 hover:border-accent-400 hover:shadow-md text-brand-900'
                 }`}
               >
-                <span className="text-3xl">{cat.icon}</span>
-                <span className="text-xs font-bold line-clamp-1">{cat.name}</span>
+                <div className={`p-2.5 rounded-2xl ${isSelected ? 'bg-white/20 text-white' : cat.color} transition-all`}>
+                  <IconComponent className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] font-extrabold line-clamp-1">{cat.name}</span>
               </button>
             );
           })}
