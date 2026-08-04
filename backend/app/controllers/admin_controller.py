@@ -515,7 +515,7 @@ def update_master_service(service_id):
         image_file = request.files.get('image')
         if image_file and image_file.filename != '':
             update_fields['cover_image'] = upload_to_s3(image_file, 'master_services')
-        elif 'cover_image' in data:
+        elif data.get('cover_image') and data.get('cover_image').strip() != '':
             update_fields['cover_image'] = data.get('cover_image').strip()
 
         if not update_fields:

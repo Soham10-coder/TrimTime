@@ -126,7 +126,7 @@ export default function AdminDashboard() {
     formData.append('category', serviceCategory);
     formData.append('default_duration', serviceDuration);
     formData.append('icon', serviceIcon);
-    formData.append('cover_image', serviceCover);
+    if (serviceCover) formData.append('cover_image', serviceCover);
     if (serviceImageFile) {
       formData.append('image', serviceImageFile);
     }
