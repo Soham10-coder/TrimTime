@@ -193,7 +193,8 @@ export default function CustomerDashboard() {
   };
 
   const getPointsBalance = () => {
-    return user ? user.loyaltyPoints || 30 : 0;
+    if (!user) return 0;
+    return (user.loyaltyPoints !== undefined && user.loyaltyPoints !== null) ? user.loyaltyPoints : 0;
   };
 
   if (loading) {

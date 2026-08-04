@@ -1139,7 +1139,10 @@ export default function BarberDashboard() {
                           </div>
                           
                           {/* Enable/Disable Toggle overlay */}
-                          <div className="absolute top-3 right-3 bg-white dark:bg-brand-950 px-2 py-1 rounded-xl shadow-lg border flex items-center gap-1.5 cursor-pointer">
+                          <div 
+                            className="absolute top-3 right-3 bg-white dark:bg-brand-950 px-2.5 py-1 rounded-xl shadow-lg border flex items-center gap-1.5 cursor-pointer z-30"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <input
                               type="checkbox"
                               checked={localEnabled}

@@ -733,6 +733,7 @@ def get_barber_hairstyles(barber_id):
         master_services_by_id = {str(ms['_id']): ms for ms in all_master_services}
         master_services_by_name = {ms.get('name', '').strip().lower(): ms for ms in all_master_services if ms.get('name')}
         
+        seen_names = set()
         results = []
         for hs in hairstyles:
             ms_id = hs.get('master_service_id')
@@ -741,6 +742,10 @@ def get_barber_hairstyles(barber_id):
                 ms = master_services_by_name.get(hs.get('name', '').strip().lower())
             
             name = ms.get('name') if ms else hs.get('name', 'Service')
+            name_key = name.strip().lower()
+            if name_key in seen_names:
+                continue
+            seen_names.add(name_key)
             category = ms.get('category') if ms else hs.get('category', 'Others')
             default_duration = ms.get('default_duration', 30) if ms else 30
             icon = ms.get('icon', 'Scissors') if ms else 'Scissors'
@@ -909,12 +914,22 @@ def get_barber_catalog_settings():
         
         # 2. Fetch salon's current hairstyles/services config
         salon_hairstyles = list(hairstyles_col.find({'barber_id': ObjectId(barber_id)}))
-        salon_config = {str(hs.get('master_service_id')): hs for hs in salon_hairstyles if hs.get('master_service_id')}
+        salon_config_by_id = {str(hs.get('master_service_id')): hs for hs in salon_hairstyles if hs.get('master_service_id')}
+        salon_config_by_name = {hs.get('name', '').strip().lower(): hs for hs in salon_hairstyles if hs.get('name')}
         
         results = []
         for ms in master_services:
             ms_id_str = str(ms['_id'])
-            config = salon_config.get(ms_id_str)
+            config = salon_config_by_id.get(ms_id_str)
+            if not config and ms.get('name'):
+                config = salon_config_by_name.get(ms.get('name', '').strip().lower())
+                if config and not config.get('master_service_id'):
+                    try:
+                        hairstyles_col.update_one({'_id': config['_id']}, {'$set': {'master_service_id': ms['_id']}})
+                    except Exception:
+                        pass
+            
+            is_enabled = config.get('enabled', True) if config else False
             
             results.append({
                 'masterServiceId': ms_id_str,
@@ -923,7 +938,7 @@ def get_barber_catalog_settings():
                 'defaultDuration': ms.get('default_duration', 30),
                 'coverImage': ms.get('cover_image', ''),
                 'icon': ms.get('icon', 'Scissors'),
-                'enabled': config.get('enabled', False) if config else False,
+                'enabled': is_enabled,
                 'price': config.get('price') if config else None,
                 'duration': config.get('duration') if config else None,
                 'description': config.get('description', '') if config else '',
@@ -958,16 +973,26 @@ def toggle_barber_service():
         if not master_service:
             return jsonify({'message': 'Master service not found'}), 404
             
-        # Find existing salon service document
+        # Find existing salon service document by master_service_id or by name
         existing = hairstyles_col.find_one({
             'barber_id': ObjectId(barber_id),
             'master_service_id': ObjectId(master_service_id)
         })
+        if not existing and master_service.get('name'):
+            existing = hairstyles_col.find_one({
+                'barber_id': ObjectId(barber_id),
+                'name': master_service.get('name')
+            })
         
         if not enabled:
             if existing:
                 hairstyles_col.update_one(
                     {'_id': existing['_id']},
+                    {'$set': {'enabled': False}}
+                )
+            if master_service.get('name'):
+                hairstyles_col.update_many(
+                    {'barber_id': ObjectId(barber_id), 'name': master_service.get('name')},
                     {'$set': {'enabled': False}}
                 )
             return jsonify({'message': 'Service disabled successfully'}), 200
@@ -1009,7 +1034,8 @@ def toggle_barber_service():
             'description': description,
             'image_url': image_url,
             'name': master_service.get('name'),
-            'category': master_service.get('category')
+            'category': master_service.get('category'),
+            'master_service_id': ObjectId(master_service_id)
         }
         
         if existing:
@@ -1018,6 +1044,12 @@ def toggle_barber_service():
                 {'$set': service_fields}
             )
             service_id = str(existing['_id'])
+            if master_service.get('name'):
+                hairstyles_col.delete_many({
+                    'barber_id': ObjectId(barber_id),
+                    'name': master_service.get('name'),
+                    '_id': {'$ne': existing['_id']}
+                })
         else:
             new_doc = {
                 'barber_id': ObjectId(barber_id),

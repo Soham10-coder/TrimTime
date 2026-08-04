@@ -384,3 +384,80 @@ def reset_password():
     except Exception as e:
         logger.error(f"Error in reset_password: {e}")
         return jsonify({'message': 'Internal Server Error'}), 500
+
+def google_auth():
+    try:
+        data = request.json or {}
+        email = data.get('email', '').strip().lower()
+        name = data.get('name', '').strip()
+        picture = data.get('picture', '').strip()
+
+        if not email:
+            return jsonify({'message': 'Google authentication failed: Email is required'}), 400
+
+        from app.db import barbers_col
+        barber = barbers_col.find_one({'email': email})
+        if barber:
+            barber_id = str(barber['_id'])
+            user_payload = {
+                'id': barber_id,
+                'name': barber.get('owner_name', name),
+                'email': barber.get('email'),
+                'role': 'barber',
+                'verified': barber.get('verified', True)
+            }
+            access_token = generate_access_token(barber_id, barber.get('email'), 'barber')
+            refresh_token_str = generate_refresh_token(barber_id, barber.get('email'), 'barber')
+            response = make_response(jsonify({
+                'message': 'Google authentication successful',
+                'user': user_payload,
+                'accessToken': access_token
+            }), 200)
+            response.set_cookie('refreshToken', refresh_token_str, httponly=True, secure=True, samesite='Strict')
+            return response
+
+        user = users_col.find_one({'email': email})
+        if not user:
+            import uuid
+            phone_val = data.get('phone', '').strip()
+            if not phone_val:
+                phone_val = f"G-{uuid.uuid4().hex[:8]}"
+            user_doc = {
+                'name': name or email.split('@')[0],
+                'email': email,
+                'phone': phone_val,
+                'password': hash_password(str(random.randint(10000000, 99999999))),
+                'role': 'customer',
+                'verified': True,
+                'gender': 'Male',
+                'profile_pic': picture,
+                'auth_provider': 'google',
+                'created_at': datetime.datetime.utcnow()
+            }
+            res = users_col.insert_one(user_doc)
+            user_id = str(res.inserted_id)
+            user_role = 'customer'
+        else:
+            user_id = str(user['_id'])
+            user_role = user.get('role', 'customer')
+
+        user_payload = {
+            'id': user_id,
+            'name': user.get('name', name) if user else name,
+            'email': email,
+            'role': user_role,
+            'verified': True
+        }
+        access_token = generate_access_token(user_id, email, user_role)
+        refresh_token_str = generate_refresh_token(user_id, email, user_role)
+        response = make_response(jsonify({
+            'message': 'Google authentication successful',
+            'user': user_payload,
+            'accessToken': access_token
+        }), 200)
+        response.set_cookie('refreshToken', refresh_token_str, httponly=True, secure=True, samesite='Strict')
+        return response
+
+    except Exception as e:
+        logger.error(f"Error in google_auth: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500

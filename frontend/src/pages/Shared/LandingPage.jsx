@@ -258,13 +258,16 @@ export default function LandingPage() {
       );
     }
 
-    // Auto-advance hero slideshow every 4.5 seconds
+  }, []);
+
+  // Auto-advance hero slideshow every 4.5 seconds (resets timer on manual slide click)
+  useEffect(() => {
     const slideTimer = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length);
     }, 4500);
 
     return () => clearInterval(slideTimer);
-  }, []);
+  }, [activeSlide]);
 
   const fetchBarbers = async (city = '', shop = '', category = '', salonType = '', maxPriceVal = '') => {
     setLoading(true);

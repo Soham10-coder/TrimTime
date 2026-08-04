@@ -184,6 +184,23 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const googleLogin = async (payload) => {
+    try {
+      const res = await api.post('/auth/google', payload);
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, message: data.message || 'Google login failed' };
+      }
+      setUser(data.user);
+      api.setToken(data.accessToken);
+      localStorage.setItem('trimtime_user', JSON.stringify(data.user));
+      return { success: true, user: data.user };
+    } catch (error) {
+      console.error("Google Login Error:", error);
+      return { success: false, message: error.message };
+    }
+  };
+
   const logout = async () => {
     try {
       await api.post('/auth/logout');
@@ -199,6 +216,7 @@ export const AuthProvider = ({ children }) => {
       user,
       loading,
       login,
+      googleLogin,
       registerCustomer,
       registerBarber,
       verifyOtp,
