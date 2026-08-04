@@ -6,13 +6,36 @@ import { Search, MapPin, Layers, ExternalLink } from 'lucide-react';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
-let DefaultIcon = L.icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41]
+const BarberShopMapIcon = L.divIcon({
+  className: 'custom-barber-shop-pin',
+  html: `
+    <div style="
+      background: linear-gradient(135deg, #ea580c, #c2410c);
+      width: 42px;
+      height: 42px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 18px rgba(234, 88, 12, 0.45), 0 0 0 3px #ffffff;
+      border: 2px solid #ffffff;
+      cursor: pointer;
+    ">
+      <div style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/>
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+          <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/>
+          <path d="M2 7h20"/>
+        </svg>
+      </div>
+    </div>
+  `,
+  iconSize: [42, 42],
+  iconAnchor: [21, 42],
+  popupAnchor: [0, -42]
 });
-L.Marker.prototype.options.icon = DefaultIcon;
 
 function LocationMarker({ lat, lng, onLocationSelect }) {
   const map = useMap();
@@ -32,6 +55,7 @@ function LocationMarker({ lat, lng, onLocationSelect }) {
   return lat && lng ? (
     <Marker 
       position={[lat, lng]} 
+      icon={BarberShopMapIcon}
       draggable={true}
       eventHandlers={{
         dragend(e) {

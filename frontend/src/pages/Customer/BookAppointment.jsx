@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { api, formatImageUrl } from '../../utils/api';
 import PaymentModal from '../../components/PaymentModal';
-import { Scissors, Clock, Calendar, Check, ArrowRight, User, Sparkles, Receipt, AlertCircle, ShieldCheck, MapPin, UserCheck, ExternalLink, Lock, AlertTriangle, LogIn, ZoomIn, X, Star, MessageSquare } from 'lucide-react';
+import { Scissors, Clock, Calendar, Check, ArrowRight, User, Sparkles, Receipt, AlertCircle, ShieldCheck, MapPin, UserCheck, ExternalLink, Lock, AlertTriangle, LogIn, ZoomIn, X, Star, MessageSquare, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
@@ -449,7 +449,7 @@ export default function BookAppointment() {
             rel="noreferrer"
             className="px-4 py-2.5 bg-accent-500 hover:bg-accent-600 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-sm whitespace-nowrap"
           >
-            <MapPin className="w-4 h-4" /> View Location on Google Maps <ExternalLink className="w-3.5 h-3.5" />
+            <Store className="w-4 h-4" /> View Shop Location on Google Maps <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
       </div>

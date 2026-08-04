@@ -177,7 +177,7 @@ function BarberCard({ b, navigate }) {
             {b.shopName}
           </h3>
           <p className="text-xs text-brand-500 dark:text-brand-400 mt-1 flex items-center gap-1">
-            <MapPin className="w-3.5 h-3.5 text-accent-500 flex-shrink-0" />
+            <Store className="w-3.5 h-3.5 text-accent-500 flex-shrink-0" />
             <span className="truncate">{b.address || b.city}</span>
           </p>
         </div>
