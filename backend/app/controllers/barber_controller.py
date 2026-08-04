@@ -457,9 +457,8 @@ def get_barbers():
                 'profilePic': b.get('profile_pic', ''),
                 'shopImages': b.get('shop_images', []),
                 'experience': b.get('experience', 5),
-                'description': b.get('description', ''),
-                'ratingAvg': b.get('rating_avg', 0.0),
-                'ratingCount': b.get('rating_count', 0),
+                'ratingAvg': float(b.get('rating_avg') if b.get('rating_avg') is not None else b.get('rating', 0.0)),
+                'ratingCount': int(b.get('rating_count') if b.get('rating_count') is not None else b.get('review_count', 0)),
                 'openingTime': b.get('opening_time', '09:00'),
                 'closingTime': b.get('closing_time', '20:00'),
                 'weeklyHoliday': b.get('weekly_holiday'),
@@ -547,6 +546,26 @@ def get_barber_profile(barber_id):
                 'enabled': True
             })
 
+        # Calculate closed_today for India timezone
+        now_india = datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
+        today_str = now_india.strftime("%Y-%m-%d")
+        today_weekday = now_india.weekday()  # Monday (0) - Sunday (6)
+
+        weekly_holidays = barber.get('weekly_holidays', [])
+        if not weekly_holidays and barber.get('weekly_holiday') is not None:
+            try:
+                weekly_holidays = [int(barber.get('weekly_holiday'))]
+            except (ValueError, TypeError):
+                weekly_holidays = []
+
+        closed_today = False
+        if barber.get('holiday_mode', False):
+            closed_today = True
+        elif today_str in barber.get('closed_dates', []):
+            closed_today = True
+        elif today_weekday in weekly_holidays:
+            closed_today = True
+
         profile = {
             'id': str(barber['_id']),
             'shopName': barber.get('shop_name', 'TrimTime Salon'),
@@ -565,6 +584,7 @@ def get_barber_profile(barber_id):
             'weeklyHolidays': barber.get('weekly_holidays', []),
             'closedDates': barber.get('closed_dates', []),
             'shifts': barber.get('shifts', []),
+            'closedToday': closed_today,
             'experience': barber.get('experience', 5),
             'description': barber.get('description', ''),
             'profilePic': barber.get('profile_pic', ''),
@@ -888,7 +908,9 @@ def rate_barber():
             {
                 '$set': {
                     'rating_avg': round(avg, 1),
-                    'rating_count': count
+                    'rating_count': count,
+                    'rating': round(avg, 1),
+                    'review_count': count
                 }
             }
         )

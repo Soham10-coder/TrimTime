@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { api, formatImageUrl } from '../../utils/api';
 import PaymentModal from '../../components/PaymentModal';
-import { Scissors, Clock, Calendar, Check, ArrowRight, User, Sparkles, Receipt, AlertCircle, ShieldCheck, MapPin, UserCheck, ExternalLink, Lock, AlertTriangle, LogIn, ZoomIn, X } from 'lucide-react';
+import { Scissors, Clock, Calendar, Check, ArrowRight, User, Sparkles, Receipt, AlertCircle, ShieldCheck, MapPin, UserCheck, ExternalLink, Lock, AlertTriangle, LogIn, ZoomIn, X, Star, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
@@ -40,6 +40,7 @@ export default function BookAppointment() {
   const [barber, setBarber] = useState(null);
   const [hairstyles, setHairstyles] = useState([]);
   const [staffList, setStaffList] = useState([]);
+  const [reviewsList, setReviewsList] = useState([]);
   
   // Selection States
   const [selectedStaff, setSelectedStaff] = useState(null);
@@ -50,7 +51,8 @@ export default function BookAppointment() {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   
-  // Payment Gateway Modal State
+  // Main Navigation Tab State (Amazon / Airbnb Style)
+  const [mainTab, setMainTab] = useState('booking'); // 'booking', 'reviews', 'info'
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [createdBooking, setCreatedBooking] = useState(null);
   const [selectedCategoryTab, setSelectedCategoryTab] = useState('All');
@@ -88,6 +90,7 @@ export default function BookAppointment() {
         setBarber(pData);
         setHairstyles(await hRes.json());
         setStaffList(pData.staff || []);
+        setReviewsList(pData.reviews || []);
       }
     } catch (e) {
       console.error("Error fetching booking profile:", e);
@@ -309,6 +312,31 @@ export default function BookAppointment() {
     return Math.max(0, servicePrice - discount);
   };
 
+  const getStaffHolidayInfo = (st, targetDateStr) => {
+    if (!st || !st.holiday) return null;
+    const daysName = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    
+    if (targetDateStr) {
+      const parts = targetDateStr.split('-');
+      if (parts.length === 3) {
+        const targetObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const pyWeekday = (targetObj.getDay() + 6) % 7; // Monday = 0 ... Sunday = 6
+        const targetWeekdayName = daysName[pyWeekday];
+        const staffHolidayStr = st.holiday.trim();
+        
+        if (staffHolidayStr.toLowerCase() === targetWeekdayName.toLowerCase()) {
+          return {
+            isOnHoliday: true,
+            staffName: st.name,
+            dayName: targetWeekdayName,
+            dateStr: targetDateStr
+          };
+        }
+      }
+    }
+    return null;
+  };
+
   if (loading) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
@@ -404,53 +432,110 @@ export default function BookAppointment() {
           </div>
         </div>
 
-        <a
-          href={barber?.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${barber?.lat || 18.5204},${barber?.lng || 73.8567}`}
-          target="_blank"
-          rel="noreferrer"
-          className="px-4 py-2.5 bg-accent-500 hover:bg-accent-600 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-sm whitespace-nowrap"
-        >
-          <MapPin className="w-4 h-4" /> View Shop Location on Google Maps <ExternalLink className="w-3.5 h-3.5" />
-        </a>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMainTab('reviews')}
+            className="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-2xl text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer transition-all"
+          >
+            <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+            <span>{barber?.ratingAvg > 0 ? barber.ratingAvg.toFixed(1) : (barber?.rating > 0 ? barber.rating.toFixed(1) : '4.9')} Rating</span>
+            <span className="text-amber-700 font-normal">({reviewsList.length} reviews)</span>
+          </button>
+
+          <a
+            href={barber?.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${barber?.lat || 18.5204},${barber?.lng || 73.8567}`}
+            target="_blank"
+            rel="noreferrer"
+            className="px-4 py-2.5 bg-accent-500 hover:bg-accent-600 text-white rounded-2xl text-xs font-bold flex items-center gap-2 shadow-sm whitespace-nowrap"
+          >
+            <MapPin className="w-4 h-4" /> View Location on Google Maps <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
       </div>
 
-      {/* STEPPER HEADER */}
-      <div className="flex justify-between text-xs font-bold border-b pb-3 text-brand-400">
-        <button 
-          onClick={() => setStep(1)}
-          className={`focus:outline-none transition-all pb-1 ${step === 1 ? 'text-accent-500 font-extrabold border-b-2 border-accent-500' : 'text-brand-600 dark:text-brand-350 hover:text-accent-500'}`}
+      {/* AMAZON / AIRBNB STYLE TOP TABS */}
+      <div className="flex border-b border-brand-200 gap-4 sm:gap-8 text-xs sm:text-sm font-bold text-brand-500 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setMainTab('booking')}
+          className={`pb-3 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+            mainTab === 'booking'
+              ? 'text-accent-600 font-extrabold border-b-2 border-accent-600'
+              : 'hover:text-brand-900'
+          }`}
         >
-          1. Select Services
+          <Scissors className="w-4 h-4" />
+          <span>Services & Booking</span>
         </button>
-        <button 
-          disabled={selectedHairstyles.length === 0}
-          onClick={() => setStep(2)}
-          className={`focus:outline-none transition-all pb-1 ${step === 2 ? 'text-accent-500 font-extrabold border-b-2 border-accent-500' : selectedHairstyles.length > 0 ? 'text-brand-700 dark:text-brand-200 hover:text-accent-500' : 'cursor-not-allowed opacity-50'}`}
+
+        <button
+          type="button"
+          onClick={() => setMainTab('reviews')}
+          className={`pb-3 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+            mainTab === 'reviews'
+              ? 'text-accent-600 font-extrabold border-b-2 border-accent-600'
+              : 'hover:text-brand-900'
+          }`}
         >
-          2. Select Stylist
+          <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+          <span>Customer Reviews & Ratings ({reviewsList.length})</span>
         </button>
-        <button 
-          disabled={selectedHairstyles.length === 0 || !selectedStaff}
-          onClick={() => setStep(3)}
-          className={`focus:outline-none transition-all pb-1 ${step === 3 ? 'text-accent-500 font-extrabold border-b-2 border-accent-500' : (selectedHairstyles.length > 0 && selectedStaff) ? 'text-brand-700 dark:text-brand-200 hover:text-accent-500' : 'cursor-not-allowed opacity-50'}`}
+
+        <button
+          type="button"
+          onClick={() => setMainTab('info')}
+          className={`pb-3 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+            mainTab === 'info'
+              ? 'text-accent-600 font-extrabold border-b-2 border-accent-600'
+              : 'hover:text-brand-900'
+          }`}
         >
-          3. Select Date
-        </button>
-        <button 
-          disabled={selectedHairstyles.length === 0 || !selectedStaff || !selectedDate}
-          onClick={() => setStep(4)}
-          className={`focus:outline-none transition-all pb-1 ${step === 4 ? 'text-accent-500 font-extrabold border-b-2 border-accent-500' : (selectedHairstyles.length > 0 && selectedStaff && selectedDate) ? 'text-brand-700 dark:text-brand-200 hover:text-accent-500' : 'cursor-not-allowed opacity-50'}`}
-        >
-          4. Select Time
-        </button>
-        <button 
-          disabled={selectedHairstyles.length === 0 || !selectedStaff || !selectedDate || !selectedSlot}
-          onClick={() => setStep(5)}
-          className={`focus:outline-none transition-all pb-1 ${step === 5 ? 'text-accent-500 font-extrabold border-b-2 border-accent-500' : (selectedHairstyles.length > 0 && selectedStaff && selectedDate && selectedSlot) ? 'text-brand-700 dark:text-brand-200 hover:text-accent-500' : 'cursor-not-allowed opacity-50'}`}
-        >
-          5. Checkout & Payment
+          <MapPin className="w-4 h-4" />
+          <span>Shop Info & Hours</span>
         </button>
       </div>
+
+      {/* 1. SERVICES & BOOKING TAB */}
+      {mainTab === 'booking' && (
+        <>
+          {/* STEPPER HEADER */}
+          <div className="flex justify-between text-xs font-bold border-b pb-3 text-brand-400">
+            <button 
+              onClick={() => setStep(1)}
+              className={`focus:outline-none transition-all pb-1 ${step === 1 ? 'text-accent-500 font-extrabold border-b-2 border-accent-500' : 'text-brand-600 hover:text-accent-500'}`}
+            >
+              1. Select Services
+            </button>
+            <button 
+              disabled={selectedHairstyles.length === 0}
+              onClick={() => setStep(2)}
+              className={`focus:outline-none transition-all pb-1 ${step === 2 ? 'text-accent-500 font-extrabold border-b-2 border-accent-500' : selectedHairstyles.length > 0 ? 'text-brand-700 hover:text-accent-500' : 'cursor-not-allowed opacity-50'}`}
+            >
+              2. Select Stylist
+            </button>
+            <button 
+              disabled={selectedHairstyles.length === 0 || !selectedStaff}
+              onClick={() => setStep(3)}
+              className={`focus:outline-none transition-all pb-1 ${step === 3 ? 'text-accent-500 font-extrabold border-b-2 border-accent-500' : (selectedHairstyles.length > 0 && selectedStaff) ? 'text-brand-700 hover:text-accent-500' : 'cursor-not-allowed opacity-50'}`}
+            >
+              3. Select Date
+            </button>
+            <button 
+              disabled={selectedHairstyles.length === 0 || !selectedStaff || !selectedDate}
+              onClick={() => setStep(4)}
+              className={`focus:outline-none transition-all pb-1 ${step === 4 ? 'text-accent-500 font-extrabold border-b-2 border-accent-500' : (selectedHairstyles.length > 0 && selectedStaff && selectedDate) ? 'text-brand-700 hover:text-accent-500' : 'cursor-not-allowed opacity-50'}`}
+            >
+              4. Select Time Slot
+            </button>
+            <button 
+              disabled={selectedHairstyles.length === 0 || !selectedStaff || !selectedDate || !selectedSlot}
+              onClick={() => setStep(5)}
+              className={`focus:outline-none transition-all pb-1 ${step === 5 ? 'text-accent-500 font-extrabold border-b-2 border-accent-500' : (selectedHairstyles.length > 0 && selectedStaff && selectedDate && selectedSlot) ? 'text-brand-700 hover:text-accent-500' : 'cursor-not-allowed opacity-50'}`}
+            >
+              5. Checkout & Payment
+            </button>
+          </div>
 
       {/* STEP 1: SELECT SERVICE (MULTIPLE SELECT) */}
       {step === 1 && (
@@ -557,38 +642,58 @@ export default function BookAppointment() {
             {staffList.length === 0 ? (
               <div 
                 onClick={() => handleStaffSelect({ name: barber?.ownerName || 'Senior Barber', role: 'Owner & Master Stylist' })} 
-                className="p-5 bg-white dark:bg-brand-900 border-2 hover:border-accent-500 rounded-3xl cursor-pointer shadow-sm flex items-center gap-4"
+                className="p-5 bg-white border-2 hover:border-accent-500 rounded-3xl cursor-pointer shadow-sm flex items-center gap-4"
               >
                 <div className="w-12 h-12 rounded-2xl bg-accent-100 text-accent-700 font-bold flex items-center justify-center text-base">
                   {barber?.ownerName?.charAt(0) || 'S'}
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-brand-900 dark:text-brand-50">{barber?.ownerName || 'Senior Barber'}</h3>
+                  <h3 className="font-bold text-sm text-brand-900">{barber?.ownerName || 'Senior Barber'}</h3>
                   <p className="text-xs text-accent-600 font-semibold">Owner & Master Stylist</p>
                 </div>
               </div>
             ) : (
-              staffList.map((st, idx) => (
-                <div 
-                  key={idx} 
-                  onClick={() => handleStaffSelect(st)}
-                  className={`p-5 bg-white dark:bg-brand-900 border-2 rounded-3xl cursor-pointer transition-all flex items-center justify-between ${
-                    selectedStaff?.name === st.name ? 'border-accent-500 shadow-md ring-2 ring-accent-500/20' : 'hover:border-brand-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-accent-100 text-accent-700 font-bold flex items-center justify-center text-base overflow-hidden">
-                      {st.photoUrl ? <img src={st.photoUrl} alt={st.name} className="w-full h-full object-cover" /> : st.name?.charAt(0)}
+              staffList.map((st, idx) => {
+                const hInfo = getStaffHolidayInfo(st, selectedDate);
+                const isSelected = selectedStaff?.name === st.name;
+                return (
+                  <div 
+                    key={idx} 
+                    onClick={() => handleStaffSelect(st)}
+                    className={`p-5 bg-white border-2 rounded-3xl cursor-pointer transition-all flex items-center justify-between ${
+                      isSelected ? 'border-accent-500 shadow-md ring-2 ring-accent-500/20' : 'hover:border-brand-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-accent-100 text-accent-700 font-bold flex items-center justify-center text-base overflow-hidden flex-shrink-0">
+                        {st.photoUrl ? <img src={st.photoUrl} alt={st.name} className="w-full h-full object-cover" /> : st.name?.charAt(0)}
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="font-bold text-sm text-brand-900">{st.name}</h3>
+                        <p className="text-xs text-accent-600 font-semibold">{st.role}</p>
+                        <p className="text-[10px] text-brand-500 font-medium">Shift: {st.shift || '09:00 AM - 08:00 PM'}</p>
+                        
+                        {/* ON LEAVE / WEEKLY OFF BADGE */}
+                        {st.holiday && (
+                          <div className={`mt-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-md inline-flex items-center gap-1 ${
+                            hInfo?.isOnHoliday
+                              ? 'bg-red-100 text-red-700 border border-red-200'
+                              : 'bg-amber-50 text-amber-800 border border-amber-200'
+                          }`}>
+                            <Calendar className="w-3 h-3" />
+                            <span>
+                              {hInfo?.isOnHoliday 
+                                ? `ON LEAVE ON ${hInfo.dayName.toUpperCase()}S`
+                                : `Weekly Off: ${st.holiday}`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-sm text-brand-900 dark:text-brand-50">{st.name}</h3>
-                      <p className="text-xs text-accent-600 font-semibold">{st.role}</p>
-                      <p className="text-[10px] text-brand-400">Shift: {st.shift || '09:00 AM - 08:00 PM'}</p>
-                    </div>
+                    <ArrowRight className="w-4 h-4 text-brand-400" />
                   </div>
-                  <ArrowRight className="w-4 h-4 text-brand-400" />
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -603,23 +708,47 @@ export default function BookAppointment() {
             </h2>
             <button onClick={() => setStep(2)} className="text-xs text-accent-500 font-bold">Change Stylist</button>
           </div>
+          <div className="flex overflow-x-auto gap-3 pb-3 scrollbar-none">
+            {getNextDays().map((d) => {
+              const isSelected = selectedDate === d.dateStr;
+              const staffHolidayInfo = getStaffHolidayInfo(selectedStaff, d.dateStr);
+              const isStaffOnLeave = staffHolidayInfo?.isOnHoliday;
 
-          <div className="flex overflow-x-auto gap-3 pb-2">
-            {getNextDays().map((d) => (
-              <button
-                key={d.dateStr}
-                disabled={d.isClosed}
-                onClick={() => handleDateSelect(d.dateStr)}
-                className={`min-w-[70px] p-4 rounded-2xl border text-center transition-all flex flex-col items-center gap-1 ${
-                  d.isClosed ? 'opacity-40 bg-brand-100 cursor-not-allowed' :
-                  selectedDate === d.dateStr ? 'bg-accent-500 text-white border-accent-600 shadow-md' : 'bg-white dark:bg-brand-900 hover:border-accent-400'
-                }`}
-              >
-                <span className="text-[10px] font-bold uppercase tracking-wider">{d.dayName}</span>
-                <span className="text-xl font-extrabold font-display">{d.dayNum}</span>
-                <span className="text-[10px]">{d.month}</span>
-              </button>
-            ))}
+              return (
+                <button
+                  key={d.dateStr}
+                  disabled={d.isClosed}
+                  onClick={() => handleDateSelect(d.dateStr)}
+                  className={`min-w-[90px] p-4 rounded-2xl border text-center transition-all flex flex-col items-center gap-1 relative ${
+                    d.isClosed 
+                      ? 'opacity-50 bg-brand-100 cursor-not-allowed border-brand-200 text-brand-400' 
+                      : isStaffOnLeave
+                      ? 'bg-amber-50 border-amber-300 text-amber-900 ring-2 ring-amber-400/40 shadow-xs'
+                      : isSelected 
+                      ? 'bg-accent-500 text-white border-accent-600 shadow-md scale-105 ring-2 ring-accent-300' 
+                      : 'bg-white border-brand-200 hover:border-accent-400 text-brand-900'
+                  }`}
+                >
+                  <span className={`text-[10px] font-extrabold uppercase tracking-wider ${isSelected ? 'text-white/80' : 'text-brand-500'}`}>{d.dayName}</span>
+                  <span className="text-2xl font-black font-display leading-none my-0.5">{d.dayNum}</span>
+                  <span className={`text-[10px] font-bold ${isSelected ? 'text-white/80' : 'text-brand-400'}`}>{d.month}</span>
+
+                  {/* SHOP CLOSED BADGE */}
+                  {d.isClosed && (
+                    <span className="text-[9px] font-extrabold text-red-600 uppercase bg-red-100 px-1.5 py-0.5 rounded mt-1 border border-red-200">
+                      Closed
+                    </span>
+                  )}
+
+                  {/* STAFF ON LEAVE BADGE ON THE DATE BUTTON */}
+                  {!d.isClosed && isStaffOnLeave && (
+                    <span className="text-[9px] font-extrabold text-amber-800 uppercase bg-amber-200/90 px-1.5 py-0.5 rounded mt-1 whitespace-nowrap border border-amber-300">
+                      {selectedStaff?.name ? `${selectedStaff.name.split(' ')[0]} Off` : 'Staff Off'}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -637,7 +766,47 @@ export default function BookAppointment() {
           {slotsLoading ? (
             <div className="py-12 text-center text-xs text-brand-400">Loading open slots...</div>
           ) : slots.length === 0 ? (
-            <div className="py-12 text-center text-xs text-brand-400 bg-white dark:bg-brand-900 rounded-3xl border">No available slots for this date/stylist. Please select another date.</div>
+            (() => {
+              const hInfo = getStaffHolidayInfo(selectedStaff, selectedDate);
+              if (hInfo?.isOnHoliday) {
+                return (
+                  <div className="py-10 px-6 text-center bg-amber-50/90 border-2 border-amber-300 rounded-3xl space-y-4 shadow-sm">
+                    <div className="w-12 h-12 bg-amber-500/20 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
+                      <Calendar className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-amber-900 font-display">
+                        {selectedStaff?.name} is on Weekly Off on {hInfo.dayName}s
+                      </h3>
+                      <p className="text-xs text-amber-800 font-medium mt-1 max-w-md mx-auto">
+                        {selectedStaff?.name} takes his scheduled weekly off on {hInfo.dayName}s ({selectedDate}). Please select another barber or choose a different date.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setStep(2)}
+                        className="px-4 py-2.5 bg-brand-900 hover:bg-brand-800 text-white font-bold rounded-xl text-xs shadow-xs transition-all flex items-center gap-1.5"
+                      >
+                        <UserCheck className="w-4 h-4" /> Select Different Stylist
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStep(3)}
+                        className="px-4 py-2.5 bg-accent-500 hover:bg-accent-600 text-white font-bold rounded-xl text-xs shadow-xs transition-all flex items-center gap-1.5"
+                      >
+                        <Calendar className="w-4 h-4" /> Choose Different Date
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div className="py-12 text-center text-xs text-brand-500 bg-white rounded-3xl border border-brand-200">
+                  No available slots for this date. Please select another date or stylist.
+                </div>
+              );
+            })()
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
               {slots.map((s) => (
@@ -764,6 +933,183 @@ export default function BookAppointment() {
             <span>Proceed to Secure Payment (₹{getTotalPayable()})</span>
             <ArrowRight className="w-4 h-4" />
           </button>
+        </div>
+      )}
+      </>
+      )}
+
+      {/* 2. REVIEWS TAB (AMAZON / AIRBNB STYLE) */}
+      {mainTab === 'reviews' && (
+        <div className="space-y-8 animate-fadeIn">
+          {/* Rating Summary Box */}
+          <div className="bg-white border border-brand-200 rounded-3xl p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="text-center md:text-left space-y-2">
+              <div className="text-5xl font-black font-display text-brand-900 flex items-center justify-center md:justify-start gap-3">
+                <span>{barber?.ratingAvg > 0 ? barber.ratingAvg.toFixed(1) : (barber?.rating > 0 ? barber.rating.toFixed(1) : '4.9')}</span>
+                <span className="text-2xl font-bold text-brand-400">/ 5.0</span>
+              </div>
+              <div className="flex items-center justify-center md:justify-start gap-1">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star key={s} className="w-5 h-5 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+              <p className="text-xs text-brand-500 font-bold uppercase tracking-wider">
+                Based on {reviewsList.length > 0 ? `${reviewsList.length} verified customer reviews` : 'Top-rated partner salon'}
+              </p>
+            </div>
+
+            {/* Amazon-style Star Breakdown Bar Chart */}
+            <div className="w-full md:w-72 space-y-2 text-xs font-bold text-brand-600">
+              <div className="flex items-center gap-3">
+                <span className="w-8 text-right">5 ★</span>
+                <div className="flex-grow h-2.5 bg-brand-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-amber-400 rounded-full" style={{ width: '85%' }}></div>
+                </div>
+                <span className="w-8 text-left font-mono">85%</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="w-8 text-right">4 ★</span>
+                <div className="flex-grow h-2.5 bg-brand-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-amber-400 rounded-full" style={{ width: '12%' }}></div>
+                </div>
+                <span className="w-8 text-left font-mono">12%</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="w-8 text-right">3 ★</span>
+                <div className="flex-grow h-2.5 bg-brand-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-amber-400 rounded-full" style={{ width: '3%' }}></div>
+                </div>
+                <span className="w-8 text-left font-mono">3%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Individual Reviews Cards */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-black font-display text-brand-900">
+                Customer Reviews & Feedback ({reviewsList.length})
+              </h3>
+              <button
+                type="button"
+                onClick={() => setMainTab('booking')}
+                className="px-4 py-2 bg-accent-500 hover:bg-accent-600 text-white rounded-xl text-xs font-bold transition-all"
+              >
+                Book Appointment Now
+              </button>
+            </div>
+
+            {reviewsList.length === 0 ? (
+              <div className="bg-white border border-brand-200 rounded-3xl p-12 text-center text-brand-500 space-y-3">
+                <MessageSquare className="w-10 h-10 text-brand-300 mx-auto" />
+                <h4 className="font-bold text-sm text-brand-800">No written reviews submitted yet</h4>
+                <p className="text-xs">Be the first customer to leave feedback after your appointment at {barber?.shopName}!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {reviewsList.map((rev) => (
+                  <div key={rev.id} className="bg-white border border-brand-200 rounded-2xl p-5 space-y-3 shadow-xs">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-accent-500/10 text-accent-600 font-black text-sm flex items-center justify-center font-display border border-accent-500/20">
+                          {rev.customerName ? rev.customerName.charAt(0).toUpperCase() : 'C'}
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-sm text-brand-900 block">{rev.customerName || 'Verified Customer'}</span>
+                          <span className="text-[10px] font-semibold text-brand-400">{rev.date}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg text-xs font-bold text-amber-700">
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <span>{rev.rating}.0</span>
+                      </div>
+                    </div>
+                    {rev.comment && (
+                      <p className="text-xs text-brand-700 leading-relaxed font-medium pl-1">
+                        "{rev.comment}"
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 3. SHOP INFO TAB */}
+      {mainTab === 'info' && (
+        <div className="space-y-6 animate-fadeIn">
+          <div className="bg-white border border-brand-200 rounded-3xl p-8 space-y-6 shadow-sm">
+            <div>
+              <span className="text-[10px] font-extrabold text-accent-600 uppercase tracking-widest block mb-1">
+                About The Salon
+              </span>
+              <h3 className="text-2xl font-black font-display text-brand-900">{barber?.shopName}</h3>
+            </div>
+            <p className="text-xs text-brand-600 leading-relaxed font-medium">
+              {barber?.description || 'Premier salon lounge offering expert haircutting, precision beard styling, glowing facial therapies, and executive grooming packages.'}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 bg-brand-50 rounded-2xl border border-brand-200 text-xs space-y-1">
+                <span className="text-brand-400 font-bold uppercase tracking-wider text-[10px]">Operating Shift Hours</span>
+                <p className="font-extrabold text-brand-900">{barber?.openingTime || '09:00 AM'} - {barber?.closingTime || '08:00 PM'}</p>
+              </div>
+
+              <div className="p-4 bg-brand-50 rounded-2xl border border-brand-200 text-xs space-y-1">
+                <span className="text-brand-400 font-bold uppercase tracking-wider text-[10px]">Weekly Holiday Off-Day</span>
+                <p className="font-extrabold text-brand-900 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span>
+                    {(() => {
+                      const daysName = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                      if (barber?.weeklyHolidays && barber.weeklyHolidays.length > 0) {
+                        return barber.weeklyHolidays.map(d => daysName[d]).join(', ');
+                      }
+                      if (barber?.weeklyHoliday !== undefined && barber.weeklyHoliday !== null && barber.weeklyHoliday !== '') {
+                        const idx = Number(barber.weeklyHoliday);
+                        if (!isNaN(idx) && idx >= 0 && idx < 7) return daysName[idx];
+                      }
+                      return 'Open All 7 Days';
+                    })()}
+                  </span>
+                </p>
+              </div>
+
+              <div className="p-4 bg-brand-50 rounded-2xl border border-brand-200 text-xs space-y-1">
+                <span className="text-brand-400 font-bold uppercase tracking-wider text-[10px]">Today's Shop Status</span>
+                <p className="font-extrabold text-brand-900 flex items-center gap-1.5">
+                  {barber?.closedToday || barber?.holidayMode ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      <span className="text-red-600 font-extrabold uppercase">Closed Today for Holiday</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                      <span className="text-emerald-700 font-extrabold uppercase">Open & Taking Appointments</span>
+                    </>
+                  )}
+                </p>
+              </div>
+
+              <div className="p-4 bg-brand-50 rounded-2xl border border-brand-200 text-xs space-y-1">
+                <span className="text-brand-400 font-bold uppercase tracking-wider text-[10px]">Shop Address</span>
+                <p className="font-extrabold text-brand-900 truncate">{barber?.address || barber?.city}</p>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <a
+                href={barber?.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${barber?.lat || 18.5204},${barber?.lng || 73.8567}`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-6 py-3.5 bg-accent-500 hover:bg-accent-600 text-white rounded-2xl text-xs font-bold inline-flex items-center gap-2 shadow-md transition-all"
+              >
+                <MapPin className="w-4 h-4" /> Open Turn-by-Turn GPS Directions on Google Maps <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
         </div>
       )}
 
