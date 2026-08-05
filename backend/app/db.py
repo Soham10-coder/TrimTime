@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize MongoClient
 try:
-    client = MongoClient(Config.MONGO_URI)
+    client = MongoClient(Config.MONGO_URI, serverSelectionTimeoutMS=5000, connectTimeoutMS=5000)
     db = client[Config.DB_NAME]
     logger.info(f"Connected to MongoDB database: {Config.DB_NAME}")
 except Exception as e:
