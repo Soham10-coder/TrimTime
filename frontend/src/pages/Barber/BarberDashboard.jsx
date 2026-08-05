@@ -987,7 +987,7 @@ export default function BarberDashboard() {
 
           {/* CUSTOM SALON SERVICES SECTION */}
           {(() => {
-            const customServices = (hairstyles || []).filter(h => h.isCustom);
+            const customServices = (hairstyles || []).filter(h => h && (h.isCustom || h.is_custom));
             if (customServices.length === 0) return null;
             
             return (
@@ -996,76 +996,80 @@ export default function BarberDashboard() {
                   ✨ Custom Salon-Created Services ({customServices.length})
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {customServices.map((s) => (
-                    <div key={s.id} className="bg-white dark:bg-brand-900 rounded-2xl border border-brand-200 dark:border-brand-800 shadow-sm overflow-hidden flex flex-col justify-between">
-                      <div 
-                        className="relative h-32 bg-brand-100 group cursor-pointer overflow-hidden"
-                        onClick={() => setPreviewImage({
-                          url: formatImageUrl(s.imageUrl) || getServiceFallbackImage(s.category),
-                          title: s.name,
-                          category: s.category,
-                          price: s.price,
-                          duration: s.duration
-                        })}
-                      >
-                        <img src={formatImageUrl(s.imageUrl) || getServiceFallbackImage(s.category)} alt={s.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 text-xs font-bold backdrop-blur-[1px]">
-                          <ZoomIn className="w-4 h-4" /> View Full Image
-                        </div>
-                        <span className="absolute top-2.5 right-2.5 bg-accent-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10">
-                          Custom
-                        </span>
-                      </div>
-                      
-                      <div className="p-4 space-y-2 flex-grow flex flex-col justify-between">
-                        <div>
-                          <div className="flex justify-between items-start">
-                            <span className="font-extrabold text-xs text-brand-800 dark:text-brand-200">{s.name}</span>
-                            <span className="font-mono font-bold text-xs text-accent-500">₹{s.price}</span>
+                  {customServices.map((s, idx) => {
+                    if (!s) return null;
+                    const imageSrc = formatImageUrl(s.imageUrl || s.image_url) || getServiceFallbackImage(s.category);
+                    return (
+                      <div key={s.id || s._id || idx} className="bg-white dark:bg-brand-900 rounded-2xl border border-brand-200 dark:border-brand-800 shadow-sm overflow-hidden flex flex-col justify-between">
+                        <div 
+                          className="relative h-32 bg-brand-100 group cursor-pointer overflow-hidden"
+                          onClick={() => setPreviewImage({
+                            url: imageSrc,
+                            title: s.name || 'Custom Service',
+                            category: s.category || 'Others',
+                            price: s.price || 0,
+                            duration: s.duration || 30
+                          })}
+                        >
+                          <img src={imageSrc} alt={s.name || 'Service'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 text-xs font-bold backdrop-blur-[1px]">
+                            <ZoomIn className="w-4 h-4" /> View Full Image
                           </div>
-                          <p className="text-[10px] text-brand-500 mt-1 line-clamp-2">{s.description || 'No description notes.'}</p>
+                          <span className="absolute top-2.5 right-2.5 bg-accent-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10">
+                            Custom
+                          </span>
                         </div>
                         
-                        <div className="flex justify-between items-center text-[10px] font-semibold text-brand-400 border-t pt-2">
-                          <span>⏱️ {s.duration} Min</span>
-                          {s.loyaltyPoints !== undefined && s.loyaltyPoints !== null && (
-                            <span className="text-yellow-600">🏆 {s.loyaltyPoints} Pts</span>
-                          )}
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-2 pt-2 border-t mt-2">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditService(s)}
-                            className="py-1.5 bg-brand-100 hover:bg-brand-200 dark:bg-brand-800 text-brand-700 dark:text-brand-250 font-bold rounded-lg text-[10px]"
-                          >
-                            Edit Service
-                          </button>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (window.confirm(`Are you sure you want to delete "${s.name}"?`)) {
-                                try {
-                                  const res = await api.delete(`/barber/hairstyles/${s.id}`);
-                                  if (res.ok) {
-                                    // Refresh both profile details and hairstyles
-                                    fetchBarberDashboardData();
-                                  } else {
-                                    alert("Failed to delete custom service.");
+                        <div className="p-4 space-y-2 flex-grow flex flex-col justify-between">
+                          <div>
+                            <div className="flex justify-between items-start">
+                              <span className="font-extrabold text-xs text-brand-800 dark:text-brand-200">{s.name}</span>
+                              <span className="font-mono font-bold text-xs text-accent-500">₹{s.price}</span>
+                            </div>
+                            <p className="text-[10px] text-brand-500 mt-1 line-clamp-2">{s.description || 'No description notes.'}</p>
+                          </div>
+                          
+                          <div className="flex justify-between items-center text-[10px] font-semibold text-brand-400 border-t pt-2">
+                            <span>⏱️ {s.duration} Min</span>
+                            {s.loyaltyPoints !== undefined && s.loyaltyPoints !== null && (
+                              <span className="text-yellow-600">🏆 {s.loyaltyPoints} Pts</span>
+                            )}
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-2 pt-2 border-t mt-2">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditService(s)}
+                              className="py-1.5 bg-brand-100 hover:bg-brand-200 dark:bg-brand-800 text-brand-700 dark:text-brand-250 font-bold rounded-lg text-[10px]"
+                            >
+                              Edit Service
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (window.confirm(`Are you sure you want to delete "${s.name}"?`)) {
+                                  try {
+                                    const res = await api.delete(`/barber/hairstyles/${s.id}`);
+                                    if (res.ok) {
+                                      // Refresh both profile details and hairstyles
+                                      fetchBarberDashboardData();
+                                    } else {
+                                      alert("Failed to delete custom service.");
+                                    }
+                                  } catch (e) {
+                                    alert("Error deleting service.");
                                   }
-                                } catch (e) {
-                                  alert("Error deleting service.");
                                 }
-                              }
-                            }}
-                            className="py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg text-[10px]"
-                          >
-                            Delete
-                          </button>
+                              }}
+                              className="py-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg text-[10px]"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
