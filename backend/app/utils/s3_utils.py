@@ -12,10 +12,12 @@ try:
 except ImportError:
     HAS_BOTO3 = False
 
-AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-AWS_S3_BUCKET_NAME = os.getenv('AWS_S3_BUCKET_NAME', 'trimtime-salon-media')
-AWS_REGION = os.getenv('AWS_REGION', 'ap-south-1')
+from config import get_env_clean
+
+AWS_ACCESS_KEY_ID = get_env_clean('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = get_env_clean('AWS_SECRET_ACCESS_KEY')
+AWS_S3_BUCKET_NAME = get_env_clean('AWS_S3_BUCKET_NAME', 'trimtimebucket')
+AWS_REGION = get_env_clean('AWS_REGION', 'us-east-2')
 
 def upload_to_s3(file_obj, folder='general'):
     """
