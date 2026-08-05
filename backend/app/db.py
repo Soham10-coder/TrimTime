@@ -122,9 +122,22 @@ def seed_default_data():
             hairstyles_col.insert_many(services)
             logger.info("SB Salon and services seeded successfully.")
 
-        # 3. Cleanup legacy demo accounts if present
-        barbers_col.delete_many({'email': 'urban@trimtime.com'})
-        users_col.delete_many({'email': 'customer@trimtime.com'})
+        # 3. Seed Demo Customer if not present
+        cust_email = "customer@trimtime.com"
+        if not users_col.find_one({'email': cust_email}):
+            users_col.insert_one({
+                'name': 'Swayam Customer',
+                'email': cust_email,
+                'phone': '9876543211',
+                'password': hash_password('123456'),
+                'role': 'customer',
+                'verified': True,
+                'loyalty_points': 250,
+                'created_at': now
+            })
+            logger.info("Demo Customer account seeded successfully.")
+
+        logger.info("Database auto-healing and account safeguard completed cleanly.")
 
     except Exception as e:
-        logger.error(f"Error seeding default data: {e}")
+        logger.error(f"Error in seed_default_data: {e}")
