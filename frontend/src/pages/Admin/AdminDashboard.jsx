@@ -889,15 +889,14 @@ export default function AdminDashboard() {
                       <option value="Men's Hair Services">Men's Hair Services</option>
                       <option value="Women's Hair Services">Women's Hair Services</option>
                       <option value="Kids Hair Services">Kids Hair Services</option>
-                      <option value="Men Grooming">Men's Grooming</option>
-                      <option value="Skin & Facial">Skin & Facial</option>
-                      <option value="Makeup">Makeup</option>
-                      <option value="Nails">Nails</option>
-                      <option value="Hair Removal">Hair Removal</option>
-                      <option value="Spa">Spa</option>
+                      <option value="Men's Grooming & Shaving">Men's Grooming & Shaving</option>
+                      <option value="Skin & Facials">Skin & Facials</option>
+                      <option value="Makeup & Styling">Makeup & Styling</option>
+                      <option value="Nails & Manicure">Nails & Manicure</option>
+                      <option value="Waxing & Hair Removal">Waxing & Hair Removal</option>
+                      <option value="Spa & Head Massages">Spa & Head Massages</option>
                       <option value="Eyebrows & Eyelashes">Eyebrows & Eyelashes</option>
-                      <option value="Bridal">Bridal</option>
-                      <option value="Other">Other</option>
+                      <option value="Bridal Packages">Bridal Packages</option>
                     </select>
                   </div>
                   <div>
