@@ -24,7 +24,7 @@ class Config:
     
     # MongoDB settings
     MONGO_URI = get_env_clean('MONGO_URI', 'mongodb://localhost:27017/')
-    DB_NAME = 'trimtime'
+    DB_NAME = 'findmysalon'
     
     # SMTP Settings
     MAIL_SERVER = get_env_clean('MAIL_SERVER', 'smtp.gmail.com')
