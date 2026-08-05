@@ -93,4 +93,4 @@ jobs:
 
             docker pull $REGISTRY/trimtime-backend:$IMAGE_TAG
             docker pull $REGISTRY/trimtime-frontend:$IMAGE_TAG
-            /usr/local/bin/docker-compose up -d --remove-orphans
+            docker compose up -d --remove-orphans || /usr/local/bin/docker-compose up -d --remove-orphans || docker-compose up -d --remove-orphans
