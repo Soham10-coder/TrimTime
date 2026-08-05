@@ -34,6 +34,8 @@ export default function AdminDashboard() {
   const [serviceIcon, setServiceIcon] = useState('Scissors');
   const [serviceCover, setServiceCover] = useState('');
   const [serviceImageFile, setServiceImageFile] = useState(null);
+  const [selectedMasterCategory, setSelectedMasterCategory] = useState('All');
+  const [masterSearchQuery, setMasterSearchQuery] = useState('');
 
   useEffect(() => {
     fetchAdminData();
@@ -711,70 +713,144 @@ export default function AdminDashboard() {
         {/* PANEL 5: MASTER SERVICES CATALOG */}
         {activeTab === 'catalog' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white dark:bg-brand-900 p-6 rounded-3xl border border-brand-200 dark:border-brand-800 shadow-sm gap-4">
               <div>
-                <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50">Master Services Catalog</h3>
-                <p className="text-xs text-brand-500">Configure global services, categories, standard durations, and cover images.</p>
+                <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 flex items-center gap-2">
+                  <Scissors className="w-5 h-5 text-accent-500" />
+                  Master Services Catalog ({masterServices.length})
+                </h3>
+                <p className="text-xs text-brand-500 mt-0.5">Configure global services, categories, standard durations, and cover images.</p>
               </div>
-              <button
-                onClick={handleOpenAddMasterService}
-                className="px-4 py-2.5 bg-accent-500 hover:bg-accent-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-accent-500/10 transition-all"
-              >
-                <Plus className="w-4 h-4" /> Add Master Service
-              </button>
+
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <input
+                  type="text"
+                  placeholder="Search master services..."
+                  value={masterSearchQuery}
+                  onChange={(e) => setMasterSearchQuery(e.target.value)}
+                  className="px-3.5 py-2 bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-xl text-xs outline-none focus:ring-1 focus:ring-accent-500 flex-1 md:w-56"
+                />
+                <button
+                  onClick={handleOpenAddMasterService}
+                  className="px-4 py-2.5 bg-accent-500 hover:bg-accent-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-accent-500/10 transition-all whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4" /> Add Master Service
+                </button>
+              </div>
             </div>
 
-            <div className="bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 rounded-3xl p-6 shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-brand-100 dark:border-brand-800/60 text-xs font-bold uppercase text-brand-400">
-                      <th className="pb-3 pr-4">Image</th>
-                      <th className="pb-3 pr-4">Service Name</th>
-                      <th className="pb-3 pr-4">Category</th>
-                      <th className="pb-3 pr-4">Duration</th>
-                      <th className="pb-3 pr-4">Icon</th>
-                      <th className="pb-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-brand-100/50 dark:divide-brand-800/40 text-sm">
-                    {masterServices.map((s) => (
-                      <tr key={s.id} className="hover:bg-brand-50/30 dark:hover:bg-brand-800/10">
-                        <td className="py-3.5 pr-4">
-                          <img
-                            src={formatImageUrl(s.cover_image || s.coverImage) || 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=60'}
-                            alt={s.name}
-                            className="w-12 h-8 rounded-lg object-cover border"
-                          />
-                        </td>
-                        <td className="py-3.5 pr-4 font-bold text-brand-900 dark:text-brand-50">{s.name}</td>
-                        <td className="py-3.5 pr-4">
-                          <span className="px-2 py-0.5 bg-brand-100 dark:bg-brand-800 text-brand-700 dark:text-brand-300 text-xs font-bold rounded-md">
-                            {s.category}
+            {/* CATEGORY SWEEP SWITCHER TABS */}
+            {(() => {
+              const allCategories = ['All', ...new Set((masterServices || []).map(s => s.category).filter(Boolean))];
+              const filteredServices = (masterServices || []).filter((s) => {
+                const matchesCategory = selectedMasterCategory === 'All' || s.category === selectedMasterCategory;
+                const matchesSearch = !masterSearchQuery.trim() || 
+                  s.name?.toLowerCase().includes(masterSearchQuery.toLowerCase()) || 
+                  s.category?.toLowerCase().includes(masterSearchQuery.toLowerCase());
+                return matchesCategory && matchesSearch;
+              });
+
+              const getCategoryBadgeStyle = (cat) => {
+                switch(cat) {
+                  case "Men's Hair Services": return "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200";
+                  case "Women's Hair Services": return "bg-pink-100 text-pink-800 dark:bg-pink-950/60 dark:text-pink-300 border-pink-200";
+                  case "Men Grooming": return "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200";
+                  case "Skin & Facial": return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200";
+                  case "Spa": return "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200";
+                  case "Hair Color": return "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200";
+                  case "Nails": return "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200";
+                  case "Bridal": return "bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300 border-violet-200";
+                  default: return "bg-brand-100 text-brand-700 dark:bg-brand-800 dark:text-brand-300 border-brand-200";
+                }
+              };
+
+              return (
+                <div className="space-y-4">
+                  <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-none border-b border-brand-100 dark:border-brand-800">
+                    {allCategories.map((cat) => {
+                      const count = cat === 'All' ? masterServices.length : masterServices.filter(s => s.category === cat).length;
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setSelectedMasterCategory(cat)}
+                          className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                            selectedMasterCategory === cat
+                              ? 'bg-accent-500 text-white shadow-sm scale-105'
+                              : 'bg-brand-100 hover:bg-brand-200 dark:bg-brand-800 dark:hover:bg-brand-700 text-brand-700 dark:text-brand-300'
+                          }`}
+                        >
+                          <span>{cat === 'All' ? '🌟 All Categories' : cat}</span>
+                          <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${selectedMasterCategory === cat ? 'bg-white/20 text-white' : 'bg-brand-200 dark:bg-brand-700 text-brand-800 dark:text-brand-200'}`}>
+                            {count}
                           </span>
-                        </td>
-                        <td className="py-3.5 pr-4 font-mono font-semibold text-brand-700 dark:text-brand-300">{s.default_duration || s.defaultDuration || 30} mins</td>
-                        <td className="py-3.5 pr-4 text-xs font-mono text-brand-400">{s.icon || 'Scissors'}</td>
-                        <td className="py-3.5 text-right space-x-2">
-                          <button
-                            onClick={() => handleOpenEditMasterService(s)}
-                            className="px-2.5 py-1 bg-brand-50 hover:bg-brand-100 dark:bg-brand-800 dark:hover:bg-brand-700 text-brand-700 dark:text-brand-200 rounded-lg text-xs font-semibold border transition-all inline-flex items-center gap-1"
-                          >
-                            <Edit className="w-3.5 h-3.5" /> Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteMasterService(s.id)}
-                            className="px-2.5 py-1 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg text-xs font-semibold border border-red-200/30 transition-all inline-flex items-center gap-1"
-                          >
-                            <Trash className="w-3.5 h-3.5" /> Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 rounded-3xl p-6 shadow-sm">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-brand-100 dark:border-brand-800/60 text-xs font-bold uppercase text-brand-400">
+                            <th className="pb-3 pr-4">Image</th>
+                            <th className="pb-3 pr-4">Service Name</th>
+                            <th className="pb-3 pr-4">Distinguished Category</th>
+                            <th className="pb-3 pr-4">Duration</th>
+                            <th className="pb-3 pr-4">Icon</th>
+                            <th className="pb-3 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-brand-100/50 dark:divide-brand-800/40 text-sm">
+                          {filteredServices.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="text-center py-12 text-xs text-brand-400">
+                                No master services found matching filter criteria.
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredServices.map((s) => (
+                              <tr key={s.id} className="hover:bg-brand-50/30 dark:hover:bg-brand-800/10">
+                                <td className="py-3.5 pr-4">
+                                  <img
+                                    src={formatImageUrl(s.cover_image || s.coverImage) || 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=60'}
+                                    alt={s.name}
+                                    className="w-12 h-8 rounded-lg object-cover border"
+                                  />
+                                </td>
+                                <td className="py-3.5 pr-4 font-bold text-brand-900 dark:text-brand-50">{s.name}</td>
+                                <td className="py-3.5 pr-4">
+                                  <span className={`px-2.5 py-1 text-xs font-extrabold rounded-lg border ${getCategoryBadgeStyle(s.category)}`}>
+                                    {s.category}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 pr-4 font-mono font-semibold text-brand-700 dark:text-brand-300">{s.default_duration || s.defaultDuration || 30} mins</td>
+                                <td className="py-3.5 pr-4 text-xs font-mono text-brand-400">{s.icon || 'Scissors'}</td>
+                                <td className="py-3.5 text-right space-x-2">
+                                  <button
+                                    onClick={() => handleOpenEditMasterService(s)}
+                                    className="px-2.5 py-1 bg-brand-50 hover:bg-brand-100 dark:bg-brand-800 dark:hover:bg-brand-700 text-brand-700 dark:text-brand-200 rounded-lg text-xs font-semibold border transition-all inline-flex items-center gap-1"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" /> Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteMasterService(s.id)}
+                                    className="px-2.5 py-1 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg text-xs font-semibold border border-red-200/30 transition-all inline-flex items-center gap-1"
+                                  >
+                                    <Trash className="w-3.5 h-3.5" /> Delete
+                                  </button>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
