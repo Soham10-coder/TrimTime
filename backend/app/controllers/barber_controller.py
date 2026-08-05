@@ -59,15 +59,33 @@ def register_barber():
         business_proof_file = request.files.get('businessProof')
         shop_images_files = request.files.getlist('shopImages')
 
-        profile_pic_url = upload_to_s3(profile_pic_file, 'profile_pics') if profile_pic_file else ""
-        identity_proof_url = upload_to_s3(identity_proof_file, 'documents') if identity_proof_file else ""
-        business_proof_url = upload_to_s3(business_proof_file, 'documents') if business_proof_file else ""
-
+        profile_pic_url = ""
+        identity_proof_url = ""
+        business_proof_url = ""
         shop_images = []
+
+        try:
+            if profile_pic_file: profile_pic_url = upload_to_s3(profile_pic_file, 'profile_pics') or ""
+        except Exception as e:
+            logger.warning(f"Profile pic upload warning: {e}")
+
+        try:
+            if identity_proof_file: identity_proof_url = upload_to_s3(identity_proof_file, 'documents') or ""
+        except Exception as e:
+            logger.warning(f"Identity proof upload warning: {e}")
+
+        try:
+            if business_proof_file: business_proof_url = upload_to_s3(business_proof_file, 'documents') or ""
+        except Exception as e:
+            logger.warning(f"Business proof upload warning: {e}")
+
         for file in shop_images_files:
             if file and file.filename != '':
-                url = upload_to_s3(file, 'shop_images')
-                if url: shop_images.append(url)
+                try:
+                    url = upload_to_s3(file, 'shop_images')
+                    if url: shop_images.append(url)
+                except Exception as e:
+                    logger.warning(f"Shop image upload warning: {e}")
 
         now = datetime.datetime.utcnow()
         hashed_pass = hash_password(password)
