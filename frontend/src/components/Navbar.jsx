@@ -50,7 +50,7 @@ export default function Navbar() {
             </Link>
             {user && (
               <Link 
-                to={user.role === 'admin' ? '/admin' : user.role === 'barber' ? '/barber' : '/dashboard'} 
+                to={user.role === 'admin' ? '/trimtime-secret-admin-portal-x97k2' : user.role === 'barber' ? '/barber' : '/dashboard'} 
                 className="text-accent-700 font-extrabold flex items-center gap-1.5 transition-colors text-xs uppercase tracking-wider bg-accent-500/10 px-3.5 py-2 rounded-xl border border-accent-500/30 hover:bg-accent-500/20"
               >
                 <LayoutDashboard className="w-4 h-4 text-accent-500" />
@@ -125,7 +125,7 @@ export default function Navbar() {
               {user ? (
                 <>
                   <Link 
-                    to={user.role === 'admin' ? '/admin' : user.role === 'barber' ? '/barber' : '/dashboard'} 
+                    to={user.role === 'admin' ? '/trimtime-secret-admin-portal-x97k2' : user.role === 'barber' ? '/barber' : '/dashboard'} 
                     onClick={() => setIsOpen(false)}
                     className="block px-3 py-2 rounded-lg text-base font-bold text-accent-600 hover:bg-brand-100"
                   >
