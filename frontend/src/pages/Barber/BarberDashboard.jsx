@@ -289,9 +289,12 @@ export default function BarberDashboard() {
   const fetchBarberDashboardData = async () => {
     setLoading(true);
     try {
+      const barberId = user?.id || user?._id || user?.barberId;
+      if (!barberId) return;
+
       const bRes = await api.get('/booking/barber');
-      const hRes = await api.get(`/barber/hairstyles/${user.id}`);
-      const pRes = await api.get(`/barber/profile/${user.id}`);
+      const hRes = await api.get(`/barber/hairstyles/${barberId}`);
+      const pRes = await api.get(`/barber/profile/${barberId}`);
 
       if (bRes.ok && hRes.ok && pRes.ok) {
         setBookings(await bRes.json());
