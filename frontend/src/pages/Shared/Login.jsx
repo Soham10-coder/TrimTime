@@ -94,7 +94,7 @@ export default function Login({ defaultRole = 'customer' }) {
           await logout();
           return;
         }
-        navigate('/admin');
+        navigate('/trimtime-secret-admin-portal-x97k2');
       }
     } else {
       if (res.code === 'UNVERIFIED') {
