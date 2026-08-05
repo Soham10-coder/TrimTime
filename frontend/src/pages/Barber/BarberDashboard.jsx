@@ -277,10 +277,14 @@ export default function BarberDashboard() {
     try {
       const res = await api.get('/barber/catalog-settings');
       if (res.ok) {
-        setCatalogSettings(await res.json());
+        const data = await res.json();
+        setCatalogSettings(Array.isArray(data) ? data : (data.services || []));
+      } else {
+        setCatalogSettings([]);
       }
     } catch (e) {
       console.error("Failed to load catalog settings:", e);
+      setCatalogSettings([]);
     } finally {
       setCatalogLoading(false);
     }
@@ -1076,55 +1080,63 @@ export default function BarberDashboard() {
           })()}
 
           {/* SERVICES CATEGORY SWEEP SWITCHER */}
-          <div className="flex overflow-x-auto gap-2 pb-4 scrollbar-none border-b border-brand-100">
-            {['All', ...new Set(catalogSettings.map(s => s.category).filter(Boolean))].map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setSelectedDashboardCategory(cat)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-                  selectedDashboardCategory === cat
-                    ? 'bg-accent-500 text-white shadow-sm scale-105'
-                    : 'bg-brand-100 hover:bg-brand-200 dark:bg-brand-800 dark:hover:bg-brand-700 text-brand-700 dark:text-brand-300'
-                }`}
-              >
-                {cat === 'All' ? '🌟 All Categories' : cat}
-              </button>
-            ))}
-          </div>
+          {(() => {
+            const safeCatalogSettings = Array.isArray(catalogSettings) ? catalogSettings : [];
+            const categories = ['All', ...new Set(safeCatalogSettings.map(s => s && s.category).filter(Boolean))];
 
-          {catalogLoading ? (
-            <div className="p-12 text-center text-xs text-brand-400">Loading catalog settings...</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {catalogSettings
-                .filter((s) => selectedDashboardCategory === 'All' || s.category === selectedDashboardCategory)
-                .map((s) => {
-                  const localEnabled = getCardValue(s, 'enabled');
-                  const localPrice = getCardValue(s, 'price') ?? '';
-                  const localDuration = getCardValue(s, 'duration') ?? s.defaultDuration;
-                  const localDescription = getCardValue(s, 'description') ?? '';
-                  const localFile = cardEdits[s.masterServiceId]?.file;
-                  const localClearImg = cardEdits[s.masterServiceId]?.clearImg;
-                  const currentImage = localClearImg ? s.coverImage : (localFile ? URL.createObjectURL(localFile) : (s.customImageUrl || s.coverImage));
-                  
-                  const isModified = 
-                    localEnabled !== s.enabled ||
-                    String(localPrice) !== String(s.price ?? '') ||
-                    String(localDuration) !== String(s.duration ?? s.defaultDuration) ||
-                    localDescription !== (s.description ?? '') ||
-                    localFile !== undefined ||
-                    localClearImg !== undefined;
-
-                  return (
-                    <div
-                      key={s.masterServiceId}
-                      className={`bg-white dark:bg-brand-900 rounded-3xl border shadow-sm transition-all overflow-hidden flex flex-col justify-between ${
-                        localEnabled 
-                          ? 'border-accent-400 dark:border-accent-800 ring-1 ring-accent-400/20' 
-                          : 'opacity-75 grayscale border-brand-200 dark:border-brand-800'
+            return (
+              <>
+                <div className="flex overflow-x-auto gap-2 pb-4 scrollbar-none border-b border-brand-100">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setSelectedDashboardCategory(cat)}
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                        selectedDashboardCategory === cat
+                          ? 'bg-accent-500 text-white shadow-sm scale-105'
+                          : 'bg-brand-100 hover:bg-brand-200 dark:bg-brand-800 dark:hover:bg-brand-700 text-brand-700 dark:text-brand-300'
                       }`}
                     >
+                      {cat === 'All' ? '🌟 All Categories' : cat}
+                    </button>
+                  ))}
+                </div>
+
+                {catalogLoading ? (
+                  <div className="p-12 text-center text-xs text-brand-400">Loading catalog settings...</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {safeCatalogSettings
+                      .filter((s) => s && (selectedDashboardCategory === 'All' || s.category === selectedDashboardCategory))
+                      .map((s, idx) => {
+                        if (!s) return null;
+                        const msId = s.masterServiceId || s._id || idx;
+                        const localEnabled = getCardValue(s, 'enabled');
+                        const localPrice = getCardValue(s, 'price') ?? '';
+                        const localDuration = getCardValue(s, 'duration') ?? s.defaultDuration ?? 30;
+                        const localDescription = getCardValue(s, 'description') ?? '';
+                        const localFile = cardEdits[msId]?.file;
+                        const localClearImg = cardEdits[msId]?.clearImg;
+                        const currentImage = localClearImg ? (s.coverImage || getServiceFallbackImage(s.category)) : (localFile ? URL.createObjectURL(localFile) : (s.customImageUrl || s.coverImage || getServiceFallbackImage(s.category)));
+                        
+                        const isModified = 
+                          localEnabled !== s.enabled ||
+                          String(localPrice) !== String(s.price ?? '') ||
+                          String(localDuration) !== String(s.duration ?? s.defaultDuration) ||
+                          localDescription !== (s.description ?? '') ||
+                          localFile !== undefined ||
+                          localClearImg !== undefined;
+
+                        return (
+                          <div
+                            key={msId}
+                            className={`bg-white dark:bg-brand-900 rounded-3xl border shadow-sm transition-all overflow-hidden flex flex-col justify-between ${
+                              localEnabled 
+                                ? 'border-accent-400 dark:border-accent-800 ring-1 ring-accent-400/20' 
+                                : 'opacity-75 grayscale border-brand-200 dark:border-brand-800'
+                            }`}
+                          >
                       <div>
                         {/* Service Card Image */}
                         <div 
@@ -1300,8 +1312,11 @@ export default function BarberDashboard() {
                 })}
             </div>
           )}
-        </div>
-      )}
+        </>
+      );
+    })()}
+  </div>
+)}
 
       {/* TAB 6: CUSTOMER REVIEWS */}
       {activeTab === 'reviews' && (
