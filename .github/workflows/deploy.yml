@@ -93,10 +93,10 @@ jobs:
 
             docker pull $REGISTRY/trimtime-backend:$IMAGE_TAG
             docker pull $REGISTRY/trimtime-frontend:$IMAGE_TAG
-            docker compose up -d --remove-orphans || /usr/local/bin/docker-compose up -d --remove-orphans || docker-compose up -d --remove-orphans
+            /usr/local/bin/docker-compose up -d --remove-orphans || docker-compose up -d --remove-orphans || docker compose up -d --remove-orphans
 
             # Install Certbot if missing and issue Let's Encrypt SSL certificate for 13-235-37-85.nip.io
             if ! command -v certbot &> /dev/null; then
-              sudo apt-get update -y && sudo apt-get install -y certbot python3-certbot-nginx || true
+              sudo dnf install -y certbot python3-certbot-nginx 2>/dev/null || sudo yum install -y certbot python3-certbot-nginx 2>/dev/null || (sudo apt-get update -y && sudo apt-get install -y certbot python3-certbot-nginx) 2>/dev/null || true
             fi
-            sudo certbot --nginx -d 13-235-37-85.nip.io --non-interactive --agree-tos --email sohambagade10@gmail.com --redirect || true
+            sudo certbot --nginx -d 13-235-37-85.nip.io --non-interactive --agree-tos --email sohambagade10@gmail.com --redirect 2>/dev/null || true
