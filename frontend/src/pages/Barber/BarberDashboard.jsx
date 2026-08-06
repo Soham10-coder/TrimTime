@@ -339,15 +339,12 @@ export default function BarberDashboard() {
           setLat(position.coords.latitude.toFixed(6));
           setLng(position.coords.longitude.toFixed(6));
           setGeoLocating(false);
-          alert(`GPS Location Detected! Latitude: ${position.coords.latitude.toFixed(6)}, Longitude: ${position.coords.longitude.toFixed(6)}`);
         },
         (error) => {
           setGeoLocating(false);
-          alert("Could not fetch GPS location. Please allow browser location access or select location on map.");
+          // Gracefully fallback to interactive map selection without annoying alert modal
         }
       );
-    } else {
-      alert("Geolocation is not supported by your browser.");
     }
   };
 
