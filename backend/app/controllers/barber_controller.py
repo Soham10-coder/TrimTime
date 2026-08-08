@@ -88,6 +88,7 @@ def register_barber():
                     logger.warning(f"Shop image upload warning: {e}")
 
         now = datetime.datetime.utcnow()
+        trial_expiry = now + datetime.timedelta(days=30)
         hashed_pass = hash_password(password)
         barber_doc = {
             'owner_name': owner_name,
@@ -118,6 +119,10 @@ def register_barber():
             'rating_count': 0,
             'holiday_mode': False,
             'platform_fee_percent': 10.0,
+            'subscription_plan': 'Basic',
+            'subscription_status': 'trial',
+            'subscription_expires_at': trial_expiry.isoformat(),
+            'subscription_price': 499,
             'staff': [],
             'created_at': now
         }
@@ -612,6 +617,10 @@ def get_barber_profile(barber_id):
             'holidayMode': barber.get('holiday_mode', False),
             'verificationStatus': 'APPROVED',
             'verifiedBadge': True,
+            'subscriptionPlan': barber.get('subscription_plan', 'Basic'),
+            'subscriptionStatus': barber.get('subscription_status', 'trial'),
+            'subscriptionExpiresAt': barber.get('subscription_expires_at'),
+            'subscriptionPrice': barber.get('subscription_price', 499),
             'grossRevenue': gross_revenue,
             'platformFeePercent': platform_fee_percent,
             'platformCommission': platform_commission,

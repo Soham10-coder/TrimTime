@@ -176,6 +176,14 @@ function BarberCard({ b, navigate }) {
           <div className="absolute top-4 left-4 px-3 py-1 bg-red-500/90 backdrop-blur-md text-white rounded-full text-[10px] font-extrabold shadow-md z-10 uppercase tracking-wider">
             Closed Today
           </div>
+        ) : b.subscriptionPlan === 'VIP' ? (
+          <div className="absolute top-4 left-4 px-3 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 text-brand-950 rounded-full text-[10px] font-extrabold shadow-lg z-10 uppercase tracking-wider flex items-center gap-1 border border-amber-300">
+            👑 Gold VIP Salon
+          </div>
+        ) : b.subscriptionPlan === 'Pro' ? (
+          <div className="absolute top-4 left-4 px-3 py-1 bg-gradient-to-r from-blue-600 to-indigo-500 text-white rounded-full text-[10px] font-extrabold shadow-lg z-10 uppercase tracking-wider flex items-center gap-1 border border-blue-300">
+            ⭐ Pro Partner
+          </div>
         ) : (
           <div className="absolute top-4 left-4 px-3 py-1 bg-emerald-500/90 backdrop-blur-md text-white rounded-full text-[10px] font-extrabold shadow-md z-10 uppercase tracking-wider flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" /> Open Now

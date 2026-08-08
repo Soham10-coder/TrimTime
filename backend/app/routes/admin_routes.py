@@ -3,7 +3,8 @@ from app.controllers.admin_controller import (
     get_pending_barbers, approve_barber, toggle_barber_status,
     get_admin_analytics, create_coupon, get_coupons, toggle_coupon_status,
     get_all_users, get_all_barbers, remove_barber, remove_user, send_reminders,
-    get_master_services, create_master_service, update_master_service, delete_master_service
+    get_master_services, create_master_service, update_master_service, delete_master_service,
+    update_barber_subscription
 )
 from app.middlewares.auth import token_required, require_role
 
@@ -45,6 +46,9 @@ admin_bp.route('/users', methods=['GET'])(
 )
 admin_bp.route('/barbers', methods=['GET'])(
     token_required(require_role('admin')(get_all_barbers))
+)
+admin_bp.route('/barber/<barber_id>/subscription', methods=['PUT'])(
+    token_required(require_role('admin')(update_barber_subscription))
 )
 admin_bp.route('/master-services', methods=['GET'])(
     token_required(require_role('admin')(get_master_services))

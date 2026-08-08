@@ -262,6 +262,25 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleUpdateSubscription = async (barberId, plan, status) => {
+    try {
+      const res = await api.put(`/admin/barber/${barberId}/subscription`, {
+        plan,
+        status,
+        days: 30
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || `Subscription updated to ${plan}!`);
+        fetchAdminData();
+      } else {
+        alert(data.message || "Failed to update subscription.");
+      }
+    } catch (e) {
+      alert("Error updating subscription.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
@@ -662,13 +681,39 @@ export default function AdminDashboard() {
               <h3 className="text-lg font-bold font-display text-brand-900 dark:text-brand-50 mb-4">Merchant Status Control</h3>
               <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
                 {barbers.map(b => (
-                  <div key={b.id} className="p-3 border-b border-brand-100 dark:border-brand-800/40 flex justify-between items-center text-sm">
+                  <div key={b.id} className="p-3 border-b border-brand-100 dark:border-brand-800/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 text-sm">
                     <div>
                       <strong className="text-brand-800 dark:text-brand-200">{b.shopName}</strong>
                       <p className="text-xs text-brand-400">{b.ownerName} &bull; {b.city}</p>
-                      <p className="text-[9px] text-brand-400 dark:text-brand-500 font-mono mt-0.5 bg-brand-50 dark:bg-brand-950 px-1.5 py-0.5 rounded w-fit select-all">Salon ID: {b.id}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                          b.subscriptionPlan === 'VIP' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                          b.subscriptionPlan === 'Pro' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                          'bg-gray-100 text-gray-800 border border-gray-300'
+                        }`}>
+                          {b.subscriptionPlan || 'Basic'} (₹{b.subscriptionPrice || 499}/mo)
+                        </span>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
+                          b.subscriptionStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                        }`}>
+                          {b.subscriptionStatus === 'trial' ? '🎁 30-Day Free Trial' : 'Active Paid'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <select
+                        onChange={(e) => {
+                          const [plan, status] = e.target.value.split(':');
+                          handleUpdateSubscription(b.id, plan, status);
+                        }}
+                        defaultValue={`${b.subscriptionPlan || 'Basic'}:${b.subscriptionStatus || 'trial'}`}
+                        className="px-2 py-1 text-xs bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded font-semibold text-brand-800 dark:text-brand-200"
+                      >
+                        <option value="Basic:trial">Basic (Free Trial)</option>
+                        <option value="Basic:active">Basic (₹499/mo)</option>
+                        <option value="Pro:active">Pro (₹899/mo)</option>
+                        <option value="VIP:active">VIP Gold (₹1,299/mo)</option>
+                      </select>
                       <button
                         onClick={() => handleToggleBarber(b.id)}
                         className={`px-3 py-1 rounded text-xs font-semibold transition-all ${

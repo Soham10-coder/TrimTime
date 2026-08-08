@@ -623,7 +623,25 @@ export default function BarberDashboard() {
         <div>
           <span className="text-[10px] font-bold uppercase tracking-wider text-accent-500">Salon Operations Control Center</span>
           <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-brand-900 dark:text-brand-50 mt-0.5">{profile?.shopName || 'My Salon'}</h1>
-          <div className="text-xs text-brand-500 mt-1 flex flex-wrap items-center gap-3">
+          
+          {/* SUBSCRIPTION PLAN BADGE */}
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            <span className={`px-2.5 py-1 rounded-full text-xs font-extrabold flex items-center gap-1 ${
+              profile?.subscriptionPlan === 'VIP' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40' :
+              profile?.subscriptionPlan === 'Pro' ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/40' :
+              'bg-brand-500/20 text-brand-700 dark:text-brand-300 border border-brand-500/40'
+            }`}>
+              ✨ {profile?.subscriptionPlan || 'Basic'} Plan (₹{profile?.subscriptionPrice || 499}/mo)
+            </span>
+            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+              profile?.subscriptionStatus === 'active' ? 'bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/40' :
+              'bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/40'
+            }`}>
+              {profile?.subscriptionStatus === 'trial' ? '🎁 30-Day Free Trial Active' : '🟢 Subscription Active'}
+            </span>
+          </div>
+
+          <div className="text-xs text-brand-500 mt-2 flex flex-wrap items-center gap-3">
             <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-accent-500" /> {address || city || 'Shop Location'}</span>
             <span className="flex items-center gap-1 font-mono"><Clock className="w-3.5 h-3.5 text-accent-500" /> Open: {openingTime} - {closingTime}</span>
             {profile?.googleMapsUrl && (

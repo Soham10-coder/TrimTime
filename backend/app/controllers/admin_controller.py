@@ -304,7 +304,11 @@ def get_all_barbers():
                 'city': b.get('city'),
                 'verified': b.get('verified'),
                 'status': b.get('status'),
-                'ratingAvg': b.get('rating_avg', 0.0)
+                'ratingAvg': b.get('rating_avg', 0.0),
+                'subscriptionPlan': b.get('subscription_plan', 'Basic'),
+                'subscriptionStatus': b.get('subscription_status', 'trial'),
+                'subscriptionExpiresAt': b.get('subscription_expires_at'),
+                'subscriptionPrice': b.get('subscription_price', 499)
             })
         return jsonify(results), 200
     except Exception as e:
@@ -535,4 +539,34 @@ def delete_master_service(service_id):
         return jsonify({'message': 'Master service deleted successfully'}), 200
     except Exception as e:
         logger.error(f"Error deleting master service: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500
+
+def update_barber_subscription(barber_id):
+    try:
+        data = request.json or {}
+        plan = data.get('plan', 'Basic')
+        status = data.get('status', 'active')
+        days = int(data.get('days', 30))
+        
+        prices = {'Basic': 499, 'Pro': 899, 'VIP': 1299}
+        price = prices.get(plan, 499)
+        
+        now = datetime.datetime.utcnow()
+        expiry_date = now + datetime.timedelta(days=days)
+        
+        barbers_col.update_one(
+            {'_id': ObjectId(barber_id)},
+            {'$set': {
+                'subscription_plan': plan,
+                'subscription_status': status,
+                'subscription_expires_at': expiry_date.isoformat(),
+                'subscription_price': price
+            }}
+        )
+        return jsonify({
+            'message': f'Subscription updated to {plan} ({status}) for {days} days.',
+            'expiresAt': expiry_date.strftime('%Y-%m-%d')
+        }), 200
+    except Exception as e:
+        logger.error(f"Error updating barber subscription: {e}")
         return jsonify({'message': 'Internal Server Error'}), 500
