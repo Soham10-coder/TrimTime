@@ -342,13 +342,29 @@ export default function LandingPage() {
 
   const getSortedBarbers = () => {
     let list = [...barbers];
-    if (sortBy === 'rating') {
-      list.sort((a, b) => (b.ratingAvg || 0) - (a.ratingAvg || 0));
-    } else if (sortBy === 'experience') {
-      list.sort((a, b) => (b.experience || 0) - (a.experience || 0));
-    } else if (sortBy === 'name') {
-      list.sort((a, b) => a.shopName.localeCompare(b.shopName));
-    }
+
+    // Priority Tier Sorting: VIP Gold (3) > Pro (2) > Basic (1)
+    const getTierScore = (b) => {
+      if (b.subscriptionPlan === 'VIP') return 3;
+      if (b.subscriptionPlan === 'Pro') return 2;
+      return 1;
+    };
+
+    list.sort((a, b) => {
+      const scoreA = getTierScore(a);
+      const scoreB = getTierScore(b);
+      if (scoreA !== scoreB) return scoreB - scoreA;
+
+      if (sortBy === 'rating') {
+        return (b.ratingAvg || 0) - (a.ratingAvg || 0);
+      } else if (sortBy === 'experience') {
+        return (b.experience || 0) - (a.experience || 0);
+      } else if (sortBy === 'name') {
+        return a.shopName.localeCompare(b.shopName);
+      }
+      return 0;
+    });
+
     return list;
   };
 
