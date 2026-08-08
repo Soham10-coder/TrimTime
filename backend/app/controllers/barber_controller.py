@@ -1187,7 +1187,3 @@ def verify_subscription_payment(barber_id):
     except Exception as e:
         logger.error(f"Error verifying subscription payment: {e}")
         return jsonify({'message': 'Payment verification failed'}), 500
-        
-    except Exception as e:
-        logger.error(f"Error toggling barber service: {e}")
-        return jsonify({'message': 'Internal Server Error'}), 500
