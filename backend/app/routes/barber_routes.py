@@ -4,7 +4,8 @@ from app.controllers.barber_controller import (
     update_staff_member, delete_staff_member,
     get_barbers, get_barber_profile, update_barber_profile,
     add_hairstyle, get_barber_hairstyles, update_hairstyle, delete_hairstyle,
-    rate_barber, get_barber_catalog_settings, toggle_barber_service
+    rate_barber, get_barber_catalog_settings, toggle_barber_service,
+    create_subscription_order, verify_subscription_payment
 )
 from app.middlewares.auth import token_required, require_role, auth_required
 
@@ -50,6 +51,13 @@ barber_bp.route('/catalog-settings', methods=['GET'])(
 )
 barber_bp.route('/hairstyles/toggle', methods=['POST'])(
     token_required(require_role('barber')(toggle_barber_service))
+)
+
+barber_bp.route('/subscription/<barber_id>/order', methods=['POST'])(
+    token_required(require_role('barber')(create_subscription_order))
+)
+barber_bp.route('/subscription/<barber_id>/verify', methods=['POST'])(
+    token_required(require_role('barber')(verify_subscription_payment))
 )
 
 # Secured routes (Customer only)

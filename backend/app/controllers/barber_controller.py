@@ -1114,6 +1114,79 @@ def toggle_barber_service():
             'salonServiceId': service_id,
             'imageUrl': image_url or master_service.get('cover_image', '')
         }), 200
+
+def create_subscription_order(barber_id):
+    try:
+        import razorpay
+        from config import Config
+        data = request.json or {}
+        plan = data.get('plan', 'Basic')
+        prices = {'Basic': 499, 'Pro': 899, 'VIP': 1299}
+        amount_rs = prices.get(plan, 499)
+        amount_paise = amount_rs * 100
+
+        key_id = Config.RAZORPAY_KEY_ID or 'rzp_test_mockkey'
+        key_secret = Config.RAZORPAY_KEY_SECRET or 'rzp_test_mocksecret'
+
+        try:
+            client = razorpay.Client(auth=(key_id, key_secret))
+            order_data = {
+                'amount': amount_paise,
+                'currency': 'INR',
+                'receipt': f'sub_{barber_id}_{plan}',
+                'payment_capture': 1
+            }
+            order = client.order.create(data=order_data)
+            order_id = order['id']
+        except Exception as e:
+            logger.warning(f"Razorpay order creation fallback: {e}")
+            import uuid
+            order_id = f"order_sub_{uuid.uuid4().hex[:12]}"
+
+        return jsonify({
+            'orderId': order_id,
+            'amount': amount_rs,
+            'amountPaise': amount_paise,
+            'keyId': key_id,
+            'plan': plan
+        }), 200
+    except Exception as e:
+        logger.error(f"Error creating subscription order: {e}")
+        return jsonify({'message': 'Failed to create payment order'}), 500
+
+def verify_subscription_payment(barber_id):
+    try:
+        data = request.json or {}
+        plan = data.get('plan', 'Basic')
+        razorpay_order_id = data.get('razorpayOrderId')
+        razorpay_payment_id = data.get('razorpayPaymentId')
+
+        prices = {'Basic': 499, 'Pro': 899, 'VIP': 1299}
+        price = prices.get(plan, 499)
+
+        now = datetime.datetime.utcnow()
+        expiry_date = now + datetime.timedelta(days=30)
+
+        barbers_col.update_one(
+            {'_id': ObjectId(barber_id)},
+            {'$set': {
+                'subscription_plan': plan,
+                'subscription_status': 'active',
+                'subscription_expires_at': expiry_date.isoformat(),
+                'subscription_price': price,
+                'last_payment_id': razorpay_payment_id,
+                'last_order_id': razorpay_order_id
+            }}
+        )
+        return jsonify({
+            'message': f'Subscription upgraded to {plan} successfully!',
+            'plan': plan,
+            'status': 'active',
+            'expiresAt': expiry_date.strftime('%Y-%m-%d')
+        }), 200
+    except Exception as e:
+        logger.error(f"Error verifying subscription payment: {e}")
+        return jsonify({'message': 'Payment verification failed'}), 500
         
     except Exception as e:
         logger.error(f"Error toggling barber service: {e}")

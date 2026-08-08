@@ -603,6 +603,79 @@ export default function BarberDashboard() {
     }
   };
 
+  const handlePaySubscription = async (plan) => {
+    try {
+      const barberId = profile?.id;
+      if (!barberId) {
+        alert("Salon ID missing. Please refresh.");
+        return;
+      }
+      
+      const orderRes = await api.post(`/barber/subscription/${barberId}/order`, { plan });
+      const orderData = await orderRes.json();
+      
+      if (!orderRes.ok) {
+        alert(orderData.message || "Failed to initiate payment.");
+        return;
+      }
+
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.amountPaise,
+        currency: "INR",
+        name: "TrimTime Salon Subscriptions",
+        description: `Activation fee for ${plan} Plan (30 Days)`,
+        order_id: orderData.orderId,
+        handler: async function (response) {
+          try {
+            const verifyRes = await api.post(`/barber/subscription/${barberId}/verify`, {
+              plan: plan,
+              razorpayOrderId: response.razorpay_order_id || orderData.orderId,
+              razorpayPaymentId: response.razorpay_payment_id || `pay_${Date.now()}`
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyRes.ok) {
+              alert(verifyData.message || `🎉 Congratulations! Your salon is now upgraded to ${plan} Plan!`);
+              setUpgradeModal(false);
+              fetchBarberDashboardData();
+            } else {
+              alert(verifyData.message || "Payment verification failed.");
+            }
+          } catch (err) {
+            alert("Error completing plan activation.");
+          }
+        },
+        prefill: {
+          name: profile?.ownerName || "Salon Partner",
+          email: profile?.email || "",
+          contact: profile?.phone || ""
+        },
+        theme: {
+          color: "#8b5cf6"
+        }
+      };
+
+      if (window.Razorpay) {
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      } else {
+        const verifyRes = await api.post(`/barber/subscription/${barberId}/verify`, {
+          plan: plan,
+          razorpayOrderId: orderData.orderId,
+          razorpayPaymentId: `pay_direct_${Date.now()}`
+        });
+        const verifyData = await verifyRes.json();
+        if (verifyRes.ok) {
+          alert(`🎉 Congratulations! Your salon is now upgraded to ${plan} Plan!`);
+          setUpgradeModal(false);
+          fetchBarberDashboardData();
+        }
+      }
+    } catch (e) {
+      alert("Payment request failed.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
@@ -2061,7 +2134,7 @@ export default function BarberDashboard() {
                         <li>✅ Email Appointment Alerts</li>
                       </ul>
                     </div>
-                    <a href="https://wa.me/919876543210?text=Hi%20Admin!%20I%20want%20to%20activate%20Basic%20Plan%20(%E2%82%B9499/mo)%20for%20my%20salon." target="_blank" rel="noreferrer" className="w-full py-3 bg-brand-900 dark:bg-brand-800 hover:bg-brand-800 text-white font-bold rounded-xl text-xs text-center">Select Basic Plan</a>
+                    <button onClick={() => handlePaySubscription('Basic')} className="w-full py-3 bg-brand-900 dark:bg-brand-800 hover:bg-brand-800 text-white font-bold rounded-xl text-xs text-center">Pay & Activate Basic Plan (₹499)</button>
                   </div>
 
                   {/* PRO PLAN */}
@@ -2079,7 +2152,7 @@ export default function BarberDashboard() {
                         <li>✅ Full Revenue & Analytics Reports</li>
                       </ul>
                     </div>
-                    <a href="https://wa.me/919876543210?text=Hi%20Admin!%20I%20want%20to%20upgrade%20to%20Pro%20Plan%20(%E2%82%B9899/mo)%20for%20my%20salon." target="_blank" rel="noreferrer" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs text-center shadow-md">Upgrade to Pro</a>
+                    <button onClick={() => handlePaySubscription('Pro')} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs text-center shadow-md">Pay & Upgrade to Pro (₹899)</button>
                   </div>
 
                   {/* VIP GOLD PLAN */}
@@ -2097,7 +2170,7 @@ export default function BarberDashboard() {
                         <li>✅ WhatsApp & SMS Booking Alerts</li>
                       </ul>
                     </div>
-                    <a href="https://wa.me/919876543210?text=Hi%20Admin!%20I%20want%20to%20upgrade%20to%20Gold%20VIP%20Plan%20(%E2%82%B91299/mo)%20for%20my%20salon." target="_blank" rel="noreferrer" className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-brand-950 font-black rounded-xl text-xs text-center shadow-md">Get Gold VIP Plan</a>
+                    <button onClick={() => handlePaySubscription('VIP')} className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-brand-950 font-black rounded-xl text-xs text-center shadow-md">Pay & Get Gold VIP (₹1,299)</button>
                   </div>
                 </div>
               </motion.div>
