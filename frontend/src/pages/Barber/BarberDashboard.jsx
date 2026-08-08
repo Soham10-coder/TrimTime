@@ -178,6 +178,7 @@ export default function BarberDashboard() {
   const [offlineSelectedSlot, setOfflineSelectedSlot] = useState('');
   const [offlineSlotsLoading, setOfflineSlotsLoading] = useState(false);
   const [offlineSubmitting, setOfflineSubmitting] = useState(false);
+  const [upgradeModal, setUpgradeModal] = useState(false);
 
   useEffect(() => {
     fetchBarberDashboardData();
@@ -639,6 +640,12 @@ export default function BarberDashboard() {
             }`}>
               {profile?.subscriptionStatus === 'trial' ? '🎁 30-Day Free Trial Active' : '🟢 Subscription Active'}
             </span>
+            <button
+              onClick={() => setUpgradeModal(true)}
+              className="px-3 py-1 bg-accent-500 hover:bg-accent-600 text-white rounded-full text-xs font-extrabold shadow-sm transition-all flex items-center gap-1"
+            >
+              ⚡ Upgrade Plan
+            </button>
           </div>
 
           <div className="text-xs text-brand-500 mt-2 flex flex-wrap items-center gap-3">
@@ -2015,6 +2022,83 @@ export default function BarberDashboard() {
                       </span>
                     </div>
                   )}
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* UPGRADE PLAN MODAL */}
+        <AnimatePresence>
+          {upgradeModal && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white dark:bg-brand-900 border border-brand-200 dark:border-brand-800 rounded-3xl p-6 sm:p-8 max-w-4xl w-full shadow-2xl space-y-6"
+              >
+                <div className="flex justify-between items-center border-b border-brand-200 dark:border-brand-800 pb-4">
+                  <div>
+                    <span className="text-xs font-bold text-accent-500 uppercase tracking-wider">TrimTime Partner Growth</span>
+                    <h2 className="text-2xl font-black font-display text-brand-900 dark:text-brand-50">Select Your Membership Plan</h2>
+                  </div>
+                  <button onClick={() => setUpgradeModal(false)} className="text-brand-400 hover:text-brand-600 dark:hover:text-brand-200 font-bold text-xl px-2">✕</button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* BASIC PLAN */}
+                  <div className="bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-800 rounded-2xl p-6 flex flex-col justify-between hover:border-accent-500 transition-all">
+                    <div>
+                      <span className="text-xs font-bold text-brand-500 uppercase">Starter Plan</span>
+                      <h3 className="text-xl font-bold text-brand-900 dark:text-brand-50 mt-1">Basic Partner</h3>
+                      <div className="text-3xl font-black text-brand-900 dark:text-brand-50 my-4 font-mono">₹499 <span className="text-xs font-normal text-brand-500">/ month</span></div>
+                      <ul className="text-xs text-brand-600 dark:text-brand-400 space-y-2 mb-6">
+                        <li>✅ Standard Directory Listing</li>
+                        <li>✅ Barber Dashboard & Calendar</li>
+                        <li>✅ 90+ Master Catalog Access</li>
+                        <li>✅ Open/Closed Status Switch</li>
+                        <li>✅ Email Appointment Alerts</li>
+                      </ul>
+                    </div>
+                    <a href="https://wa.me/919876543210?text=Hi%20Admin!%20I%20want%20to%20activate%20Basic%20Plan%20(%E2%82%B9499/mo)%20for%20my%20salon." target="_blank" rel="noreferrer" className="w-full py-3 bg-brand-900 dark:bg-brand-800 hover:bg-brand-800 text-white font-bold rounded-xl text-xs text-center">Select Basic Plan</a>
+                  </div>
+
+                  {/* PRO PLAN */}
+                  <div className="bg-gradient-to-b from-blue-500/10 to-brand-950 border-2 border-blue-500 rounded-2xl p-6 flex flex-col justify-between shadow-lg relative">
+                    <span className="absolute -top-3 right-4 bg-blue-500 text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase">Most Popular</span>
+                    <div>
+                      <span className="text-xs font-bold text-blue-400 uppercase">Growth Plan</span>
+                      <h3 className="text-xl font-bold text-brand-900 dark:text-brand-50 mt-1">⭐ Pro Partner</h3>
+                      <div className="text-3xl font-black text-blue-400 my-4 font-mono">₹899 <span className="text-xs font-normal text-brand-500">/ month</span></div>
+                      <ul className="text-xs text-brand-600 dark:text-brand-400 space-y-2 mb-6">
+                        <li>✅ <strong>Everything in Basic</strong></li>
+                        <li>✅ <strong>`⭐ PRO PARTNER` Badge</strong></li>
+                        <li>✅ <strong>High Priority Search Ranking</strong></li>
+                        <li>✅ Staff & Stylist Management</li>
+                        <li>✅ Full Revenue & Analytics Reports</li>
+                      </ul>
+                    </div>
+                    <a href="https://wa.me/919876543210?text=Hi%20Admin!%20I%20want%20to%20upgrade%20to%20Pro%20Plan%20(%E2%82%B9899/mo)%20for%20my%20salon." target="_blank" rel="noreferrer" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs text-center shadow-md">Upgrade to Pro</a>
+                  </div>
+
+                  {/* VIP GOLD PLAN */}
+                  <div className="bg-gradient-to-b from-amber-500/10 to-brand-950 border-2 border-amber-500 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative">
+                    <span className="absolute -top-3 right-4 bg-amber-500 text-brand-950 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase">Maximum Exposure</span>
+                    <div>
+                      <span className="text-xs font-bold text-amber-500 uppercase">Enterprise Plan</span>
+                      <h3 className="text-xl font-bold text-brand-900 dark:text-brand-50 mt-1">👑 Gold VIP Salon</h3>
+                      <div className="text-3xl font-black text-amber-400 my-4 font-mono">₹1,299 <span className="text-xs font-normal text-brand-500">/ month</span></div>
+                      <ul className="text-xs text-brand-600 dark:text-brand-400 space-y-2 mb-6">
+                        <li>✅ <strong>Everything in Pro</strong></li>
+                        <li>✅ <strong>`👑 GOLD VIP` Badge</strong></li>
+                        <li>✅ <strong>TOP #1 Search Placement</strong></li>
+                        <li>✅ Home Page Featured Banner Ad</li>
+                        <li>✅ WhatsApp & SMS Booking Alerts</li>
+                      </ul>
+                    </div>
+                    <a href="https://wa.me/919876543210?text=Hi%20Admin!%20I%20want%20to%20upgrade%20to%20Gold%20VIP%20Plan%20(%E2%82%B91299/mo)%20for%20my%20salon." target="_blank" rel="noreferrer" className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-brand-950 font-black rounded-xl text-xs text-center shadow-md">Get Gold VIP Plan</a>
+                  </div>
                 </div>
               </motion.div>
             </div>
