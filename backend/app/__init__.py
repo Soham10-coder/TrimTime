@@ -30,8 +30,11 @@ def create_app():
 
     # Database index setup & auto-seeding
     with app.app_context():
-        init_indexes()
-        seed_default_data()
+        try:
+            init_indexes()
+            seed_default_data()
+        except Exception as e:
+            app.logger.warning(f"Database init warning on startup: {e}")
 
     # Serve uploaded files route
     @app.route('/uploads/<path:filename>')

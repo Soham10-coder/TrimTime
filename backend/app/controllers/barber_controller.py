@@ -1114,6 +1114,9 @@ def toggle_barber_service():
             'salonServiceId': service_id,
             'imageUrl': image_url or master_service.get('cover_image', '')
         }), 200
+    except Exception as e:
+        logger.error(f"Error toggling barber service: {e}")
+        return jsonify({'message': 'Internal Server Error'}), 500
 
 def create_subscription_order(barber_id):
     try:
